@@ -1,13 +1,12 @@
 // =====================================================================
 // Kidzona Nova Gradiška — Prisma shema
 // ---------------------------------------------------------------------
-// Provider je SQLite za lokalni razvoj (jednostavno pokretanje bez baze),
-// ali shema je namjerno Postgres-kompatibilna:
+// Baza je PostgreSQL (Prisma Postgres na Vercelu) — ista za lokalni rad i
+// produkciju; veza je u `DATABASE_URL`.
 //   - novac se sprema kao Int u EUR-centima (bez Decimal/Float problema),
 //   - role/statusi su String s dokumentiranim dozvoljenim vrijednostima
-//     (Prisma enumi ne rade na SQLite-u; validacija je u aplikaciji preko Zod-a),
-//   - liste/strukture su Json (radi na SQLite i Postgresu).
-// Za produkciju: promijeni `provider = "postgresql"` i `DATABASE_URL`.
+//     (validacija je u aplikaciji preko Zod-a),
+//   - liste/strukture su Json.
 // =====================================================================
 
 generator client {
@@ -15,7 +14,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

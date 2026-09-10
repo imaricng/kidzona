@@ -107,7 +107,7 @@ Okidaju se automatski i **zapisuju u konzolu razvojnog poslužitelja** te u bazu
 ## 🧰 Tehnologije
 
 - **Next.js 15** (App Router) + **TypeScript** + **Tailwind CSS**
-- **Prisma ORM** — SQLite za lokalni razvoj, shema je **Postgres-kompatibilna**
+- **Prisma ORM** + **PostgreSQL** (Prisma Postgres na Vercelu)
 - Apstrakcije: `PaymentService` (Stripe), `FiscalizationService`,
   `NotificationService` (email/SMS) — pružatelj usluge mijenja se na jednom mjestu
 - Sav novac u **EUR-centima** (Int); formatiranje po hrvatskom standardu
@@ -126,8 +126,9 @@ npm install
 # 2) pripremi varijable okruženja
 cp .env.example .env        # na Windowsu: copy .env.example .env
 
-# 3) stvori bazu (SQLite) i napuni probne podatke
-npm run db:reset            # = prisma db push --force-reset + seed
+# 3) u .env postavi DATABASE_URL (PostgreSQL), stvori tablice i unesi katalog i administratora
+npm run db:push && npm run db:sync-katalog
+ADMIN_EMAIL="..." ADMIN_PASSWORD="..." npm run db:admin
 
 # 4) pokreni razvojni server
 npm run dev
@@ -135,7 +136,7 @@ npm run dev
 
 Otvori **http://localhost:3000**.
 
-**Probne prijave:**
+**Probne prijave** (samo u lokalnoj bazi napunjenoj s `npm run db:reset`):
 - Administracija (`/admin`) — Admin: `admin@kidzona.hr` / `admin123`
 - Administracija — Osoblje: `osoblje@kidzona.hr` / `osoblje123`
 - Portal za roditelje (`/portal`): `ivana.horvat@example.com` / `roditelj123`
@@ -150,10 +151,10 @@ Otvori **http://localhost:3000**.
 | `npm run build` | produkcijska verzija (uključuje provjeru tipova) |
 | `npm run start` | pokretanje produkcijske verzije |
 | `npm run db:push` | sinkronizira shemu s bazom |
-| `npm run db:seed` | puni probne podatke |
-| `npm run db:reset` | čista baza + probni podaci |
+| `npm run db:seed` | puni probne podatke — briše sve (**samo lokalna baza**) |
+| `npm run db:reset` | briše bazu i puni probne podatke (**samo lokalna baza**) |
 | `npm run db:sync-katalog` | unosi igraonice i pakete iz `prisma/katalog.ts` bez brisanja podataka |
-| `npm run db:pg:prepare` | generira `prisma/schema.postgres.prisma` + `prisma/postgres-init.sql` (Postgres migracija) |
+| `npm run db:admin` | stvara ili mijenja administratora (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, lozinka barem 12 znakova) |
 | `npm test` | pokreće jedinične testove (Vitest) |
 
 ---
@@ -164,10 +165,10 @@ Vidi `.env.example` za potpuni popis i komentare. Najvažnije:
 
 | Varijabla | Zadano | Opis |
 |---|---|---|
-| `DATABASE_URL` | `file:./dev.db` | SQLite lokalno; za produkciju Postgres URL |
+| `DATABASE_URL` | — | veza na PostgreSQL (`postgres://…`) |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | osnovna adresa (QR poveznice, e-pošta) |
-| `AUTH_SECRET` | dev tajna | **obvezno promijeniti** u produkciji |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | admin@kidzona.hr / admin123 | probni administrator (seed) |
+| `AUTH_SECRET` | — | tajna za potpis prijave; **u produkciji obvezna** (bez nje prijava ne radi) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | — | koristi ih `npm run db:admin` (i lokalni seed) |
 | `DEPOSIT_PERCENT` | `30` | postotak akontacije |
 | `STRIPE_SECRET_KEY` | prazno → **probni način** | Stripe tajni ključ (EUR) |
 | `NOTIFICATION_PROVIDER` | `console` | `console` / (kasnije) `resend`, `twilio` |
@@ -176,7 +177,7 @@ Vidi `.env.example` za potpuni popis i komentare. Najvažnije:
 | `EMAIL_REPLY_TO` | `kidzonang@gmail.com` | adresa za odgovore kupaca na automatske poruke |
 | `FISCALIZATION_PROVIDER` | `mock` | `mock` / (kasnije) `fina` |
 | `FISCAL_OIB`, `FISCAL_BUSINESS_SPACE`, `FISCAL_CASH_REGISTER` | — | podaci obveznika fiskalizacije |
-| `CRON_SECRET` | prazno | štiti `/api/cron/reminders` (prazno pri razvoju = dopušteno) |
+| `CRON_SECRET` | — | štiti `/api/cron/reminders`; **u produkciji obvezan** |
 | `LOYALTY_POINTS_PER_PARTY` | `50` | bodovi vjernosti po proslavi |
 | `FEATURE_MEMBERSHIPS` / `FEATURE_LOYALTY` / `FEATURE_OPEN_PLAY` | `true` | uključivanje opcijskih modula |
 
@@ -247,7 +248,7 @@ prisma/
 ```
 
 Ključne odluke: novac kao **Int (centi)**; statusi/role kao **String** s Zod
-validacijom (radi i na SQLite i na Postgresu); liste kao **Json**; vanjski
+validacijom; liste kao **Json**; vanjski
 sustavi iza **sučelja**.
 
 ---
@@ -269,11 +270,8 @@ sustavi iza **sučelja**.
 
 ## 📦 Sljedeći koraci za produkciju
 
-- **PostgreSQL:** pokreni `npm run db:pg:prepare` (generira Postgres shemu i
-  `prisma/postgres-init.sql`). Za produkciju promijeni `provider = "postgresql"` u
-  `prisma/schema.prisma`, postavi `DATABASE_URL` (npr. Neon / Supabase) i primijeni
-  migraciju (`prisma migrate deploy` ili učitaj `postgres-init.sql`). Shema je
-  potvrđeno Postgres-kompatibilna (21 tablica, JSONB za liste).
+- **Objava na Vercel:** baza je Prisma Postgres. Na Vercelu postavi `DATABASE_URL`, `AUTH_SECRET`,
+  `CRON_SECRET` i `NEXT_PUBLIC_APP_URL`; promjene sheme primijeni s `npm run db:push`.
 - **Stripe** i **email/SMS** su već implementirani — samo postavi ključeve
   (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, Twilio) i dodaj
   Stripe Payment Element na sučelje. Preostaje **ovlašteni fiskalni** servis + FINA

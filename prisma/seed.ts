@@ -12,6 +12,7 @@ import { hashPassword } from "../src/lib/password";
 import { izracunajCijenu } from "../src/lib/pricing";
 import { krajTermina, lokalniISO, pocetciZaDatum } from "../src/lib/slots";
 import { NEAKTIVNI_DODACI, PAKETI, SOBE, TEME } from "./katalog";
+import { provjeriLokalnuBazu } from "./samo-lokalno";
 import { brojDjece } from "../src/i18n/hr";
 
 const prisma = new PrismaClient();
@@ -48,6 +49,8 @@ function mockFiskal(number: string, totalCents: number, issuedAt: Date) {
 }
 
 async function main() {
+  // Seed briše SVE podatke — dopušten je samo nad lokalnom bazom.
+  provjeriLokalnuBazu();
   console.log("🌱 Brišem postojeće podatke…");
   // Redoslijed zbog stranih ključeva
   await prisma.notificationLog.deleteMany();

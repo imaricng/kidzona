@@ -49,16 +49,14 @@ export default async function AdminLoginPage({
         <form action={prijaviAction} className="mt-6 space-y-4">
           <div>
             <label className="label" htmlFor="email">E-pošta</label>
-            <input id="email" name="email" type="email" className="input" defaultValue="admin@kidzona.hr" required />
+            <input id="email" name="email" type="email" className="input" autoComplete="username" required />
           </div>
           <div>
             <label className="label" htmlFor="password">{hr.admin.lozinka}</label>
-            <input id="password" name="password" type="password" className="input" defaultValue="admin123" required />
+            <input id="password" name="password" type="password" className="input" autoComplete="current-password" required />
           </div>
           <button type="submit" className="btn-primary w-full">{hr.admin.prijaviSe}</button>
-        </form>
-        <p className="mt-4 text-center text-xs text-ink-400">Probni pristup: admin@kidzona.hr / admin123</p>
-      </div>
+        </form>      </div>
     </div>
   );
 }

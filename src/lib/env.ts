@@ -17,11 +17,18 @@ export const env = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   timezone: process.env.APP_TIMEZONE ?? "Europe/Zagreb",
 
-  authSecret: process.env.AUTH_SECRET ?? "dev-tajna-promijeni-me",
-  adminEmail: process.env.ADMIN_EMAIL ?? "admin@kidzona.hr",
-  adminPassword: process.env.ADMIN_PASSWORD ?? "admin123",
+  // Tajna za potpis sesijskog kolačića. U produkciji je obvezna — bez nje bi se
+  // prijava mogla lažirati, pa aplikacija radije odbije prijavu.
+  get authSecret(): string {
+    const tajna = process.env.AUTH_SECRET;
+    if (tajna) return tajna;
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET nije postavljen — dodaj ga u varijable okruženja (Vercel → Settings → Environment Variables).");
+    }
+    return "razvojna-tajna-samo-lokalno";
+  },
 
-  // Tajna za zaštitu cron endpointa (automatski podsjetnici). U dev-u prazno = dozvoljeno.
+  // Tajna za zaštitu cron endpointa (automatski podsjetnici). U produkciji je obvezna.
   cronSecret: process.env.CRON_SECRET ?? "",
 
   // Bodovi lojalnosti koji se dodjeljuju po završenoj proslavi.
