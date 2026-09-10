@@ -1,0 +1,405 @@
+// =====================================================================
+// Kidzona Nova Gradiška — Prisma shema
+// ---------------------------------------------------------------------
+// Provider je SQLite za lokalni razvoj (jednostavno pokretanje bez baze),
+// ali shema je namjerno Postgres-kompatibilna:
+//   - novac se sprema kao Int u EUR-centima (bez Decimal/Float problema),
+//   - role/statusi su String s dokumentiranim dozvoljenim vrijednostima
+//     (Prisma enumi ne rade na SQLite-u; validacija je u aplikaciji preko Zod-a),
+//   - liste/strukture su Json (radi na SQLite i Postgresu).
+// Za produkciju: promijeni `provider = "postgresql"` i `DATABASE_URL`.
+// =====================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Korisnici i role -------------------------------------------------
+// role: "admin" | "osoblje" | "roditelj"
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String   @default("roditelj")
+  createdAt    DateTime @default(now())
+
+  family            Family?
+  staffAssignments  StaffAssignment[]
+  resetTokens       PasswordResetToken[]
+}
+
+// Token za reset lozinke ("zaboravljena lozinka").
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// --- CRM: obitelji, djeca, marketing ---------------------------------
+// Srce CRM-a: baza obitelji + djece (rođendani) + email roditelja.
+model Family {
+  id               String   @id @default(cuid())
+  parentName       String
+  email            String   @unique
+  phone            String?
+  address          String?
+  city             String?  @default("Nova Gradiška")
+  notes            String?
+  // GDPR / marketing privole
+  gdprConsentAt    DateTime?
+  marketingConsent Boolean  @default(false)
+  source           String?  // npr. "booking", "rucni-unos", "open-play"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  children      Child[]
+  reservations  Reservation[]
+  loyalty       LoyaltyAccount?
+  memberships   Membership[]
+  openPlay      OpenPlaySession[]
+}
+
+model Child {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  firstName String
+  birthDate DateTime // rođendan — koristi se za automatske podsjetnike sljedeće godine
+  allergies String?  // osjetljivo (GDPR)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([birthDate])
+}
+
+// --- Prostor: party sobe ---------------------------------------------
+model Room {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  minChildren  Int      @default(1)
+  maxChildren  Int      @default(15)
+  capacity     Int      @default(20) // ukupno osoba (djeca + odrasli)
+  // ID-evi soba s kojima se ova može spojiti za veće proslave
+  mergeableWith Json?
+  color        String   @default("#f97316")
+  sortOrder    Int      @default(0)
+  active       Boolean  @default(true)
+
+  packages           Package[]
+  reservations       Reservation[] @relation("PrimaryRoom")
+  secondaryFor       Reservation[] @relation("SecondRoom")
+}
+
+// --- Paketi i dodaci --------------------------------------------------
+model Package {
+  id            String  @id @default(cuid())
+  name          String
+  slug          String  @unique
+  tier          Int     @default(1) // 1=Standard, 2=Premium, 3=Platinum
+  description   String?
+  // Igraonica za koju paket vrijedi (null = sve igraonice)
+  roomId        String?
+  room          Room?   @relation(fields: [roomId], references: [id])
+  basePriceCents Int    @default(0)   // fiksna osnovica paketa
+  perChildCents  Int    @default(0)   // nadoplata za svako dijete iznad maxChildren
+  includedItems  Json                  // lista uključenih stavki (string[])
+  minChildren    Int    @default(5)
+  maxChildren    Int    @default(20)  // broj djece uključen u cijenu (slavljenik se ne broji)
+  durationMin    Int    @default(120) // određuje kraj termina (Standard 120, Premium 180)
+  popular        Boolean @default(false)
+  sortOrder      Int    @default(0)
+  active         Boolean @default(true)
+
+  reservations Reservation[]
+
+  @@index([roomId])
+}
+
+// unit: "per_child" | "flat"
+model AddOn {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  category    String? // "hrana" | "dekoracija" | "zabava" | "ostalo"
+  priceCents  Int     @default(0)
+  unit        String  @default("flat")
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+
+  reservationAddOns ReservationAddOn[]
+}
+
+// --- Tematske proslave ------------------------------------------------
+model Theme {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  emoji       String  @default("🎉")
+  gradient    String  @default("from-brand-400 to-berry-400")
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+
+  reservations Reservation[]
+}
+
+// --- Rezervacije ------------------------------------------------------
+// status: "upit" | "potvrdjeno" | "placeno" | "checkin" | "zavrseno" | "otkazano"
+model Reservation {
+  id        String   @id @default(cuid())
+  code      String   @unique // npr. KZ-2026-0042 (čitljiv kod + osnova za QR)
+
+  date      DateTime // datum proslave (00:00 lokalno)
+  slotStart String   // "HH:mm"
+  slotEnd   String   // "HH:mm"
+
+  roomId       String
+  room         Room    @relation("PrimaryRoom", fields: [roomId], references: [id])
+  secondRoomId String?
+  secondRoom   Room?   @relation("SecondRoom", fields: [secondRoomId], references: [id])
+
+  packageId String
+  package   Package @relation(fields: [packageId], references: [id])
+
+  themeId String?
+  theme   Theme?  @relation(fields: [themeId], references: [id])
+
+  numChildren Int
+  numAdults   Int @default(0) // broj odraslih gostiju (kapacitet/hrana)
+
+  // Snapshot kontakt podataka (i veza na CRM obitelj ako postoji)
+  familyId        String?
+  family          Family? @relation(fields: [familyId], references: [id])
+  parentName      String
+  email           String
+  phone           String?
+  childName       String?
+  childBirthDate  DateTime?
+
+  status String @default("upit")
+
+  // Cijene (EUR centi)
+  totalCents   Int @default(0)
+  depositCents Int @default(0)
+  paidCents    Int @default(0)
+
+  // Privole
+  gdprConsent      Boolean @default(false)
+  marketingConsent Boolean @default(false)
+
+  notes     String?
+  source    String?  @default("web")
+  qrToken   String   @unique // token ugrađen u QR kod za prijavu dolaska
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addOns        ReservationAddOn[]
+  invoices      Invoice[]
+  payments      Payment[]
+  waiver        ConsentWaiver?
+  staff         StaffAssignment[]
+  checkIn       CheckIn?
+  notifications NotificationLog[]
+
+  @@index([date])
+  @@index([roomId, date])
+  @@index([status])
+}
+
+model ReservationAddOn {
+  id            String      @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  addOnId       String
+  addOn         AddOn       @relation(fields: [addOnId], references: [id])
+  quantity      Int         @default(1)
+  unitPriceCents Int        @default(0) // snapshot cijene u trenutku rezervacije
+
+  @@unique([reservationId, addOnId])
+}
+
+// --- Računi (s poljima za fiskalizaciju) ------------------------------
+// status: "izdan" | "fiskaliziran" | "storno"
+model Invoice {
+  id            String   @id @default(cuid())
+  number        String   @unique // redni broj računa (npr. 42/POSL1/1)
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  posSaleId     String?  @unique
+  posSale       POSSale? @relation(fields: [posSaleId], references: [id])
+
+  issuedAt   DateTime @default(now())
+  totalCents Int
+  items      Json     // [{naziv, kolicina, cijenaCents, pdvStopa}]
+
+  // Polja predviđena za hrvatsku fiskalizaciju
+  jir           String? // Jedinstveni identifikator računa (vraća ga Porezna)
+  zki           String? // Zaštitni kod izdavatelja
+  businessSpace String  @default("POSL1") // oznaka poslovnog prostora
+  cashRegister  String  @default("1")     // oznaka naplatnog uređaja
+  fiscalizedAt  DateTime?
+
+  status String @default("izdan")
+  createdAt DateTime @default(now())
+}
+
+// --- Plaćanja ---------------------------------------------------------
+// kind: "akontacija" | "puni-iznos" | "ostatak" | "bon"
+// status: "na-cekanju" | "uspjesno" | "neuspjesno" | "povrat"
+model Payment {
+  id            String   @id @default(cuid())
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  provider      String   @default("mock") // "stripe" | "mock"
+  providerRef   String?  // npr. Stripe PaymentIntent id
+  amountCents   Int
+  kind          String   @default("akontacija")
+  status        String   @default("na-cekanju")
+  createdAt     DateTime @default(now())
+}
+
+// --- Pokloni-bonovi ---------------------------------------------------
+// status: "aktivan" | "iskoristen" | "istekao"
+model Voucher {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  initialCents  Int
+  balanceCents  Int
+  status        String   @default("aktivan")
+  purchaserName String?
+  purchaserEmail String?
+  recipientName String?
+  message       String?
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+}
+
+// --- Digitalna privola / izjava roditelja --------------------------------------
+model ConsentWaiver {
+  id            String   @id @default(cuid())
+  reservationId String   @unique
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  signedByName  String
+  signedAt      DateTime @default(now())
+  ip            String?
+  content       String   // tekst privole koji je roditelj prihvatio
+}
+
+// --- Prijava dolaska (QR) ----------------------------------------------------
+model CheckIn {
+  id            String   @id @default(cuid())
+  reservationId String   @unique
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  checkedInAt   DateTime @default(now())
+  by            String?  // tko je skenirao (osoblje)
+}
+
+// --- Raspored osoblja -------------------------------------------------
+model StaffAssignment {
+  id            String   @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  staffId       String
+  staff         User     @relation(fields: [staffId], references: [id])
+  roleNote      String?  // npr. "animator", "priprema hrane"
+  notifiedAt    DateTime?
+
+  @@unique([reservationId, staffId])
+}
+
+// --- Log automatskih notifikacija ------------------------------------
+// type: "potvrda" | "podsjetnik" | "osoblje" | "zahvala" | "rodjendan-godina"
+// channel: "email" | "sms"
+// status: "logirano" | "poslano" | "greska"
+model NotificationLog {
+  id            String   @id @default(cuid())
+  type          String
+  channel       String   @default("email")
+  recipient     String
+  subject       String?
+  body          String
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  status        String   @default("logirano")
+  createdAt     DateTime @default(now())
+
+  @@index([type])
+}
+
+// --- POS (blagajna) ---------------------------------------------------
+model POSSale {
+  id        String   @id @default(cuid())
+  totalCents Int
+  staffId   String?
+  createdAt DateTime @default(now())
+
+  items   POSItem[]
+  invoice Invoice?
+}
+
+model POSItem {
+  id        String  @id @default(cuid())
+  posSaleId String
+  posSale   POSSale @relation(fields: [posSaleId], references: [id], onDelete: Cascade)
+  name      String
+  priceCents Int
+  quantity  Int     @default(1)
+}
+
+// --- Članstva i lojalnost (opcijski modul, iza feature flaga) ---------
+// status: "aktivno" | "isteklo" | "otkazano"
+model Membership {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  plan      String   // "mjesecno" | "godisnje"
+  status    String   @default("aktivno")
+  startedAt DateTime @default(now())
+  renewsAt  DateTime?
+  autoRenew Boolean  @default(true)
+}
+
+model LoyaltyAccount {
+  id        String   @id @default(cuid())
+  familyId  String   @unique
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  points    Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// Vremenski ograničene ulaznice za svakodnevni ulaz (slobodna igra).
+// status: "aktivna" | "istekla" | "zatvorena"
+model OpenPlaySession {
+  id          String   @id @default(cuid())
+  childName   String?
+  familyId    String?
+  family      Family?  @relation(fields: [familyId], references: [id])
+  startedAt   DateTime @default(now())
+  durationMin Int      @default(60)
+  expiresAt   DateTime
+  priceCents  Int      @default(0)
+  status      String   @default("aktivna")
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+}

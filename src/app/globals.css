@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Zaobljeni "Nunito" za tekst, "Fredoka" za logotip i naslove, "Kalam" za
+     rukopisne potpise (prema brand vizualima); fallback na system font. */
+  --font-sans: "Nunito", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Fredoka", var(--font-sans);
+  --font-script: "Kalam", "Comic Sans MS", cursive;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-paper text-ink-800 antialiased;
+}
+
+/* Pristupačan fokus za tipkovnicu */
+:focus-visible {
+  @apply outline-none ring-2 ring-brand-500 ring-offset-2;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-bold transition focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  /* Razigrani "3D" gumbi s punom sjenom ispod, kao na brand objavama. */
+  .btn-primary {
+    @apply btn bg-brand-500 text-white shadow-[0_4px_0_0_#4a25ad] hover:bg-brand-600 active:translate-y-0.5 active:shadow-[0_2px_0_0_#4a25ad];
+  }
+  .btn-sun {
+    @apply btn bg-sun-400 text-brand-900 shadow-[0_4px_0_0_#d4a300] hover:bg-sun-300 active:translate-y-0.5 active:shadow-[0_2px_0_0_#d4a300];
+  }
+  .btn-secondary {
+    @apply btn bg-white text-brand-700 ring-2 ring-brand-200 hover:bg-brand-50;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-700 hover:bg-black/5;
+  }
+  .card {
+    @apply rounded-3xl bg-white p-6 shadow-soft ring-1 ring-brand-100;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium;
+  }
+  .input {
+    @apply w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 text-ink-800 placeholder:text-ink-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-200;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-700;
+  }
+  .section {
+    @apply mx-auto max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+}
