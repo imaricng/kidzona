@@ -18,6 +18,7 @@ import {
   Ikona,
   Squiggle,
   Wave,
+  WhatsAppLogo,
   type BojaKruga,
   type IkonaIme,
 } from "@/components/Decor";
@@ -99,8 +100,17 @@ export default async function HomePage() {
               <p className="mt-5 max-w-lg text-lg text-white/85">{hr.hero.podnaslov}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/rezervacija" className="btn-sun text-lg">
-                  {hr.hero.cta}
+                  {hr.hero.ctaOnline}
                 </Link>
+                <a
+                  href={`https://wa.me/${hr.kontakt.whatsapp}?text=${encodeURIComponent(hr.hero.whatsappPoruka)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-whatsapp text-lg"
+                >
+                  <WhatsAppLogo className="h-6 w-6" />
+                  {hr.hero.ctaWhatsapp}
+                </a>
                 <a href="#paketi" className="btn bg-white/10 text-lg text-white ring-2 ring-white/40 hover:bg-white/20">
                   {hr.hero.ctaSekundarno}
                 </a>

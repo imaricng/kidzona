@@ -30,6 +30,9 @@ export const hr = {
       "Dvije igraonice pod jednim krovom — Mini Kidzona za mlađu djecu i Game Teen za ljubitelje videoigara. Vi se opustite, mi se pobrinemo za zabavu, hranu i čišćenje.",
     cta: "Rezerviraj proslavu",
     ctaSekundarno: "Pogledaj pakete",
+    ctaOnline: "Rezerviraj online",
+    ctaWhatsapp: "WhatsApp rezervacija",
+    whatsappPoruka: "Pozdrav! Želim rezervirati proslavu u Kidzoni.",
     znacajka1: "Sigurno i čisto",
     znacajka2: "Bez brige oko pripreme",
     znacajka3: "Brza rezervacija putem interneta",
@@ -130,6 +133,8 @@ export const hr = {
     adresa: "Strossmayerova 3, 35400 Nova Gradiška",
     telefon: "095 537 8559",
     email: "kidzonang@gmail.com",
+    // Broj za WhatsApp poveznicu (međunarodni oblik bez + i razmaka)
+    whatsapp: "385955378559",
     radnoVrijeme: "Radno vrijeme",
     radniDani: "Pon i sri: 17:00 – 20:00 · Uto i čet: 16:00 – 19:00 (družionica)",
     vikend: "Pet i ned: 14:00 – 20:00 · Sub: 10:00 – 12:00 (družionica) i 14:00 – 20:00",

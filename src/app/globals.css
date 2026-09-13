@@ -34,6 +34,10 @@ body {
   .btn-sun {
     @apply btn bg-sun-400 text-brand-900 shadow-[0_4px_0_0_#d4a300] hover:bg-sun-300 active:translate-y-0.5 active:shadow-[0_2px_0_0_#d4a300];
   }
+  /* Zeleni WhatsApp gumb (tamnija nijansa WhatsApp zelene radi čitljivosti bijelog teksta). */
+  .btn-whatsapp {
+    @apply btn bg-[#179b48] text-white shadow-[0_4px_0_0_#0f6b31] hover:bg-[#12823b] active:translate-y-0.5 active:shadow-[0_2px_0_0_#0f6b31];
+  }
   .btn-secondary {
     @apply btn bg-white text-brand-700 ring-2 ring-brand-200 hover:bg-brand-50;
   }
