@@ -5,7 +5,7 @@ igraonicu Kidzona Nova Gradiška**. Pokriva cijeli životni ciklus proslave — 
 upita i rezervacije putem interneta, preko naplate i fiskalnog računa, do dolaska gostiju
 (QR prijava dolaska) i baze obitelji s dječjim rođendanima.
 
-Aplikacija ima **dvije igraonice** (Mini Kidzona i Game Teen) pa se **istovremeno mogu odvijati dvije
+Aplikacija ima **dvije igraonice** (Kids Play i Kids Challenge) pa se **istovremeno mogu odvijati dvije
 proslave**, a kalendar automatski blokira zauzete termine i igraonice.
 
 ---

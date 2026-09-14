@@ -57,7 +57,7 @@ describe("izracunajCijenu", () => {
 });
 
 describe("nadoplata po djetetu iznad paketa", () => {
-  // Mini Kidzona Standard: 200 €, do 15 djece (slavljenik gratis), 10 € po dodatnom djetetu
+  // Kids Play Standard: 200 €, do 15 djece (slavljenik gratis), 10 € po dodatnom djetetu
   const mini = { name: "Standard", basePriceCents: 20000, ukljucenoDjece: 15, nadoplataPoDjetetuCents: 1000 };
 
   it("nema nadoplate do uključenog broja djece", () => {

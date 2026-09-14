@@ -26,7 +26,7 @@ export const en = {
     naslov: "An experience kids remember and parents love!",
     naslovDijelovi: ["An experience", "kids remember", "and parents love!"],
     podnaslov:
-      "Two play rooms under one roof — Mini Kidzona for younger kids and Game Teen for young gamers. You relax, we handle the fun, food and cleanup.",
+      "Two play rooms under one roof — Kids Play for younger kids and Kids Challenge for kids aged 7 to 13. You relax, we handle the fun, food and cleanup.",
     cta: "Book a party",
     ctaSekundarno: "See packages",
     ctaOnline: "Book online",
@@ -36,7 +36,7 @@ export const en = {
     znacajka2: "No prep worries",
     znacajka3: "Online booking in minutes",
     bedz: "Two play rooms",
-    bedzOpis: "Mini Kidzona and Game Teen",
+    bedzOpis: "Kids Play and Kids Challenge",
   },
   ponuda: {
     naslov: "Experiences to remember",
@@ -117,9 +117,9 @@ export const en = {
     naslov: "Frequently asked questions",
     pitanja: [
       { p: "How does booking work?", o: "Pick a date, time slot, play room and package on the site and send an inquiry. We check the slot and confirm your booking by email or phone." },
-      { p: "What age are the play rooms for?", o: "Mini Kidzona is designed for younger kids, and Game Teen for kids aged 7 to 12 and older." },
+      { p: "What age are the play rooms for?", o: "Kids Play is designed for younger kids, and Kids Challenge for kids aged 7 to 13." },
       { p: "How long does a party last?", o: "The Standard package lasts 2 hours, Premium 3 hours. Parties start at 14:00 or 17:00 (Friday–Sunday) and at 17:00 on Mondays and Wednesdays." },
-      { p: "What food and cake are included?", o: "Snacks, juices and pizza plus a Ledo Medo cake are included. The Game Teen Premium package comes with a McDonald's meal." },
+      { p: "What food and cake are included?", o: "Snacks, juices and pizza plus a Ledo Medo cake are included. The Kids Challenge Premium package comes with a McDonald's meal." },
       { p: "What if more kids come?", o: "Each package includes a set number of kids, and the birthday child is always free. Every extra child is €10." },
       { p: "What about allergies?", o: "Let us know the children's allergies when booking and we'll adjust the food." },
       { p: "Can we host two birthdays at the same time?", o: "You can — we have two separate play rooms, so two parties can run in the same time slot." },

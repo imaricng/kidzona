@@ -27,7 +27,7 @@ export const hr = {
     // Naslov razlomljen u retke; srednji redak je istaknut žutom bojom.
     naslovDijelovi: ["Doživljaj", "koji djeca pamte,", "a roditelji vole!"],
     podnaslov:
-      "Dvije igraonice pod jednim krovom — Mini Kidzona za mlađu djecu i Game Teen za ljubitelje videoigara. Vi se opustite, mi se pobrinemo za zabavu, hranu i čišćenje.",
+      "Dvije igraonice pod jednim krovom — Kids Play za mlađu djecu i Kids Challenge za djecu od 7 do 13 godina. Vi se opustite, mi se pobrinemo za zabavu, hranu i čišćenje.",
     cta: "Rezerviraj proslavu",
     ctaSekundarno: "Pogledaj pakete",
     ctaOnline: "Rezerviraj online",
@@ -37,7 +37,7 @@ export const hr = {
     znacajka2: "Bez brige oko pripreme",
     znacajka3: "Brza rezervacija putem interneta",
     bedz: "Dvije igraonice",
-    bedzOpis: "Mini Kidzona i Game Teen",
+    bedzOpis: "Kids Play i Kids Challenge",
   },
   ponuda: {
     naslov: "Doživljaji za pamćenje",
@@ -120,9 +120,9 @@ export const hr = {
     naslov: "Česta pitanja",
     pitanja: [
       { p: "Kako funkcionira rezervacija?", o: "Na stranici odaberete datum, termin, igraonicu i paket te pošaljete upit. Mi provjerimo termin i potvrdimo rezervaciju e-poštom ili telefonom." },
-      { p: "Za koju dob su igraonice?", o: "Mini Kidzona je prilagođena mlađoj djeci, a Game Teen djeci od 7 do 12 godina i starijoj djeci." },
+      { p: "Za koju dob su igraonice?", o: "Kids Play prilagođena je mlađoj djeci, a Kids Challenge djeci od 7 do 13 godina." },
       { p: "Koliko traje proslava?", o: "Standard paket traje 2 sata, a Premium 3 sata. Proslave počinju u 14:00 ili 17:00 (petak–nedjelja) te u 17:00 ponedjeljkom i srijedom." },
-      { p: "Što je uključeno od hrane i torte?", o: "Grickalice, sokovi i pizza te torta Ledo Medo uključeni su u pakete. U Game Teen Premium paketu djeca dobivaju McDonald's meni." },
+      { p: "Što je uključeno od hrane i torte?", o: "Grickalice, sokovi i pizza te torta Ledo Medo uključeni su u pakete. U Kids Challenge Premium paketu djeca dobivaju McDonald's meni." },
       { p: "Što ako dođe više djece?", o: "Svaki paket uključuje određen broj djece, a slavljenik je uvijek gratis. Svako dodatno dijete naplaćuje se 10 €." },
       { p: "Što s alergijama?", o: "Pri rezervaciji navedite alergije djece; prilagodit ćemo ponudu hrane." },
       { p: "Mogu li slaviti dva rođendana istovremeno?", o: "Možete — imamo dvije odvojene igraonice, pa u istom terminu mogu trajati dvije proslave." },

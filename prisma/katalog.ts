@@ -38,7 +38,7 @@ export interface PaketKatalog {
 export const SOBE: SobaKatalog[] = [
   {
     slug: "mini-kidzona",
-    name: "Mini Kidzona",
+    name: "Kids Play",
     description: "Igraonica za mlađu djecu.",
     minChildren: 1,
     maxChildren: 30,
@@ -48,8 +48,8 @@ export const SOBE: SobaKatalog[] = [
   },
   {
     slug: "game-teen",
-    name: "Game Teen",
-    description: "Zona videoigara — preporučeno za djecu od 7 do 12 godina i stariju.",
+    name: "Kids Challenge",
+    description: "Igraonica za djecu od 7 do 13 godina — videoigre, izazovi i turniri.",
     minChildren: 1,
     maxChildren: 25,
     capacity: 40,
@@ -59,7 +59,7 @@ export const SOBE: SobaKatalog[] = [
 ];
 
 export const PAKETI: PaketKatalog[] = [
-  // --- Mini Kidzona ---
+  // --- Kids Play ---
   {
     slug: "mini-standard",
     roomSlug: "mini-kidzona",
@@ -90,7 +90,7 @@ export const PAKETI: PaketKatalog[] = [
     sortOrder: 2,
     includedItems: ["Grickalice, sokovi i pizza", "Torta Ledo Medo", "Tematska dekoracija po izboru", "Pozivnice + pinjata"],
   },
-  // --- Game Teen ---
+  // --- Kids Challenge ---
   {
     slug: "game-standard",
     roomSlug: "game-teen",
