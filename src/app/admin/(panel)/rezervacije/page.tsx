@@ -9,10 +9,12 @@ export const metadata = { title: hr.admin.rezervacije };
 
 const FILTERI = [
   { key: "sve", label: "Sve" },
+  { key: "upit", label: "Upiti" },
   { key: "potvrdjeno", label: hr.status.potvrdjeno },
   { key: "placeno", label: hr.status.placeno },
   { key: "checkin", label: hr.status.checkin },
   { key: "zavrseno", label: hr.status.zavrseno },
+  { key: "odbijeno", label: hr.status.odbijeno },
   { key: "otkazano", label: hr.status.otkazano },
 ];
 
@@ -20,16 +22,22 @@ export default async function RezervacijePage({ searchParams }: { searchParams: 
   const { status } = await searchParams;
   const filter = status && status !== "sve" ? { status } : {};
 
-  const rezervacije = await prisma.reservation.findMany({
-    where: filter,
-    include: { room: true, secondRoom: true, package: true, theme: true },
-    orderBy: { date: "desc" },
-    take: 100,
-  });
+  const [rezervacije, brojUpita] = await Promise.all([
+    prisma.reservation.findMany({
+      where: filter,
+      include: { room: true, secondRoom: true, package: true, theme: true },
+      orderBy: { date: "desc" },
+      take: 100,
+    }),
+    prisma.reservation.count({ where: { status: "upit" } }),
+  ]);
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-extrabold text-ink-900">{hr.admin.rezervacije}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-extrabold text-ink-900">{hr.admin.rezervacije}</h1>
+        <Link href="/admin/rezervacije/nova" className="btn-primary !py-2 !text-sm">✍️ Ručni unos</Link>
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {FILTERI.map((f) => {
@@ -38,9 +46,10 @@ export default async function RezervacijePage({ searchParams }: { searchParams: 
             <Link
               key={f.key}
               href={f.key === "sve" ? "/admin/rezervacije" : `/admin/rezervacije?status=${f.key}`}
-              className={`chip ${aktivno ? "bg-brand-500 text-white" : "bg-white text-ink-600 ring-1 ring-ink-200"}`}
+              className={`chip ${aktivno ? "bg-brand-500 text-white" : f.key === "upit" && brojUpita > 0 ? "bg-sun-100 font-semibold text-brand-900 ring-1 ring-sun-400" : "bg-white text-ink-600 ring-1 ring-ink-200"}`}
             >
               {f.label}
+              {f.key === "upit" && brojUpita > 0 ? ` (${brojUpita})` : ""}
             </Link>
           );
         })}
@@ -61,7 +70,7 @@ export default async function RezervacijePage({ searchParams }: { searchParams: 
           </thead>
           <tbody className="divide-y divide-black/5">
             {rezervacije.map((r) => (
-              <tr key={r.id} className="hover:bg-brand-50/60">
+              <tr key={r.id} className={`${r.status === "upit" ? "bg-sun-50" : ""} hover:bg-brand-50/60`}>
                 <td className="px-4 py-3 font-mono text-xs font-semibold text-brand-600">
                   <Link href={`/admin/rezervacije/${r.code}`}>{r.code}</Link>
                 </td>

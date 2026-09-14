@@ -7,6 +7,7 @@ const STAVKE = [
   { href: "/admin/dashboard", label: hr.admin.nadzornaPloca, ikona: "📊" },
   { href: "/admin/kalendar", label: hr.admin.kalendar, ikona: "📅" },
   { href: "/admin/rezervacije", label: hr.admin.rezervacije, ikona: "🎟️" },
+  { href: "/admin/rezervacije/nova", label: "Ručni unos", ikona: "✍️" },
   { href: "/admin/crm", label: hr.admin.crm, ikona: "👨‍👩‍👧" },
   { href: "/admin/osoblje", label: hr.admin.osoblje, ikona: "🧑‍🏫" },
   { href: "/admin/paketi", label: hr.admin.paketi, ikona: "🎁" },

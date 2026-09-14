@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { formatDatum, isoDatum } from "@/lib/format";
 import { druzionicaZaDan, krajTermina, pocetciZaDan, preklapaSe } from "@/lib/slots";
+import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.kalendar };
 
-const AKTIVNI = ["upit", "potvrdjeno", "placeno", "checkin", "zavrseno"];
+// Kalendar prikazuje samo potvrđene proslave — upiti ne zauzimaju termin.
+const AKTIVNI = STATUSI_ZAUZIMAJU_TERMIN;
 const DANA = 7;
 
 export default async function KalendarPage({ searchParams }: { searchParams: Promise<{ od?: string }> }) {

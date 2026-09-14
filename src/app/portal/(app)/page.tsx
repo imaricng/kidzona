@@ -97,7 +97,7 @@ export default async function PortalDashboard() {
                   >
                     🔁 {hr.portal.ponovi}
                   </Link>
-                  <Link href={`/potvrda/${r.code}`} className="text-sm text-brand-600 hover:underline">Potvrda</Link>
+                  <Link href={`/potvrda/${r.code}`} className="text-sm text-brand-600 hover:underline">Detalji</Link>
                   {OTKAZIVO.includes(r.status) && r.date > new Date() && (
                     <form action={otkaziAction}>
                       <input type="hidden" name="code" value={r.code} />

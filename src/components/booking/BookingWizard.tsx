@@ -5,19 +5,9 @@ import { useRouter } from "next/navigation";
 import { hr, brojDjece } from "@/i18n/hr";
 import { formatEur, formatDatumDugi } from "@/lib/format";
 import { izracunajCijenu, SPAJANJE_SOBE_CENTS } from "@/lib/pricing";
-import {
-  druzionicaZaDatum,
-  krajTermina,
-  lokalniISO,
-  preklapaSe,
-  sljedeciDatumSTerminima,
-  trajanjeSati,
-  type Semafor,
-  type Termin,
-} from "@/lib/slots";
-import { StripeConfirm } from "@/components/booking/StripeConfirm";
+import { druzionicaZaDatum, krajTermina, lokalniISO, pocetciZaDatum, sljedeciDatumSTerminima, trajanjeSati } from "@/lib/slots";
 
-// --- Tipovi kataloga (serijalizirano s poslužitelja) ----------------------
+// --- Tipovi kataloga (serijalizirano s poslužitelja) ------------------
 export interface Katalog {
   rooms: { id: string; name: string; description: string; minChildren: number; maxChildren: number; color: string; mergeableWith: string[] }[];
   packages: {
@@ -41,15 +31,6 @@ export interface PocetniKontakt {
 
 type Paket = Katalog["packages"][number];
 
-interface TerminDost {
-  start: string; slobodneSobeIds: string[]; semafor: Semafor;
-}
-
-// Zauzeti interval igraonice (iz /api/availability) — za provjeru stane li paket.
-interface Zauzeto extends Termin {
-  roomId: string;
-}
-
 function danasISO() {
   return lokalniISO(new Date());
 }
@@ -60,12 +41,11 @@ function dodajDan(dateISO: string, dana: number): string {
   return lokalniISO(d);
 }
 
-const SEMAFOR_STIL: Record<Semafor, { boja: string; tekst: string }> = {
-  slobodno: { boja: "bg-mint-500", tekst: hr.booking.slobodno },
-  malo: { boja: "bg-amber-400", tekst: hr.booking.maloMjesta },
-  popunjeno: { boja: "bg-red-400", tekst: hr.booking.popunjeno },
-};
-
+/**
+ * Upit za proslavu u koracima. Kupac bira datum i početak po rasporedu (bez prikaza
+ * zauzetosti), igraonicu, paket i ostale podatke te šalje upit koji administrator
+ * odobrava, uređuje ili odbija.
+ */
 export function BookingWizard({
   katalog,
   pocetniPaketSlug,
@@ -80,11 +60,8 @@ export function BookingWizard({
   const router = useRouter();
   const [korak, setKorak] = useState(0);
 
-  // Korak 1 — datum i početak (zadano: prvi dan s terminima od danas)
+  // Korak 1 — datum i početak po rasporedu (zadano: prvi dan s terminima od danas)
   const [datum, setDatum] = useState<string>(() => sljedeciDatumSTerminima(danasISO()));
-  const [termini, setTermini] = useState<TerminDost[] | null>(null);
-  const [zauzeto, setZauzeto] = useState<Zauzeto[]>([]);
-  const [ucitavanjeTermina, setUcitavanjeTermina] = useState(false);
   const [odabraniStart, setOdabraniStart] = useState<string | null>(null);
 
   // Korak 2 — igraonica + paket (paket iz linka unaprijed odabire i igraonicu)
@@ -110,40 +87,32 @@ export function BookingWizard({
   const [marketing, setMarketing] = useState(pocetniKontakt?.marketingConsent ?? false);
   const [waiver, setWaiver] = useState(false);
 
-  // Korak 5 — plaćanje
-  const [platiPuni, setPlatiPuni] = useState(false);
+  // Korak 5 — pregled i slanje upita
+  const [voucherCode, setVoucherCode] = useState("");
   const [slanje, setSlanje] = useState(false);
   const [greska, setGreska] = useState<string | null>(null);
-  // Poklon-bon
-  const [voucherCode, setVoucherCode] = useState("");
-  const [voucherSaldo, setVoucherSaldo] = useState<number | null>(null);
-  const [voucherGreska, setVoucherGreska] = useState<string | null>(null);
-  // Stripe potvrda (samo kad backend vrati clientSecret)
-  const [stripeData, setStripeData] = useState<{ clientSecret: string; code: string; iznos: number } | null>(null);
 
   const paket = katalog.packages.find((p) => p.id === packageId);
   const soba = katalog.rooms.find((r) => r.id === roomId);
-  const odabraniTermin = termini?.find((t) => t.start === odabraniStart) ?? null;
+  const pocetci = pocetciZaDatum(datum);
   const slotEnd = odabraniStart && paket ? krajTermina(odabraniStart, paket.durationMin) : null;
   const maxDjece = soba?.maxChildren ?? 40;
-  const online = katalog.onlinePayments;
   const koraci = [
     hr.booking.koraci.termin,
     hr.booking.koraci.soba,
     hr.booking.koraci.djeca,
     hr.booking.koraci.podaci,
-    online ? hr.booking.koraci.placanje : hr.booking.pregledKorak,
+    hr.booking.pregledKorak,
   ];
-
-  /** Stane li paket (njegovo trajanje) u odabrani početak u zadanoj igraonici. */
-  function stane(rid: string, p: Pick<Paket, "durationMin">): boolean {
-    if (!odabraniStart) return false;
-    const termin = { start: odabraniStart, end: krajTermina(odabraniStart, p.durationMin) };
-    return !zauzeto.some((z) => z.roomId === rid && preklapaSe(z, termin));
-  }
 
   function paketiSobe(rid: string): Paket[] {
     return katalog.packages.filter((p) => p.roomId === null || p.roomId === rid);
+  }
+
+  // Drugi dan može imati druge početke, pa promjena datuma poništava odabir.
+  function promijeniDatum(novi: string) {
+    setDatum(novi);
+    setOdabraniStart(null);
   }
 
   // Za prikaz uz početak, npr. "Standard do 16:00 · Premium do 17:00"
@@ -158,37 +127,18 @@ export function BookingWizard({
       .map(([durationMin, nazivi]) => ({ durationMin, nazivi: [...nazivi] }));
   }, [katalog.packages]);
 
-  // Dohvat dostupnosti kad se promijeni datum
-  useEffect(() => {
-    let aktivno = true;
-    setUcitavanjeTermina(true);
-    setOdabraniStart(null);
-    fetch(`/api/availability?date=${datum}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!aktivno) return;
-        setTermini(d.termini ?? []);
-        setZauzeto(d.zauzeto ?? []);
-      })
-      .catch(() => aktivno && setTermini([]))
-      .finally(() => aktivno && setUcitavanjeTermina(false));
-    return () => {
-      aktivno = false;
-    };
-  }, [datum]);
-
   // Paket mora pripadati odabranoj igraonici
   useEffect(() => {
     if (paket && roomId && paket.roomId !== null && paket.roomId !== roomId) setPackageId("");
   }, [roomId, paket]);
 
-  // Clamp broja djece: najmanje koliko traži paket, najviše koliko prima igraonica
+  // Broj djece: najmanje koliko traži paket, najviše koliko prima igraonica
   useEffect(() => {
     if (!paket) return;
     setNumChildren((n) => Math.min(maxDjece, Math.max(paket.minChildren, n)));
   }, [paket, maxDjece]);
 
-  // Live izračun cijene
+  // Okvirna cijena (mjerodavnu računa poslužitelj)
   const izracun = useMemo(() => {
     if (!paket) return null;
     return izracunajCijenu({
@@ -210,9 +160,9 @@ export function BookingWizard({
   function mozeDalje(): boolean {
     switch (korak) {
       case 0:
-        return !!odabraniTermin && odabraniTermin.semafor !== "popunjeno";
+        return !!odabraniStart && pocetci.includes(odabraniStart);
       case 1:
-        return !!soba && !!paket && (paket.roomId === null || paket.roomId === soba.id) && stane(soba.id, paket);
+        return !!soba && !!paket && (paket.roomId === null || paket.roomId === soba.id);
       case 2:
         return !!paket && numChildren >= paket.minChildren && numChildren <= maxDjece;
       case 3:
@@ -231,7 +181,7 @@ export function BookingWizard({
   }
 
   async function posalji() {
-    if (!odabraniStart || !paket || !slotEnd) return;
+    if (!odabraniStart || !paket) return;
     setSlanje(true);
     setGreska(null);
     try {
@@ -241,7 +191,6 @@ export function BookingWizard({
         body: JSON.stringify({
           dateISO: datum,
           slotStart: odabraniStart,
-          slotEnd,
           roomId,
           secondRoomId,
           packageId,
@@ -258,51 +207,20 @@ export function BookingWizard({
           gdprConsent: gdpr,
           marketingConsent: marketing,
           waiverAccepted: waiver,
-          platiPuniIznos: platiPuni,
-          voucherCode: voucherSaldo !== null && voucherCode ? voucherCode : null,
+          voucherCode: voucherCode.trim() || null,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.code === "TERMIN_ZAUZET") {
-          setGreska(hr.booking.terminZauzet);
-          setKorak(0);
-        } else {
-          setGreska(data.error ?? hr.booking.greska);
-        }
+        setGreska(data.error ?? hr.booking.greska);
         return;
       }
-      // Stripe način: prikaži Payment Element za potvrdu karticom.
-      if (data.clientSecret) {
-        const osnovica = platiPuni ? izracun!.totalCents : izracun!.depositCents;
-        const bon = voucherSaldo !== null && voucherCode ? Math.min(voucherSaldo, osnovica) : 0;
-        setStripeData({ clientSecret: data.clientSecret, code: data.code, iznos: Math.max(0, osnovica - bon) });
-        return;
-      }
-      // Mock način: rezervacija je odmah potvrđena.
       router.push(`/potvrda/${data.code}`);
     } catch {
       setGreska(hr.booking.greska);
     } finally {
       setSlanje(false);
     }
-  }
-
-  // Stripe potvrda karticom (zamjenjuje wizard kad backend vrati clientSecret).
-  if (stripeData) {
-    return (
-      <div className="mx-auto max-w-md">
-        <h1 className="font-display text-2xl font-extrabold text-ink-900">{hr.booking.koraci.placanje}</h1>
-        <p className="mt-1 text-sm text-ink-500">Rezervacija {stripeData.code} — dovršite plaćanje.</p>
-        <div className="mt-6">
-          <StripeConfirm
-            clientSecret={stripeData.clientSecret}
-            returnUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/potvrda/${stripeData.code}`}
-            iznosCents={stripeData.iznos}
-          />
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -321,9 +239,8 @@ export function BookingWizard({
           {korak === 0 && (
             <KorakTermin
               datum={datum}
-              setDatum={setDatum}
-              termini={termini}
-              ucitavanje={ucitavanjeTermina}
+              setDatum={promijeniDatum}
+              pocetci={pocetci}
               odabraniStart={odabraniStart}
               onOdabir={setOdabraniStart}
               trajanja={trajanja}
@@ -337,10 +254,8 @@ export function BookingWizard({
               secondRoomId={secondRoomId}
               setSecondRoomId={setSecondRoomId}
               paketiSobe={paketiSobe}
-              paket={paket}
               packageId={packageId}
               setPackageId={setPackageId}
-              stane={stane}
               start={odabraniStart}
             />
           )}
@@ -366,18 +281,7 @@ export function BookingWizard({
             />
           )}
           {korak === 4 && izracun && (
-            <KorakPlacanje
-              online={online}
-              izracun={izracun}
-              platiPuni={platiPuni}
-              setPlatiPuni={setPlatiPuni}
-              voucherCode={voucherCode}
-              setVoucherCode={setVoucherCode}
-              voucherSaldo={voucherSaldo}
-              setVoucherSaldo={setVoucherSaldo}
-              voucherGreska={voucherGreska}
-              setVoucherGreska={setVoucherGreska}
-            />
+            <KorakPregled izracun={izracun} voucherCode={voucherCode} setVoucherCode={setVoucherCode} />
           )}
         </div>
 
@@ -396,9 +300,7 @@ export function BookingWizard({
             </button>
           ) : (
             <button type="button" className="btn-primary" onClick={posalji} disabled={slanje}>
-              {online
-                ? slanje ? hr.booking.obradaPlacanja : platiPuni ? hr.booking.platiPuni : hr.booking.platiAkontaciju
-                : slanje ? hr.booking.obradaPotvrde : hr.booking.potvrdiRezervaciju}
+              {slanje ? hr.booking.obradaPotvrde : hr.booking.potvrdiRezervaciju}
             </button>
           )}
         </div>
@@ -415,7 +317,6 @@ export function BookingWizard({
           numChildren={numChildren}
           tema={katalog.themes.find((t) => t.id === themeId)?.name}
           izracun={izracun}
-          online={online}
         />
       </aside>
     </div>
@@ -429,7 +330,7 @@ function Stepper({ korak, koraci }: { korak: number; koraci: string[] }) {
       {koraci.map((naziv, i) => (
         <li
           key={naziv}
-          className={`chip ${i === korak ? "bg-brand-500 text-white" : i < korak ? "bg-mint-100 text-mint-700" : "bg-ink-100 text-ink-500"}`}
+          className={`chip ${i === korak ? "bg-brand-500 text-white" : i < korak ? "bg-mint-500/15 text-mint-600" : "bg-ink-100 text-ink-500"}`}
         >
           <span className="font-bold">{i + 1}.</span> {naziv}
         </li>
@@ -440,9 +341,9 @@ function Stepper({ korak, koraci }: { korak: number; koraci: string[] }) {
 
 // --- Korak 1: datum i početak ----------------------------------------
 function KorakTermin({
-  datum, setDatum, termini, ucitavanje, odabraniStart, onOdabir, trajanja,
+  datum, setDatum, pocetci, odabraniStart, onOdabir, trajanja,
 }: {
-  datum: string; setDatum: (d: string) => void; termini: TerminDost[] | null; ucitavanje: boolean;
+  datum: string; setDatum: (d: string) => void; pocetci: string[];
   odabraniStart: string | null; onOdabir: (start: string) => void;
   trajanja: { durationMin: number; nazivi: string[] }[];
 }) {
@@ -462,9 +363,7 @@ function KorakTermin({
       <p className="mt-1 text-xs text-ink-400">{hr.booking.rasporedNapomena}</p>
 
       <h3 className="mt-6 font-semibold text-ink-800">{hr.booking.odaberiTermin}</h3>
-      {ucitavanje || termini === null ? (
-        <p className="mt-3 text-ink-400">{hr.zajednicko.ucitavanje}</p>
-      ) : termini.length === 0 ? (
+      {pocetci.length === 0 ? (
         <div className="mt-3 rounded-2xl bg-brand-50 px-4 py-4 text-sm">
           <p className="font-semibold text-brand-900">{hr.booking.nemaTermina}</p>
           <button
@@ -477,30 +376,22 @@ function KorakTermin({
         </div>
       ) : (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {termini.map((t) => {
-            const popunjeno = t.semafor === "popunjeno";
-            const aktivan = odabraniStart === t.start;
+          {pocetci.map((start) => {
+            const aktivan = odabraniStart === start;
             return (
               <button
-                key={t.start}
+                key={start}
                 type="button"
-                disabled={popunjeno}
-                onClick={() => onOdabir(t.start)}
-                className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                onClick={() => onOdabir(start)}
+                className={`rounded-2xl border px-4 py-3 text-left transition ${
                   aktivan ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200 bg-white hover:border-brand-300"
-                } ${popunjeno ? "cursor-not-allowed opacity-50" : ""}`}
+                }`}
               >
-                <span>
-                  <span className="block font-display text-xl font-bold text-ink-900">{t.start}</span>
-                  <span className="block text-xs text-ink-500">
-                    {trajanja
-                      .map((tr) => `${tr.nazivi.join(" / ")} ${hr.booking.doVrijeme} ${krajTermina(t.start, tr.durationMin)}`)
-                      .join(" · ")}
-                  </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2 text-xs text-ink-500">
-                  <span className={`h-2.5 w-2.5 rounded-full ${SEMAFOR_STIL[t.semafor].boja}`} />
-                  {SEMAFOR_STIL[t.semafor].tekst}
+                <span className="block font-display text-xl font-bold text-ink-900">{start}</span>
+                <span className="block text-xs text-ink-500">
+                  {trajanja
+                    .map((tr) => `${tr.nazivi.join(" / ")} ${hr.booking.doVrijeme} ${krajTermina(start, tr.durationMin)}`)
+                    .join(" · ")}
                 </span>
               </button>
             );
@@ -512,28 +403,22 @@ function KorakTermin({
           🧸 {hr.booking.druzionica}: {druzionica.map((d) => `${d.od} – ${d.do}`).join(", ")}
         </p>
       )}
-      <p className="mt-4 flex flex-wrap gap-4 text-xs text-ink-400">
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-mint-500" /> {hr.booking.slobodno}</span>
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> {hr.booking.maloMjesta}</span>
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-400" /> {hr.booking.popunjeno}</span>
-      </p>
     </div>
   );
 }
 
 // --- Korak 2: igraonica + paket --------------------------------------
 function KorakSoba({
-  sobe, roomId, setRoomId, secondRoomId, setSecondRoomId, paketiSobe, paket, packageId, setPackageId, stane, start,
+  sobe, roomId, setRoomId, secondRoomId, setSecondRoomId, paketiSobe, packageId, setPackageId, start,
 }: {
   sobe: Katalog["rooms"]; roomId: string; setRoomId: (id: string) => void;
   secondRoomId: string | null; setSecondRoomId: (id: string | null) => void;
-  paketiSobe: (roomId: string) => Paket[]; paket: Paket | undefined; packageId: string; setPackageId: (id: string) => void;
-  stane: (roomId: string, p: Pick<Paket, "durationMin">) => boolean; start: string | null;
+  paketiSobe: (roomId: string) => Paket[]; packageId: string; setPackageId: (id: string) => void;
+  start: string | null;
 }) {
   const odabranaSoba = sobe.find((r) => r.id === roomId);
-  // Spajanje: druga igraonica mora biti slobodna za cijelo trajanje odabranog paketa.
-  const mogućeSpojiti = odabranaSoba && paket
-    ? sobe.filter((r) => r.id !== roomId && odabranaSoba.mergeableWith.includes(r.id) && stane(r.id, paket))
+  const mogućeSpojiti = odabranaSoba
+    ? sobe.filter((r) => r.id !== roomId && odabranaSoba.mergeableWith.includes(r.id))
     : [];
 
   return (
@@ -541,28 +426,23 @@ function KorakSoba({
       <div className="card">
         <h3 className="font-semibold text-ink-800">{hr.booking.odaberiSobu}</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {sobe.map((r) => {
-            const slobodna = paketiSobe(r.id).some((p) => stane(r.id, p));
-            return (
-              <button
-                key={r.id}
-                type="button"
-                disabled={!slobodna}
-                onClick={() => {
-                  setRoomId(r.id);
-                  if (secondRoomId === r.id) setSecondRoomId(null);
-                }}
-                className={`rounded-2xl border px-4 py-3 text-left transition ${roomId === r.id ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200 hover:border-brand-300"} ${slobodna ? "" : "cursor-not-allowed opacity-50"}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: r.color }} />
-                  <span className="font-semibold text-ink-800">{r.name}</span>
-                </div>
-                {r.description && <p className="mt-1 text-xs text-ink-500">{r.description}</p>}
-                {!slobodna && <p className="mt-1 text-xs font-semibold text-red-500">{hr.booking.zauzetoUTerminu}</p>}
-              </button>
-            );
-          })}
+          {sobe.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => {
+                setRoomId(r.id);
+                if (secondRoomId === r.id) setSecondRoomId(null);
+              }}
+              className={`rounded-2xl border px-4 py-3 text-left transition ${roomId === r.id ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200 hover:border-brand-300"}`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: r.color }} />
+                <span className="font-semibold text-ink-800">{r.name}</span>
+              </div>
+              {r.description && <p className="mt-1 text-xs text-ink-500">{r.description}</p>}
+            </button>
+          ))}
         </div>
 
         {mogućeSpojiti.length > 0 && (
@@ -584,37 +464,32 @@ function KorakSoba({
           <p className="mt-3 text-sm text-ink-400">{hr.booking.najprijeSoba}</p>
         ) : (
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            {paketiSobe(odabranaSoba.id).map((p) => {
-              const moze = stane(odabranaSoba.id, p);
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  disabled={!moze}
-                  onClick={() => setPackageId(p.id)}
-                  className={`flex flex-col rounded-2xl border p-4 text-left transition ${packageId === p.id ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200 hover:border-brand-300"} ${moze ? "" : "cursor-not-allowed opacity-50"}`}
-                >
-                  {p.popular && <span className="chip mb-2 w-fit bg-brand-500 text-white text-xs">⭐ {hr.paketi.popularno}</span>}
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="font-bold text-ink-900">{p.name}</span>
-                    <span className="font-display text-lg font-bold text-brand-600">{formatEur(p.basePriceCents)}</span>
-                  </span>
-                  <span className="mt-1 text-xs text-ink-500">
-                    {trajanjeSati(p.durationMin)}{start ? ` · ${start} – ${krajTermina(start, p.durationMin)}` : ""}
-                  </span>
-                  <span className="mt-1 text-xs text-ink-500">
-                    {hr.paketi.doBroj} {p.maxChildren} {hr.paketi.odDjece} · {hr.paketi.slavljenikGratis}
-                    {p.perChildCents > 0 ? ` · +${formatEur(p.perChildCents)} ${hr.paketi.poDodatnomDjetetu}` : ""}
-                  </span>
-                  {p.includedItems.length > 0 && (
-                    <ul className="mt-2 space-y-0.5 text-xs text-ink-600">
-                      {p.includedItems.map((s, i) => <li key={i}>✓ {s}</li>)}
-                    </ul>
-                  )}
-                  {!moze && <span className="mt-2 text-xs font-semibold text-red-500">{hr.booking.zauzetoUTerminu}</span>}
-                </button>
-              );
-            })}
+            {paketiSobe(odabranaSoba.id).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPackageId(p.id)}
+                className={`flex flex-col rounded-2xl border p-4 text-left transition ${packageId === p.id ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200 hover:border-brand-300"}`}
+              >
+                {p.popular && <span className="chip mb-2 w-fit bg-brand-500 text-white text-xs">⭐ {hr.paketi.popularno}</span>}
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="font-bold text-ink-900">{p.name}</span>
+                  <span className="font-display text-lg font-bold text-brand-600">{formatEur(p.basePriceCents)}</span>
+                </span>
+                <span className="mt-1 text-xs text-ink-500">
+                  {trajanjeSati(p.durationMin)}{start ? ` · ${start} – ${krajTermina(start, p.durationMin)}` : ""}
+                </span>
+                <span className="mt-1 text-xs text-ink-500">
+                  {hr.paketi.doBroj} {p.maxChildren} {hr.paketi.odDjece} · {hr.paketi.slavljenikGratis}
+                  {p.perChildCents > 0 ? ` · +${formatEur(p.perChildCents)} ${hr.paketi.poDodatnomDjetetu}` : ""}
+                </span>
+                {p.includedItems.length > 0 && (
+                  <ul className="mt-2 space-y-0.5 text-xs text-ink-600">
+                    {p.includedItems.map((s, i) => <li key={i}>✓ {s}</li>)}
+                  </ul>
+                )}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -669,28 +544,30 @@ function KorakDjeca({
         </div>
       </div>
 
-      <div className="card">
-        <h3 className="font-semibold text-ink-800">{hr.booking.dodaci}</h3>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {addons.map((a) => {
-            const odabran = !!dodaci[a.id];
-            return (
-              <label
-                key={a.id}
-                className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 transition ${odabran ? "border-brand-500 bg-brand-50" : "border-ink-200 hover:border-brand-300"}`}
-              >
-                <input type="checkbox" className="mt-1 h-4 w-4 accent-brand-500" checked={odabran} onChange={() => toggle(a.id)} />
-                <span className="flex-1">
-                  <span className="block font-medium text-ink-800">{a.name}</span>
-                  <span className="text-sm text-ink-500">
-                    {formatEur(a.priceCents)} {a.unit === "per_child" ? hr.paketi.poDjetetu : ""}
+      {addons.length > 0 && (
+        <div className="card">
+          <h3 className="font-semibold text-ink-800">{hr.booking.dodaci}</h3>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {addons.map((a) => {
+              const odabran = !!dodaci[a.id];
+              return (
+                <label
+                  key={a.id}
+                  className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 transition ${odabran ? "border-brand-500 bg-brand-50" : "border-ink-200 hover:border-brand-300"}`}
+                >
+                  <input type="checkbox" className="mt-1 h-4 w-4 accent-brand-500" checked={odabran} onChange={() => toggle(a.id)} />
+                  <span className="flex-1">
+                    <span className="block font-medium text-ink-800">{a.name}</span>
+                    <span className="text-sm text-ink-500">
+                      {formatEur(a.priceCents)} {a.unit === "per_child" ? hr.paketi.poDjetetu : ""}
+                    </span>
                   </span>
-                </span>
-              </label>
-            );
-          })}
+                </label>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="card">
         <h3 className="font-semibold text-ink-800">{hr.booking.tema}</h3>
@@ -781,37 +658,29 @@ function KorakPodaci(p: {
   );
 }
 
-// --- Korak 5: plaćanje ------------------------------------------------
-function KorakPlacanje({
-  online, izracun, platiPuni, setPlatiPuni,
-  voucherCode, setVoucherCode, voucherSaldo, setVoucherSaldo, voucherGreska, setVoucherGreska,
+// --- Korak 5: pregled i slanje upita ----------------------------------
+function KorakPregled({
+  izracun, voucherCode, setVoucherCode,
 }: {
-  online: boolean;
-  izracun: ReturnType<typeof izracunajCijenu>; platiPuni: boolean; setPlatiPuni: (v: boolean) => void;
+  izracun: ReturnType<typeof izracunajCijenu>;
   voucherCode: string; setVoucherCode: (v: string) => void;
-  voucherSaldo: number | null; setVoucherSaldo: (v: number | null) => void;
-  voucherGreska: string | null; setVoucherGreska: (v: string | null) => void;
 }) {
   const [provjera, setProvjera] = useState(false);
-  // Online: plaća se akontacija ili puni iznos. Uživo: plaća se ukupno na blagajni.
-  const osnovica = online ? (platiPuni ? izracun.totalCents : izracun.depositCents) : izracun.totalCents;
-  const bonPrimijenjen = voucherSaldo !== null ? Math.min(voucherSaldo, osnovica) : 0;
-  const zaPlatiti = Math.max(0, osnovica - bonPrimijenjen);
+  const [bon, setBon] = useState<{ ok: boolean; tekst: string } | null>(null);
 
-  async function primijeniBon() {
+  async function provjeriBon() {
     setProvjera(true);
-    setVoucherGreska(null);
+    setBon(null);
     try {
-      const res = await fetch(`/api/vouchers/check?code=${encodeURIComponent(voucherCode)}`);
+      const res = await fetch(`/api/vouchers/check?code=${encodeURIComponent(voucherCode.trim())}`);
       const data = await res.json();
-      if (data.valid) {
-        setVoucherSaldo(data.balanceCents);
-      } else {
-        setVoucherSaldo(null);
-        setVoucherGreska(data.razlog ?? hr.pokloni.bonNevazeci);
-      }
+      setBon(
+        data.valid
+          ? { ok: true, tekst: `${hr.pokloni.stanje}: ${formatEur(data.balanceCents)}` }
+          : { ok: false, tekst: data.razlog ?? hr.pokloni.bonNevazeci },
+      );
     } catch {
-      setVoucherGreska(hr.pokloni.bonNevazeci);
+      setBon({ ok: false, tekst: hr.pokloni.bonNevazeci });
     } finally {
       setProvjera(false);
     }
@@ -819,38 +688,19 @@ function KorakPlacanje({
 
   return (
     <div className="card space-y-4">
-      <h3 className="font-semibold text-ink-800">{online ? hr.booking.koraci.placanje : hr.booking.pregledKorak}</h3>
+      <h3 className="font-semibold text-ink-800">{hr.booking.pregledKorak}</h3>
 
-      {!online && (
-        <p className="rounded-2xl bg-mint-50 px-4 py-3 text-sm text-mint-700">
-          💶 {hr.booking.placanjeUzivoNapomena}
-        </p>
-      )}
+      <p className="rounded-2xl bg-sun-100 px-4 py-3 text-sm text-brand-900">📨 {hr.booking.upitNapomena}</p>
 
-      {online && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => setPlatiPuni(false)}
-            className={`rounded-2xl border p-4 text-left transition ${!platiPuni ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200"}`}
-          >
-            <span className="block font-semibold text-ink-800">{hr.booking.akontacija}</span>
-            <span className="mt-1 block text-2xl font-extrabold text-brand-600">{formatEur(izracun.depositCents)}</span>
-            <span className="text-xs text-ink-400">{hr.booking.ostatak}: {formatEur(izracun.ostatakCents)}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPlatiPuni(true)}
-            className={`rounded-2xl border p-4 text-left transition ${platiPuni ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200"}`}
-          >
-            <span className="block font-semibold text-ink-800">{hr.booking.platiPuni}</span>
-            <span className="mt-1 block text-2xl font-extrabold text-brand-600">{formatEur(izracun.totalCents)}</span>
-            <span className="text-xs text-ink-400">Cijeli iznos odmah</span>
-          </button>
-        </div>
-      )}
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-ink-50 px-4 py-3">
+        <span>
+          <span className="block font-semibold text-ink-800">{hr.booking.okvirnaCijena}</span>
+          <span className="text-xs text-ink-500">{hr.booking.zaPlatitiUzivo}</span>
+        </span>
+        <span className="text-xl font-extrabold text-brand-600">{formatEur(izracun.totalCents)}</span>
+      </div>
 
-      {/* Poklon-bon */}
+      {/* Poklon-bon: provjera valjanosti; primjenjuje se pri potvrdi rezervacije */}
       <div className="rounded-2xl bg-brand-50 p-4">
         <p className="text-sm font-medium text-ink-700">🎁 {hr.pokloni.imatBon}</p>
         <div className="mt-2 flex gap-2">
@@ -858,40 +708,25 @@ function KorakPlacanje({
             className="input"
             placeholder={hr.pokloni.unesiKod}
             value={voucherCode}
-            onChange={(e) => { setVoucherCode(e.target.value); setVoucherSaldo(null); }}
+            onChange={(e) => { setVoucherCode(e.target.value); setBon(null); }}
           />
-          <button type="button" className="btn-secondary shrink-0" onClick={primijeniBon} disabled={!voucherCode || provjera}>
-            {hr.pokloni.primijeni}
+          <button type="button" className="btn-secondary shrink-0" onClick={provjeriBon} disabled={!voucherCode.trim() || provjera}>
+            {hr.pokloni.provjeri}
           </button>
         </div>
-        {voucherGreska && <p className="mt-2 text-sm text-red-600">{voucherGreska}</p>}
-        {voucherSaldo !== null && (
-          <p className="mt-2 text-sm text-mint-700">
-            ✅ {hr.pokloni.bonPrimijenjen} · {hr.pokloni.stanje}: {formatEur(voucherSaldo)} (−{formatEur(bonPrimijenjen)})
-          </p>
-        )}
+        {bon && <p className={`mt-2 text-sm ${bon.ok ? "text-mint-600" : "text-red-600"}`}>{bon.ok ? `✅ ${hr.pokloni.bonPrimijenjen}` : ""} {bon.tekst}</p>}
+        <p className="mt-2 text-xs text-ink-500">{hr.booking.bonNapomena}</p>
       </div>
-
-      <div className="flex items-center justify-between rounded-2xl bg-ink-50 px-4 py-3">
-        <span className="font-semibold text-ink-800">{online ? "Za plaćanje sada" : hr.booking.zaPlatitiUzivo}</span>
-        <span className="text-xl font-extrabold text-brand-600">{formatEur(zaPlatiti)}</span>
-      </div>
-
-      {online && (
-        <p className="rounded-2xl bg-sky2-50 px-4 py-3 text-xs text-ink-500">
-          Probni način rada: plaćanje je simulirano. U stvarnom radu ovdje se učitava Stripe (EUR).
-        </p>
-      )}
     </div>
   );
 }
 
 // --- Sažetak ----------------------------------------------------------
 function Sazetak({
-  datum, termin, soba, soba2, paket, numChildren, tema, izracun, online,
+  datum, termin, soba, soba2, paket, numChildren, tema, izracun,
 }: {
   datum: string | null; termin: string | null; soba?: string; soba2?: string; paket?: string;
-  numChildren: number; tema?: string; izracun: ReturnType<typeof izracunajCijenu> | null; online: boolean;
+  numChildren: number; tema?: string; izracun: ReturnType<typeof izracunajCijenu> | null;
 }) {
   return (
     <div className="card">
@@ -915,13 +750,10 @@ function Sazetak({
             ))}
           </div>
           <div className="mt-3 flex justify-between border-t border-black/5 pt-3 text-lg font-bold text-ink-900">
-            <span>{hr.booking.ukupno}</span>
+            <span>{hr.booking.okvirnaCijena}</span>
             <span className="text-brand-600">{formatEur(izracun.totalCents)}</span>
           </div>
-          <div className="mt-1 flex justify-between text-sm text-ink-500">
-            <span>{online ? hr.booking.akontacija : hr.booking.zaPlatitiUzivo}</span>
-            <span>{formatEur(online ? izracun.depositCents : izracun.totalCents)}</span>
-          </div>
+          <p className="mt-1 text-sm text-ink-500">{hr.booking.zaPlatitiUzivo}</p>
         </>
       )}
     </div>

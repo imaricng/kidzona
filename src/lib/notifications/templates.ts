@@ -22,6 +22,81 @@ interface RezervacijaPodaci {
   qrUrl?: string;
 }
 
+const KONTAKT = `${hr.kontakt.telefon} (i WhatsApp) ili ${hr.kontakt.email}`;
+
+export function predlozakZaprimljenogUpita(r: RezervacijaPodaci): { naslov: string; tijelo: string } {
+  return {
+    naslov: `Zaprimili smo vaš upit ${r.code} — ${hr.brand.naziv}`,
+    tijelo: [
+      `Poštovani/a ${r.parentName},`,
+      ``,
+      `hvala na upitu! Zaprimili smo sljedeće podatke:`,
+      ``,
+      `Broj upita: ${r.code}`,
+      r.childName ? `Slavljenik: ${r.childName}` : null,
+      `Datum: ${formatDatumDugi(r.date)}`,
+      `Termin: ${r.slotStart} – ${r.slotEnd}`,
+      `Igraonica: ${r.roomName}`,
+      `Paket: ${r.packageName} (${brojDjece(r.numChildren)})`,
+      `Okvirna cijena: ${formatEur(r.totalCents)}`,
+      ``,
+      `Ovo još nije potvrđena rezervacija. Provjerit ćemo termin i javiti vam se s potvrdom u najkraćem roku.`,
+      `Za pitanja: ${KONTAKT}.`,
+      ``,
+      `Veselimo se! — ${hr.brand.naziv}`,
+    ]
+      .filter((l) => l !== null)
+      .join("\n"),
+  };
+}
+
+export function predlozakNovogUpita(
+  r: RezervacijaPodaci,
+  kontakt: { email: string; phone?: string | null; notes?: string | null },
+  adminUrl: string,
+): { naslov: string; tijelo: string } {
+  return {
+    naslov: `[UPIT] Novi upit ${r.code} — ${formatDatumDugi(r.date)}, ${r.slotStart}`,
+    tijelo: [
+      `Stigao je novi upit za proslavu:`,
+      ``,
+      `Broj: ${r.code}`,
+      `Datum i termin: ${formatDatumDugi(r.date)}, ${r.slotStart} – ${r.slotEnd}`,
+      `Igraonica: ${r.roomName}`,
+      `Paket: ${r.packageName} (${brojDjece(r.numChildren)}${r.numAdults ? ` + ${r.numAdults} odraslih` : ""})`,
+      r.childName ? `Slavljenik: ${r.childName}` : null,
+      `Roditelj: ${r.parentName}`,
+      `E-pošta: ${kontakt.email || "—"}`,
+      `Telefon: ${kontakt.phone || "—"}`,
+      kontakt.notes ? `Napomene: ${kontakt.notes}` : null,
+      `Okvirna cijena: ${formatEur(r.totalCents)}`,
+      ``,
+      `Odobrite, uredite ili odbijte upit: ${adminUrl}`,
+    ]
+      .filter((l) => l !== null)
+      .join("\n"),
+  };
+}
+
+export function predlozakOdbijenogUpita(r: RezervacijaPodaci, razlog?: string): { naslov: string; tijelo: string } {
+  return {
+    naslov: `Vaš upit ${r.code} — ${hr.brand.naziv}`,
+    tijelo: [
+      `Poštovani/a ${r.parentName},`,
+      ``,
+      `hvala na upitu za proslavu (${formatDatumDugi(r.date)}, ${r.slotStart}).`,
+      `Nažalost, upit u ovom obliku ne možemo prihvatiti.`,
+      razlog ? `Razlog: ${razlog}` : null,
+      ``,
+      `Rado ćemo pronaći drugi termin — javite nam se na ${KONTAKT}.`,
+      ``,
+      `Srdačan pozdrav, ${hr.brand.naziv}`,
+    ]
+      .filter((l) => l !== null)
+      .join("\n"),
+  };
+}
+
 export function predlozakPotvrde(r: RezervacijaPodaci): { naslov: string; tijelo: string } {
   return {
     naslov: `Potvrda rezervacije ${r.code} — ${hr.brand.naziv}`,

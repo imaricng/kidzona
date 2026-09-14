@@ -119,6 +119,7 @@ export const hr = {
   faq: {
     naslov: "Česta pitanja",
     pitanja: [
+      { p: "Kako funkcionira rezervacija?", o: "Na stranici odaberete datum, termin, igraonicu i paket te pošaljete upit. Mi provjerimo termin i potvrdimo rezervaciju e-poštom ili telefonom." },
       { p: "Za koju dob su igraonice?", o: "Mini Kidzona je prilagođena mlađoj djeci, a Game Teen djeci od 7 do 12 godina i starijoj djeci." },
       { p: "Koliko traje proslava?", o: "Standard paket traje 2 sata, a Premium 3 sata. Proslave počinju u 14:00 ili 17:00 (petak–nedjelja) te u 17:00 ponedjeljkom i srijedom." },
       { p: "Što je uključeno od hrane i torte?", o: "Grickalice, sokovi i pizza te torta Ledo Medo uključeni su u pakete. U Game Teen Premium paketu djeca dobivaju McDonald's meni." },
@@ -197,11 +198,21 @@ export const hr = {
     platiPuni: "Plati puni iznos",
     obradaPlacanja: "Obrada plaćanja…",
     // Plaćanje uživo (plaćanje putem interneta isključeno)
-    pregledKorak: "Pregled",
-    potvrdiRezervaciju: "Potvrdi rezervaciju",
+    pregledKorak: "Pregled i slanje",
+    potvrdiRezervaciju: "Pošalji upit",
     zaPlatitiUzivo: "Plaća se uživo",
-    placanjeUzivoNapomena: "Plaćate uživo na dan proslave (gotovinom ili karticom na blagajni). Sada samo potvrđujete rezervaciju.",
-    obradaPotvrde: "Potvrđivanje…",
+    placanjeUzivoNapomena: "Plaćate uživo na dan proslave (gotovinom ili karticom na blagajni).",
+    obradaPotvrde: "Slanje upita…",
+    // Upit (rezervaciju potvrđuje administrator)
+    upitNapomena: "Ovo je upit, a ne potvrđena rezervacija. Provjerit ćemo termin i javiti vam se s potvrdom e-poštom ili telefonom.",
+    okvirnaCijena: "Okvirna cijena",
+    bonNapomena: "Kod poklon-bona primijenit ćemo pri potvrdi rezervacije.",
+    upitNaslov: "Upit je poslan!",
+    upitTekst: "Zaprimili smo vaš upit. Provjerit ćemo termin i javiti vam se s potvrdom — e-poštom ili telefonom.",
+    brojUpita: "Broj upita",
+    odbijenoNaslov: "Upit nije prihvaćen",
+    odbijenoTekst: "Nažalost, taj upit ne možemo prihvatiti. Javite nam se i rado ćemo pronaći drugi termin.",
+    otkazanoNaslov: "Rezervacija je otkazana",
     // Potvrda
     potvrdaNaslov: "Rezervacija je potvrđena!",
     potvrdaTekst: "Poslali smo vam potvrdu e-poštom. Ponesite QR kod na dan proslave.",
@@ -230,6 +241,7 @@ export const hr = {
     imatBon: "Imate poklon-bon?",
     unesiKod: "Unesite kod bona",
     primijeni: "Primijeni",
+    provjeri: "Provjeri",
     bonPrimijenjen: "Bon primijenjen",
     bonNevazeci: "Bon nije važeći",
     stanje: "Stanje bona",
@@ -241,6 +253,7 @@ export const hr = {
     checkin: "Prijavljen dolazak",
     zavrseno: "Završeno",
     otkazano: "Otkazano",
+    odbijeno: "Odbijeno",
   },
   admin: {
     naslov: "Administracija",

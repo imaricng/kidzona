@@ -1,11 +1,12 @@
 import { hr } from "@/i18n/hr";
 
 const STIL: Record<string, string> = {
-  upit: "bg-ink-100 text-ink-600",
+  upit: "bg-sun-100 text-brand-900 ring-1 ring-sun-400",
   potvrdjeno: "bg-sky-100 text-sky-700",
-  placeno: "bg-mint-100 text-mint-700",
+  placeno: "bg-mint-500/15 text-mint-600",
   checkin: "bg-brand-100 text-brand-700",
   zavrseno: "bg-ink-200 text-ink-700",
+  odbijeno: "bg-orange-100 text-orange-700",
   otkazano: "bg-red-100 text-red-700",
 };
 

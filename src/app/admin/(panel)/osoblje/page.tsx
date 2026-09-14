@@ -9,7 +9,8 @@ import { predlozakOsoblje } from "@/lib/notifications/templates";
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.osoblje };
 
-const AKTIVNI = ["upit", "potvrdjeno", "placeno", "checkin"];
+// Osoblje se raspoređuje samo na potvrđene proslave (ne na upite).
+const AKTIVNI = ["potvrdjeno", "placeno", "checkin"];
 
 // --- Server actions ---------------------------------------------------
 async function dodijeliOsoblje(formData: FormData) {
