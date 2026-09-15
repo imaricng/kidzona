@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { hr, brojDjece } from "@/i18n/hr";
 import { formatEur, formatDatumDugi } from "@/lib/format";
 import { izracunajCijenu, SPAJANJE_SOBE_CENTS } from "@/lib/pricing";
-import { druzionicaZaDatum, krajTermina, lokalniISO, pocetciZaDatum, sljedeciDatumSTerminima, trajanjeSati } from "@/lib/slots";
+import { druzionicaZaDatum, krajTermina, lokalniISO, pocetciZaDatum, trajanjeSati } from "@/lib/slots";
+import { prviOtvoreniDatum, rasponDatuma, zatvaranjeZaDatum, type Zatvaranje } from "@/lib/zatvaranja";
 
 // --- Tipovi kataloga (serijalizirano s poslužitelja) ------------------
 export interface Katalog {
@@ -19,6 +20,7 @@ export interface Katalog {
   themes: { id: string; name: string; emoji: string; gradient: string }[];
   depositPercent: number;
   onlinePayments: boolean;
+  zatvaranja: Zatvaranje[]; // neradni dani (od danas nadalje)
 }
 
 export interface PocetniKontakt {
@@ -62,7 +64,7 @@ export function BookingWizard({
   const [korak, setKorak] = useState(0);
 
   // Korak 1 — datum i početak po rasporedu (zadano: prvi dan s terminima od danas)
-  const [datum, setDatum] = useState<string>(() => sljedeciDatumSTerminima(danasISO()));
+  const [datum, setDatum] = useState<string>(() => prviOtvoreniDatum(danasISO(), katalog.zatvaranja));
   const [odabraniStart, setOdabraniStart] = useState<string | null>(null);
 
   // Korak 2 — igraonica + paket (paket iz linka unaprijed odabire i igraonicu)
@@ -95,7 +97,8 @@ export function BookingWizard({
 
   const paket = katalog.packages.find((p) => p.id === packageId);
   const soba = katalog.rooms.find((r) => r.id === roomId);
-  const pocetci = pocetciZaDatum(datum);
+  const zatvaranje = zatvaranjeZaDatum(datum, katalog.zatvaranja);
+  const pocetci = zatvaranje ? [] : pocetciZaDatum(datum);
   const slotEnd = odabraniStart && paket ? krajTermina(odabraniStart, paket.durationMin) : null;
   const maxDjece = soba?.maxChildren ?? 40;
   const koraci = [
@@ -245,6 +248,8 @@ export function BookingWizard({
               odabraniStart={odabraniStart}
               onOdabir={setOdabraniStart}
               trajanja={trajanja}
+              zatvaranje={zatvaranje}
+              zatvaranja={katalog.zatvaranja}
             />
           )}
           {korak === 1 && (
@@ -343,11 +348,12 @@ function Stepper({ korak, koraci }: { korak: number; koraci: string[] }) {
 
 // --- Korak 1: datum i početak ----------------------------------------
 function KorakTermin({
-  datum, setDatum, pocetci, odabraniStart, onOdabir, trajanja,
+  datum, setDatum, pocetci, odabraniStart, onOdabir, trajanja, zatvaranje, zatvaranja,
 }: {
   datum: string; setDatum: (d: string) => void; pocetci: string[];
   odabraniStart: string | null; onOdabir: (start: string) => void;
   trajanja: { durationMin: number; nazivi: string[] }[];
+  zatvaranje?: Zatvaranje; zatvaranja: Zatvaranje[];
 }) {
   const druzionica = druzionicaZaDatum(datum);
   return (
@@ -365,13 +371,26 @@ function KorakTermin({
       <p className="mt-1 text-xs text-ink-400">{hr.booking.rasporedNapomena}</p>
 
       <h3 className="mt-6 font-semibold text-ink-800">{hr.booking.odaberiTermin}</h3>
-      {pocetci.length === 0 ? (
+      {zatvaranje ? (
+        <div className="mt-3 rounded-2xl bg-sun-100 px-4 py-4 text-sm ring-1 ring-sun-400">
+          <p className="font-semibold text-brand-900">
+            🗓️ {hr.zatvoreno.naDan}: {zatvaranje.razlog} ({rasponDatuma(zatvaranje)})
+          </p>
+          <button
+            type="button"
+            className="btn-secondary mt-3 !py-2 !text-sm"
+            onClick={() => setDatum(prviOtvoreniDatum(dodajDan(zatvaranje.do, 1), zatvaranja))}
+          >
+            {hr.zatvoreno.prviOtvoreni} →
+          </button>
+        </div>
+      ) : pocetci.length === 0 ? (
         <div className="mt-3 rounded-2xl bg-brand-50 px-4 py-4 text-sm">
           <p className="font-semibold text-brand-900">{hr.booking.nemaTermina}</p>
           <button
             type="button"
             className="btn-secondary mt-3 !py-2 !text-sm"
-            onClick={() => setDatum(sljedeciDatumSTerminima(dodajDan(datum, 1)))}
+            onClick={() => setDatum(prviOtvoreniDatum(dodajDan(datum, 1), zatvaranja))}
           >
             {hr.booking.prviSlobodanDan} →
           </button>
@@ -400,7 +419,7 @@ function KorakTermin({
           })}
         </div>
       )}
-      {druzionica.length > 0 && (
+      {!zatvaranje && druzionica.length > 0 && (
         <p className="mt-4 text-sm text-ink-600">
           🧸 {hr.booking.druzionica}: {druzionica.map((d) => `${d.od} – ${d.do}`).join(", ")}
         </p>

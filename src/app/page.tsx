@@ -9,6 +9,7 @@ import { StickyCta } from "@/components/StickyCta";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { Logo } from "@/components/Logo";
 import { JsonLd } from "@/components/JsonLd";
+import { lokalniISO } from "@/lib/slots";
 import { PaketKartica } from "@/components/PaketKartica";
 import { SectionNaslov } from "@/components/SectionNaslov";
 import { faqJsonLd, poslovanjeJsonLd, slugIgraonice } from "@/lib/seo";
@@ -66,7 +67,7 @@ const OBJAVE_STIL = [
 
 export default async function HomePage() {
   const hr = getDict(await getLocale()); // `hr` = aktivni rječnik (HR ili EN)
-  const [sobe, opciPaketi, teme] = await Promise.all([
+  const [sobe, opciPaketi, teme, zatvaranja] = await Promise.all([
     prisma.room.findMany({
       where: { active: true },
       orderBy: { sortOrder: "asc" },
@@ -75,13 +76,19 @@ export default async function HomePage() {
     // Paketi bez igraonice vrijede za sve igraonice.
     prisma.package.findMany({ where: { active: true, roomId: null }, orderBy: { sortOrder: "asc" } }),
     prisma.theme.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.closedPeriod.findMany({ where: { endDate: { gte: lokalniISO(new Date()) } }, orderBy: { startDate: "asc" } }),
   ]);
 
   return (
     <>
       <SiteHeader />
       <main className="pb-24 md:pb-0">
-        <JsonLd data={[poslovanjeJsonLd(sobe, opciPaketi), faqJsonLd(hr.faq.pitanja)]} />
+        <JsonLd
+          data={[
+            poslovanjeJsonLd(sobe, opciPaketi, zatvaranja.map((z) => ({ od: z.startDate, do: z.endDate }))),
+            faqJsonLd(hr.faq.pitanja),
+          ]}
+        />
         {/* HERO — ljubičasta podloga, konfeti, baloni i logotip s maskotom */}
         <section className="relative overflow-hidden bg-brand-500 text-white">
           <div

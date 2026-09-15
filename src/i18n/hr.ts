@@ -145,6 +145,13 @@ export const hr = {
     radniDani: "Pon i sri: 17:00 – 20:00 · Uto i čet: 16:00 – 19:00 (družionica)",
     vikend: "Pet i ned: 14:00 – 20:00 · Sub: 10:00 – 12:00 (družionica) i 14:00 – 20:00",
   },
+  zatvoreno: {
+    sada: "Trenutno ne radimo",
+    uskoro: "Ne radimo",
+    ostaliDatumi: "Upite za ostale datume rado primamo.",
+    naDan: "Na odabrani datum ne radimo",
+    prviOtvoreni: "Prvi slobodan datum",
+  },
   proslave: {
     oznaka: "Dječji rođendani i igraonica · Nova Gradiška",
     naslovSufiks: "dječji rođendani u Novoj Gradiški",

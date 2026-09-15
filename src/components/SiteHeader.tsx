@@ -2,12 +2,15 @@ import Link from "next/link";
 import { getDict, getLocale } from "@/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Logo } from "@/components/Logo";
+import { ObavijestZatvaranja } from "@/components/ObavijestZatvaranja";
 
 /** Glavna navigacija javnog dijela stranice (dvojezično: HR/EN). */
 export async function SiteHeader() {
   const locale = await getLocale();
   const t = getDict(locale);
   return (
+    <>
+    <ObavijestZatvaranja />
     <header className="sticky top-0 z-40 bg-white/95 shadow-[0_6px_24px_-18px_rgba(43,26,102,0.45)] backdrop-blur">
       {/* Tanka traka u četiri brand boje */}
       <div aria-hidden className="flex h-1.5">
@@ -43,5 +46,6 @@ export async function SiteHeader() {
         </div>
       </div>
     </header>
+    </>
   );
 }

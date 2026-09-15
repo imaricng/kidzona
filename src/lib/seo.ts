@@ -55,7 +55,7 @@ function ponuda(soba: string, p: PaketSeo) {
 }
 
 /** Lokalno poslovanje s adresom, radnim vremenom, društvenim mrežama i paketima po igraonicama. */
-export function poslovanjeJsonLd(sobe: SobaSeo[], opciPaketi: PaketSeo[]) {
+export function poslovanjeJsonLd(sobe: SobaSeo[], opciPaketi: PaketSeo[], zatvaranja: { od: string; do: string }[] = []) {
   return {
     "@context": "https://schema.org",
     "@type": "EntertainmentBusiness",
@@ -84,6 +84,18 @@ export function poslovanjeJsonLd(sobe: SobaSeo[], opciPaketi: PaketSeo[]) {
       opens: r.od,
       closes: r.do,
     })),
+    // Neradni dani (godišnji odmor, prije otvorenja…): zatvoreno cijeli dan.
+    ...(zatvaranja.length
+      ? {
+          specialOpeningHoursSpecification: zatvaranja.map((z) => ({
+            "@type": "OpeningHoursSpecification",
+            validFrom: z.od,
+            validThrough: z.do,
+            opens: "00:00",
+            closes: "00:00",
+          })),
+        }
+      : {}),
     sameAs: [hr.kontakt.facebook, hr.kontakt.instagram],
     currenciesAccepted: "EUR",
     priceRange: "€€",

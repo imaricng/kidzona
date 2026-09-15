@@ -108,6 +108,19 @@ model Room {
 }
 
 // --- Paketi i dodaci --------------------------------------------------
+// Razdoblje kad igraonica ne radi (godišnji odmor, prije otvorenja…).
+// Web upiti za te datume nisu mogući; na stranici se po želji prikazuje obavijest.
+model ClosedPeriod {
+  id         String   @id @default(cuid())
+  startDate  String   // "YYYY-MM-DD", uključivo
+  endDate    String   // "YYYY-MM-DD", uključivo
+  reason     String   // javno vidljivo, npr. "Godišnji odmor"
+  showNotice Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([endDate])
+}
+
 model Package {
   id            String  @id @default(cuid())
   name          String

@@ -141,6 +141,13 @@ export const en = {
     radniDani: "Mon & Wed: 17:00 – 20:00 · Tue & Thu: 16:00 – 19:00 (open play)",
     vikend: "Fri & Sun: 14:00 – 20:00 · Sat: 10:00 – 12:00 (open play) and 14:00 – 20:00",
   },
+  zatvoreno: {
+    sada: "We are currently closed",
+    uskoro: "Closed",
+    ostaliDatumi: "Enquiries for other dates are welcome.",
+    naDan: "We are closed on the selected date",
+    prviOtvoreni: "First available date",
+  },
   proslave: {
     oznaka: "Birthday parties and play rooms for kids · Nova Gradiška",
     naslovSufiks: "kids birthday parties in Nova Gradiška",

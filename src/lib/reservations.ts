@@ -19,6 +19,7 @@ import { posaljiIZabiljezi } from "@/lib/notifications";
 import { brojDjece } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
+import { rasponDatuma } from "@/lib/zatvaranja";
 import {
   predlozakNovogUpita,
   predlozakOdbijenogUpita,
@@ -209,6 +210,13 @@ async function posaljiPotvrdu(r: RezervacijaSPovezanim, kupcu: boolean): Promise
  */
 export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezanim> {
   const { soba, paket, termin } = await provjeriPodatke(input, true);
+  // Neradni dani (godišnji odmor, prije otvorenja…) — web upit nije moguć.
+  const zatvoreno = await prisma.closedPeriod.findFirst({ where: { startDate: { lte: input.dateISO }, endDate: { gte: input.dateISO } } });
+  if (zatvoreno) {
+    throw new NeispravnaRezervacijaError(
+      `Na odabrani datum ne radimo (${zatvoreno.reason}, ${rasponDatuma({ od: zatvoreno.startDate, do: zatvoreno.endDate })}). Odaberite drugi datum.`,
+    );
+  }
   const dodaciKatalog = await prisma.addOn.findMany({ where: { active: true } });
   const izracun = izracunajCijenu({
     paket: { name: paket.name, basePriceCents: paket.basePriceCents, ukljucenoDjece: paket.maxChildren, nadoplataPoDjetetuCents: paket.perChildCents },

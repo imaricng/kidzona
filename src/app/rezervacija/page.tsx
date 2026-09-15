@@ -5,6 +5,8 @@ import { hr } from "@/i18n/hr";
 import { getSessionFamily } from "@/lib/portal";
 import { BookingWizard, type Katalog, type PocetniKontakt } from "@/components/booking/BookingWizard";
 import { Logo } from "@/components/Logo";
+import { ObavijestZatvaranja } from "@/components/ObavijestZatvaranja";
+import { lokalniISO } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +37,12 @@ export default async function RezervacijaPage({
       }
     : undefined;
   const pocetniBrojDjece = djeca && /^\d+$/.test(djeca) ? Number(djeca) : undefined;
-  const [rooms, packages, addons, themes] = await Promise.all([
+  const [rooms, packages, addons, themes, zatvaranja] = await Promise.all([
     prisma.room.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     prisma.package.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     prisma.addOn.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     prisma.theme.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.closedPeriod.findMany({ where: { endDate: { gte: lokalniISO(new Date()) } }, orderBy: { startDate: "asc" } }),
   ]);
 
   const katalog: Katalog = {
@@ -78,10 +81,12 @@ export default async function RezervacijaPage({
     themes: themes.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji, gradient: t.gradient })),
     depositPercent: env.depositPercent,
     onlinePayments: env.onlinePayments,
+    zatvaranja: zatvaranja.map((z) => ({ od: z.startDate, do: z.endDate, razlog: z.reason })),
   };
 
   return (
     <div className="min-h-screen bg-paper">
+      <ObavijestZatvaranja />
       <header className="border-b border-black/5 bg-white">
         <div className="section flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-display text-lg font-extrabold text-brand-600">

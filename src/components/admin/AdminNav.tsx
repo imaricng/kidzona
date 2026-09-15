@@ -6,6 +6,7 @@ import { hr } from "@/i18n/hr";
 const STAVKE = [
   { href: "/admin/dashboard", label: hr.admin.nadzornaPloca, ikona: "📊" },
   { href: "/admin/kalendar", label: hr.admin.kalendar, ikona: "📅" },
+  { href: "/admin/zatvaranja", label: "Neradni dani", ikona: "🏖️" },
   { href: "/admin/rezervacije", label: hr.admin.rezervacije, ikona: "🎟️" },
   { href: "/admin/rezervacije/nova", label: "Ručni unos", ikona: "✍️" },
   { href: "/admin/crm", label: hr.admin.crm, ikona: "👨‍👩‍👧" },
