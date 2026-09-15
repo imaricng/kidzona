@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getDict, getLocale } from "@/i18n";
 import { Logo } from "@/components/Logo";
-import { Confetti, Wave } from "@/components/Decor";
+import { Confetti, FacebookLogo, InstagramLogo, Wave } from "@/components/Decor";
 
 export async function SiteFooter() {
   const t = getDict(await getLocale());
@@ -19,6 +19,29 @@ export async function SiteFooter() {
             <Logo size="sm" />
           </span>
           <p className="mt-4 text-sm text-white/80">{t.brand.slogan}</p>
+          <p className="mt-5 font-display text-sm font-bold text-sun-400">{t.kontakt.pratite}</p>
+          <div className="mt-2 flex gap-3">
+            <a
+              href={t.kontakt.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
+              title="Facebook"
+              className="grid h-11 w-11 place-items-center rounded-full bg-white/10 ring-1 ring-white/20 transition hover:bg-[#1877F2] hover:ring-transparent"
+            >
+              <FacebookLogo className="h-5 w-5" />
+            </a>
+            <a
+              href={t.kontakt.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              title="Instagram"
+              className="grid h-11 w-11 place-items-center rounded-full bg-white/10 ring-1 ring-white/20 transition hover:bg-berry-500 hover:ring-transparent"
+            >
+              <InstagramLogo className="h-5 w-5" />
+            </a>
+          </div>
         </div>
         <div>
           <h3 className="font-display text-base font-bold text-sun-400">{t.nav.paketi}</h3>

@@ -136,6 +136,9 @@ export const hr = {
     email: "kidzonang@gmail.com",
     // Broj za WhatsApp poveznicu (međunarodni oblik bez + i razmaka)
     whatsapp: "385955378559",
+    facebook: "https://www.facebook.com/profile.php?id=61594003481150",
+    instagram: "https://www.instagram.com/partykidzonang/",
+    pratite: "Pratite nas",
     radnoVrijeme: "Radno vrijeme",
     radniDani: "Pon i sri: 17:00 – 20:00 · Uto i čet: 16:00 – 19:00 (družionica)",
     vikend: "Pet i ned: 14:00 – 20:00 · Sub: 10:00 – 12:00 (družionica) i 14:00 – 20:00",
