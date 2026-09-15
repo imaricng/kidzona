@@ -3,7 +3,11 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { VoucherPurchase } from "@/components/VoucherPurchase";
 
-export const metadata = { title: hr.pokloni.naslov };
+export const metadata = {
+  title: hr.pokloni.naslov,
+  description: "Poklon-bon za dječji rođendan ili igraonicu u Party Kidzoni Nova Gradiška — originalan poklon za djecu.",
+  alternates: { canonical: "/pokloni" },
+};
 
 export default function PokloniPage() {
   return (

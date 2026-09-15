@@ -11,8 +11,15 @@ import { PrintButton } from "@/components/PrintButton";
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.booking.koraci.potvrda };
 
-export default async function PotvrdaPage({ params }: { params: Promise<{ code: string }> }) {
+export default async function PotvrdaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{ k?: string }>;
+}) {
   const { code } = await params;
+  const { k } = await searchParams;
   const r = await prisma.reservation.findUnique({
     where: { code },
     include: {
@@ -24,7 +31,8 @@ export default async function PotvrdaPage({ params }: { params: Promise<{ code: 
       invoices: true,
     },
   });
-  if (!r) notFound();
+  // Kodovi idu redom, pa se potvrda (osobni podaci) otvara samo uz tajni ključ iz poveznice.
+  if (!r || k !== r.qrToken) notFound();
 
   const potvrdjena = STATUSI_ZAUZIMAJU_TERMIN.includes(r.status);
   // QR kod (prijava dolaska na ulazu) postoji tek za potvrđenu rezervaciju.

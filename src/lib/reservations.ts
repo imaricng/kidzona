@@ -185,7 +185,7 @@ function podaciZaPoruku(r: RezervacijaSPovezanim) {
     totalCents: r.totalCents,
     depositCents: r.depositCents,
     paidCents: r.paidCents,
-    qrUrl: `${env.appUrl}/potvrda/${r.code}`,
+    qrUrl: `${env.appUrl}/potvrda/${r.code}?k=${r.qrToken}`,
   };
 }
 

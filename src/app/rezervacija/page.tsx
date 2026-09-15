@@ -8,7 +8,12 @@ import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: hr.booking.naslov };
+export const metadata = {
+  title: "Rezervacija dječjeg rođendana",
+  description:
+    "Pošaljite upit za dječji rođendan u Party Kidzoni Nova Gradiška: odaberite datum, igraonicu, paket i temu, a mi vam se javljamo s potvrdom.",
+  alternates: { canonical: "/rezervacija" },
+};
 
 export default async function RezervacijaPage({
   searchParams,

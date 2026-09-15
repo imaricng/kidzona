@@ -145,6 +145,17 @@ export const hr = {
     radniDani: "Pon i sri: 17:00 – 20:00 · Uto i čet: 16:00 – 19:00 (družionica)",
     vikend: "Pet i ned: 14:00 – 20:00 · Sub: 10:00 – 12:00 (družionica) i 14:00 – 20:00",
   },
+  proslave: {
+    oznaka: "Dječji rođendani i igraonica · Nova Gradiška",
+    naslovSufiks: "dječji rođendani u Novoj Gradiški",
+    uvod: "Proslava rođendana bez brige: mi pripremimo prostor, hranu, tortu i zabavu, a vi uživate s djecom.",
+    paketi: "Paketi i cijene",
+    teme: "Teme za proslavu",
+    termini: "Termini",
+    cta: "Pošalji upit za proslavu",
+    vise: "Više o igraonici",
+    ostale: "Pogledajte i",
+  },
   booking: {
     naslov: "Rezervacija proslave",
     koraci: {

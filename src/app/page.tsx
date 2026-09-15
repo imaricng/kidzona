@@ -3,20 +3,21 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getDict, getLocale } from "@/i18n";
 import type { Rjecnik } from "@/i18n/hr";
-import { formatEur } from "@/lib/format";
-import { trajanjeSati } from "@/lib/slots";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { StickyCta } from "@/components/StickyCta";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { Logo } from "@/components/Logo";
+import { JsonLd } from "@/components/JsonLd";
+import { PaketKartica } from "@/components/PaketKartica";
+import { SectionNaslov } from "@/components/SectionNaslov";
+import { faqJsonLd, poslovanjeJsonLd, slugIgraonice } from "@/lib/seo";
 import {
   BOJE,
   Balloon,
   Confetti,
   IconCircle,
   Ikona,
-  Squiggle,
   StarMascot,
   Wave,
   WhatsAppLogo,
@@ -25,6 +26,7 @@ import {
 } from "@/components/Decor";
 
 export const dynamic = "force-dynamic";
+export const metadata = { alternates: { canonical: "/" } };
 
 // Ikonice ponude — iste kao "ikonice za komunikaciju" iz brand vizuala.
 const PONUDA: { kljuc: keyof Rjecnik["ponuda"]["stavke"]; ikona: IkonaIme; boja: BojaKruga }[] = [
@@ -43,8 +45,6 @@ const ZASTO_IKONE: { ikona: IkonaIme; boja: BojaKruga }[] = [
   { ikona: "osmijeh", boja: "berry" },
   { ikona: "srce", boja: "sun" },
 ];
-
-const PAKET_AKCENT = ["bg-sky2-400", "bg-berry-500", "bg-brand-500"];
 
 // Kartice rasporeda (tekstovi su u rječniku pod `termini`).
 const RASPORED_KARTICE: { kljuc: "vikend" | "tjedan" | "druzionica"; ikona: IkonaIme; boja: BojaKruga }[] = [
@@ -81,6 +81,7 @@ export default async function HomePage() {
     <>
       <SiteHeader />
       <main className="pb-24 md:pb-0">
+        <JsonLd data={[poslovanjeJsonLd(sobe, opciPaketi), faqJsonLd(hr.faq.pitanja)]} />
         {/* HERO — ljubičasta podloga, konfeti, baloni i logotip s maskotom */}
         <section className="relative overflow-hidden bg-brand-500 text-white">
           <div
@@ -90,7 +91,7 @@ export default async function HomePage() {
           <Confetti />
           <div className="section relative grid items-center gap-14 pb-28 pt-12 md:grid-cols-2 md:pb-36 md:pt-20">
             <div>
-              <span className="chip bg-white/15 font-semibold text-white ring-1 ring-white/25">📍 {hr.brand.lokacija}</span>
+              <span className="chip bg-white/15 font-semibold text-white ring-1 ring-white/25">📍 {hr.proslave.oznaka}</span>
               <h1 className="mt-5 font-display text-[2.6rem] font-bold leading-[1.05] sm:text-6xl">
                 {hr.hero.naslovDijelovi.map((dio, i) => (
                   <span key={i} className={`block ${i === 1 ? "-rotate-1 text-sun-400" : ""}`}>
@@ -200,63 +201,19 @@ export default async function HomePage() {
                     <div>
                       <h3 className="font-display text-3xl font-bold text-brand-900">{soba.name}</h3>
                       {soba.description && <p className="text-ink-500">{soba.description}</p>}
+                      <Link
+                        href={`/proslave/${slugIgraonice(soba.name)}`}
+                        className="mt-1 inline-block text-sm font-semibold text-brand-600 hover:underline"
+                      >
+                        {hr.proslave.vise} {soba.name} →
+                      </Link>
                     </div>
                   </div>
                   {/* Kartice u centriranom redu — i treći paket (npr. Platinum) ostaje uravnotežen */}
                   <div className="mt-8 flex flex-wrap justify-center gap-8">
-                    {paketiSobe.map((p, i) => {
-                      const stavke = (p.includedItems as string[]) ?? [];
-                      return (
-                        <div
-                          key={p.id}
-                          className={`card relative flex w-full flex-col overflow-hidden pt-9 sm:w-[21rem] ${p.popular ? "ring-4 ring-sun-400" : ""}`}
-                        >
-                          <span aria-hidden className={`absolute inset-x-0 top-0 h-3 ${PAKET_AKCENT[i % PAKET_AKCENT.length]}`} />
-                          {p.popular && (
-                            <span className="chip mb-2 w-fit bg-sun-400 font-bold text-brand-900">★ {hr.paketi.popularno}</span>
-                          )}
-                          <h4 className="font-display text-2xl font-bold text-brand-900">{p.name}</h4>
-                          {p.description && <p className="mt-1 text-sm text-ink-500">{p.description}</p>}
-                          <div className="mt-4 flex flex-wrap items-baseline gap-x-2">
-                            {p.cijenaPoDogovoru ? (
-                              <>
-                                <span className="font-display text-4xl font-bold text-brand-600">{hr.paketi.poDogovoru}</span>
-                                <span className="text-sm text-ink-500">{hr.paketi.poDogovoruNapomena}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="font-display text-4xl font-bold text-brand-600">{formatEur(p.basePriceCents)}</span>
-                                <span className="text-sm text-ink-500">{hr.paketi.fiksnaCijena}</span>
-                              </>
-                            )}
-                          </div>
-                          <ul className="mt-4 flex flex-wrap gap-2 font-semibold">
-                            <li className="chip bg-brand-50 !text-xs text-brand-700">⏱ {trajanjeSati(p.durationMin)}</li>
-                            <li className="chip bg-berry-50 !text-xs text-berry-700">
-                              {hr.paketi.doBroj} {p.maxChildren} {hr.paketi.odDjece} · {hr.paketi.slavljenikGratis}
-                            </li>
-                            {p.perChildCents > 0 && !p.cijenaPoDogovoru && (
-                              <li className="chip bg-sun-100 !text-xs text-brand-900">
-                                +{formatEur(p.perChildCents)} {hr.paketi.poDodatnomDjetetu}
-                              </li>
-                            )}
-                          </ul>
-                          <ul className="mt-5 flex-1 space-y-2.5 text-sm text-ink-600">
-                            {stavke.map((s, j) => (
-                              <li key={j} className="flex items-start gap-2.5">
-                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">
-                                  <Ikona ime="kvacica" className="h-3.5 w-3.5" />
-                                </span>
-                                <span>{s}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          <Link href={`/rezervacija?paket=${p.slug}`} className="btn-primary mt-6 w-full">
-                            {hr.paketi.odabir}
-                          </Link>
-                        </div>
-                      );
-                    })}
+                    {paketiSobe.map((p, i) => (
+                      <PaketKartica key={p.id} paket={p} indeks={i} t={hr} />
+                    ))}
                   </div>
                 </div>
               );
@@ -425,12 +382,3 @@ export default async function HomePage() {
   );
 }
 
-function SectionNaslov({ naslov, podnaslov }: { naslov: string; podnaslov?: string }) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      <h2 className="font-display text-3xl font-bold text-brand-900 sm:text-4xl">{naslov}</h2>
-      <Squiggle className="mx-auto mt-2 h-3 w-24 text-berry-500" />
-      {podnaslov && <p className="mt-3 text-ink-500">{podnaslov}</p>}
-    </div>
-  );
-}

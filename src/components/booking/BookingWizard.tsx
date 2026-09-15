@@ -216,7 +216,7 @@ export function BookingWizard({
         setGreska(data.error ?? hr.booking.greska);
         return;
       }
-      router.push(`/potvrda/${data.code}`);
+      router.push(`/potvrda/${data.code}?k=${data.kljuc}`);
     } catch {
       setGreska(hr.booking.greska);
     } finally {

@@ -2,7 +2,7 @@ import { hr } from "@/i18n/hr";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
-export const metadata = { title: "Pravila privatnosti" };
+export const metadata = { title: "Pravila privatnosti", alternates: { canonical: "/privatnost" } };
 
 export default function PrivatnostPage() {
   return (

@@ -2,9 +2,13 @@ import Link from "next/link";
 import { getDict, getLocale } from "@/i18n";
 import { Logo } from "@/components/Logo";
 import { Confetti, FacebookLogo, InstagramLogo, Wave } from "@/components/Decor";
+import { prisma } from "@/lib/prisma";
+import { slugIgraonice } from "@/lib/seo";
 
 export async function SiteFooter() {
   const t = getDict(await getLocale());
+  // Poveznice na podstranice igraonica (unutarnje povezivanje za tražilice).
+  const sobe = await prisma.room.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
   return (
     <footer className="relative mt-28 bg-brand-700 text-white">
       {/* Šareni val (cijan, žuta, roza, ljubičasta) kao na dnu brand ploče */}
@@ -47,6 +51,11 @@ export async function SiteFooter() {
           <h3 className="font-display text-base font-bold text-sun-400">{t.nav.paketi}</h3>
           <ul className="mt-3 space-y-2 text-sm text-white/80">
             <li><a href="/#paketi" className="hover:text-white">{t.nav.paketi}</a></li>
+            {sobe.map((s) => (
+              <li key={s.id}>
+                <Link href={`/proslave/${slugIgraonice(s.name)}`} className="hover:text-white">{s.name}</Link>
+              </li>
+            ))}
             <li><a href="/#termini" className="hover:text-white">{t.nav.termini}</a></li>
             <li><a href="/#teme" className="hover:text-white">{t.nav.teme}</a></li>
             <li><a href="/#faq" className="hover:text-white">{t.nav.faq}</a></li>

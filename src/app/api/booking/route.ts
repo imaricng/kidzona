@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const r = await posaljiUpit(parsed.data);
-    return NextResponse.json({ ok: true, code: r.code });
+    // Ključ otvara stranicu potvrde (kodovi idu redom pa sam kod nije dovoljan).
+    return NextResponse.json({ ok: true, code: r.code, kljuc: r.qrToken });
   } catch (e) {
     if (e instanceof NeispravnaRezervacijaError) {
       return NextResponse.json({ error: e.message, code: "NEISPRAVNA_REZERVACIJA" }, { status: 422 });

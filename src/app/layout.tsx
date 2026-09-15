@@ -1,22 +1,40 @@
 import type { Metadata, Viewport } from "next";
+import { Fredoka, Kalam, Nunito } from "next/font/google";
 import "./globals.css";
-import { hr } from "@/i18n/hr";
 import { env } from "@/lib/env";
 import { CookieConsent } from "@/components/CookieConsent";
+
+// Brand fontovi (self-hosted preko next/font, bez vanjskog zahtjeva i blokiranja prikaza):
+// "Nunito" za tekst, "Fredoka" za logotip i naslove, "Kalam" za rukopisne potpise.
+const nunito = Nunito({ subsets: ["latin", "latin-ext"], weight: ["400", "600", "700", "800"], variable: "--font-nunito", display: "swap" });
+const fredoka = Fredoka({ subsets: ["latin", "latin-ext"], weight: ["400", "500", "600", "700"], variable: "--font-fredoka", display: "swap" });
+const kalam = Kalam({ subsets: ["latin", "latin-ext"], weight: "700", variable: "--font-kalam", display: "swap" });
+
+const OPIS =
+  "Dječji rođendani u Novoj Gradiški — igraonice Kids Play i Kids Challenge, tematske proslave, hrana i torta uključeni. Rezervirajte online ili putem WhatsAppa.";
 
 export const metadata: Metadata = {
   // Puna adresa stranice — potrebna da slika za dijeljenje (opengraph-image.jpg) ima apsolutni URL.
   metadataBase: new URL(env.appUrl),
   title: {
-    default: `${hr.brand.naziv} — rođendaonica i dječja igraonica`,
-    template: `%s | ${hr.brand.naziv}`,
+    default: "Party Kidzona — dječji rođendani i igraonica u Novoj Gradiški",
+    template: "%s | Party Kidzona Nova Gradiška",
   },
-  description:
-    "Rezervirajte nezaboravan dječji rođendan u Kidzoni Nova Gradiška. Dvije igraonice, tematske proslave, paketi s automatskim izračunom cijene i rezervacija putem interneta.",
-  keywords: ["rođendaonica", "dječja igraonica", "Nova Gradiška", "proslava", "rođendan", "Kidzona"],
+  description: OPIS,
+  keywords: [
+    "dječji rođendan Nova Gradiška",
+    "rođendaonica Nova Gradiška",
+    "igraonica Nova Gradiška",
+    "tematske proslave",
+    "Kids Play",
+    "Kids Challenge",
+    "Party Kidzona",
+  ],
+  applicationName: "Party Kidzona",
   openGraph: {
-    title: `${hr.brand.naziv}`,
-    description: "Rezervirajte dječji rođendan putem interneta — brzo, jednostavno, bezbrižno.",
+    title: "Party Kidzona — dječji rođendani u Novoj Gradiški",
+    description: OPIS,
+    siteName: "Party Kidzona Nova Gradiška",
     locale: "hr_HR",
     type: "website",
   },
@@ -31,17 +49,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="hr">
-      <head>
-        {/* Brand fontovi: "Fredoka" (logotip, naslovi), "Nunito" (tekst), "Kalam" (rukopis).
-            Učitavaju se u pregledniku; za produkciju preporuka je self-hosting radi GDPR-a. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Kalam:wght@700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="hr" className={`${nunito.variable} ${fredoka.variable} ${kalam.variable}`}>
       <body>
         {children}
         <CookieConsent />

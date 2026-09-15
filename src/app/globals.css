@@ -4,10 +4,11 @@
 
 :root {
   /* Zaobljeni "Nunito" za tekst, "Fredoka" za logotip i naslove, "Kalam" za
-     rukopisne potpise (prema brand vizualima); fallback na system font. */
-  --font-sans: "Nunito", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Fredoka", var(--font-sans);
-  --font-script: "Kalam", "Comic Sans MS", cursive;
+     rukopisne potpise (prema brand vizualima). Varijable --font-nunito/fredoka/kalam
+     postavlja next/font u layout.tsx; fallback na system font. */
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-fredoka), var(--font-sans);
+  --font-script: var(--font-kalam), "Comic Sans MS", cursive;
 }
 
 html {
