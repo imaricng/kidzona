@@ -17,6 +17,7 @@ import {
   IconCircle,
   Ikona,
   Squiggle,
+  StarMascot,
   Wave,
   WhatsAppLogo,
   type BojaKruga,
@@ -126,7 +127,8 @@ export default async function HomePage() {
 
             <div className="relative mx-auto w-full max-w-md">
               <div className="relative rotate-2 rounded-[2.5rem] bg-white px-6 pb-16 pt-10 text-center shadow-[0_24px_60px_-20px_rgba(29,24,64,0.6)] ring-8 ring-white/20">
-                <Logo size="lg" subtitle />
+                <Logo size="lg" />
+                <StarMascot className="absolute -left-7 -top-9 h-20 w-20 -rotate-12 sm:h-24 sm:w-24" />
               </div>
               <Balloon className="absolute -right-3 -top-12 h-28 w-16 motion-safe:animate-float" />
               <Balloon

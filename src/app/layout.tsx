@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { hr } from "@/i18n/hr";
+import { env } from "@/lib/env";
 import { CookieConsent } from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
+  // Puna adresa stranice — potrebna da slika za dijeljenje (opengraph-image.jpg) ima apsolutni URL.
+  metadataBase: new URL(env.appUrl),
   title: {
     default: `${hr.brand.naziv} — rođendaonica i dječja igraonica`,
     template: `%s | ${hr.brand.naziv}`,
