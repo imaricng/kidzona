@@ -218,15 +218,24 @@ export default async function HomePage() {
                           <h4 className="font-display text-2xl font-bold text-brand-900">{p.name}</h4>
                           {p.description && <p className="mt-1 text-sm text-ink-500">{p.description}</p>}
                           <div className="mt-4 flex flex-wrap items-baseline gap-x-2">
-                            <span className="font-display text-4xl font-bold text-brand-600">{formatEur(p.basePriceCents)}</span>
-                            <span className="text-sm text-ink-500">{hr.paketi.fiksnaCijena}</span>
+                            {p.cijenaPoDogovoru ? (
+                              <>
+                                <span className="font-display text-4xl font-bold text-brand-600">{hr.paketi.poDogovoru}</span>
+                                <span className="text-sm text-ink-500">{hr.paketi.poDogovoruNapomena}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="font-display text-4xl font-bold text-brand-600">{formatEur(p.basePriceCents)}</span>
+                                <span className="text-sm text-ink-500">{hr.paketi.fiksnaCijena}</span>
+                              </>
+                            )}
                           </div>
                           <ul className="mt-4 flex flex-wrap gap-2 font-semibold">
                             <li className="chip bg-brand-50 !text-xs text-brand-700">⏱ {trajanjeSati(p.durationMin)}</li>
                             <li className="chip bg-berry-50 !text-xs text-berry-700">
                               {hr.paketi.doBroj} {p.maxChildren} {hr.paketi.odDjece} · {hr.paketi.slavljenikGratis}
                             </li>
-                            {p.perChildCents > 0 && (
+                            {p.perChildCents > 0 && !p.cijenaPoDogovoru && (
                               <li className="chip bg-sun-100 !text-xs text-brand-900">
                                 +{formatEur(p.perChildCents)} {hr.paketi.poDodatnomDjetetu}
                               </li>

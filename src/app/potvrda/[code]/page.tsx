@@ -86,7 +86,7 @@ export default async function PotvrdaPage({ params }: { params: Promise<{ code: 
           <div className="mt-4 space-y-1 border-t border-black/5 pt-4 text-sm">
             <div className="flex justify-between">
               <span className="text-ink-500">{potvrdjena ? hr.booking.ukupno : hr.booking.okvirnaCijena}</span>
-              <span className="font-bold text-ink-900">{formatEur(r.totalCents)}</span>
+              <span className="font-bold text-ink-900">{r.totalCents > 0 ? formatEur(r.totalCents) : hr.paketi.poDogovoru}</span>
             </div>
             {potvrdjena && r.paidCents > 0 && (
               <div className="flex justify-between"><span className="text-ink-500">Plaćeno</span><span className="text-mint-600">{formatEur(r.paidCents)}</span></div>

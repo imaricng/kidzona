@@ -62,6 +62,17 @@ export interface PodaciRezervacije {
   childName?: string;
   childBirthDate?: string | null; // "YYYY-MM-DD"
   napomene?: string;
+  dogovorenaCijenaCents?: number | null; // samo za pakete s cijenom po dogovoru (administracija)
+}
+
+/** Iznos rezervacije; paket s cijenom po dogovoru dobiva upisani iznos (0 = još nije dogovoren). */
+function cijenaRezervacije(
+  paket: { cijenaPoDogovoru: boolean },
+  izracun: { totalCents: number; depositCents: number },
+  dogovorenaCijenaCents?: number | null,
+): { totalCents: number; depositCents: number } {
+  if (!paket.cijenaPoDogovoru) return { totalCents: izracun.totalCents, depositCents: izracun.depositCents };
+  return { totalCents: Math.max(0, dogovorenaCijenaCents ?? 0), depositCents: 0 };
 }
 
 export interface UpitInput extends PodaciRezervacije {
@@ -233,8 +244,7 @@ export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezan
         childName: input.childName,
         childBirthDate: input.childBirthDate ? new Date(input.childBirthDate) : null,
         status: "upit",
-        totalCents: izracun.totalCents,
-        depositCents: izracun.depositCents,
+        ...cijenaRezervacije(paket, izracun),
         paidCents: 0,
         gdprConsent: input.gdprConsent,
         marketingConsent: input.marketingConsent,
@@ -344,8 +354,7 @@ export async function unesiRucno(
         childName: input.childName || null,
         childBirthDate: input.childBirthDate ? new Date(input.childBirthDate) : null,
         status: input.status,
-        totalCents: izracun.totalCents,
-        depositCents: izracun.depositCents,
+        ...cijenaRezervacije(paket, izracun, input.dogovorenaCijenaCents),
         paidCents: 0,
         qrToken: qrToken(),
         source: "admin",
@@ -407,8 +416,7 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
         childName: input.childName || null,
         childBirthDate: input.childBirthDate ? new Date(input.childBirthDate) : null,
         notes: input.napomene || null,
-        totalCents: izracun.totalCents,
-        depositCents: izracun.depositCents,
+        ...cijenaRezervacije(paket, izracun, input.dogovorenaCijenaCents),
       },
     });
   });

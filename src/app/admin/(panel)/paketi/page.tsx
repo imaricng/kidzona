@@ -47,6 +47,7 @@ async function azurirajPaket(formData: FormData) {
       minChildren: broj(formData.get("minChildren"), 1),
       maxChildren: broj(formData.get("maxChildren"), 15),
       popular: formData.get("popular") === "on",
+      cijenaPoDogovoru: formData.get("cijenaPoDogovoru") === "on",
       active: formData.get("active") === "on",
       includedItems: String(formData.get("includedItems") || "").split("\n").map((l) => l.trim()).filter(Boolean),
     },
@@ -69,6 +70,7 @@ async function kreirajPaket(formData: FormData) {
       minChildren: broj(formData.get("minChildren"), 1),
       maxChildren: broj(formData.get("maxChildren"), 15),
       sortOrder: (zadnji?.sortOrder ?? 0) + 1,
+      cijenaPoDogovoru: formData.get("cijenaPoDogovoru") === "on",
       includedItems: String(formData.get("includedItems") || "").split("\n").map((l) => l.trim()).filter(Boolean),
     },
   });
@@ -146,7 +148,8 @@ export default async function AdminPaketiPage() {
       <h1 className="font-display text-2xl font-extrabold text-ink-900">{hr.admin.paketi}</h1>
       <p className="mt-1 text-sm text-ink-500">
         Uređujte pakete i dodatke izravno. Cijene unosite u eurima (npr. 45 ili 45,50). Nadoplata se naplaćuje za
-        svako dijete iznad uključenog broja (slavljenik se ne broji); trajanje određuje kraj termina.
+        svako dijete iznad uključenog broja (slavljenik se ne broji); trajanje određuje kraj termina. Paket s oznakom
+        „Cijena po dogovoru” javno prikazuje „Po dogovoru”, a iznos se upisuje pri uređivanju pojedine rezervacije.
       </p>
 
       {/* PAKETI */}
@@ -164,8 +167,9 @@ export default async function AdminPaketiPage() {
               <Polje label="Najmanje djece"><input name="minChildren" type="number" defaultValue={p.minChildren} className="input !py-2" /></Polje>
               <Polje label="Uključeno djece"><input name="maxChildren" type="number" defaultValue={p.maxChildren} className="input !py-2" /></Polje>
               <Polje label="Opis"><input name="description" defaultValue={p.description ?? ""} className="input !py-2" /></Polje>
-              <div className="flex items-end gap-4">
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="popular" defaultChecked={p.popular} className="h-4 w-4 accent-brand-500" /> Popularno</label>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="cijenaPoDogovoru" defaultChecked={p.cijenaPoDogovoru} className="h-4 w-4 accent-brand-500" /> Cijena po dogovoru</label>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={p.active} className="h-4 w-4 accent-brand-500" /> Aktivno</label>
               </div>
             </div>
@@ -174,7 +178,7 @@ export default async function AdminPaketiPage() {
             </Polje>
             <div className="mt-3 flex items-center justify-between gap-3">
               <span className="text-sm text-ink-400">
-                {nazivSobe(p.roomId)} · {formatEur(p.basePriceCents)} · do {p.maxChildren} djece
+                {nazivSobe(p.roomId)} · {p.cijenaPoDogovoru ? "cijena po dogovoru (javno se ne prikazuje)" : formatEur(p.basePriceCents)} · do {p.maxChildren} djece
                 {p.perChildCents > 0 ? ` · +${formatEur(p.perChildCents)} po dodatnom djetetu` : ""}
               </span>
               <button type="submit" className="btn-primary !py-2 !text-sm">{hr.zajednicko.spremi}</button>
@@ -210,6 +214,7 @@ export default async function AdminPaketiPage() {
           <Polje label="Najmanje djece"><input name="minChildren" type="number" className="input !py-2" defaultValue="1" /></Polje>
           <Polje label="Uključeno djece"><input name="maxChildren" type="number" className="input !py-2" defaultValue="15" /></Polje>
           <Polje label="Opis"><input name="description" className="input !py-2" /></Polje>
+          <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" name="cijenaPoDogovoru" className="h-4 w-4 accent-brand-500" /> Cijena po dogovoru</label>
         </div>
         <Polje label="Uključeno (jedna stavka po retku)"><textarea name="includedItems" rows={2} className="input !py-2" /></Polje>
         <button type="submit" className="btn-secondary mt-3 !py-2">Dodaj paket</button>

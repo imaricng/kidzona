@@ -74,6 +74,8 @@ export const en = {
     doBroj: "up to",
     slavljenikGratis: "birthday child free",
     poDodatnomDjetetu: "per extra child",
+    poDogovoru: "Price on request",
+    poDogovoruNapomena: "we agree the price based on your wishes",
   },
   termini: {
     naslov: "Schedule and time slots",

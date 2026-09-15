@@ -59,6 +59,7 @@ export default async function RezervacijaPage({
       maxChildren: p.maxChildren,
       durationMin: p.durationMin,
       popular: p.popular,
+      cijenaPoDogovoru: p.cijenaPoDogovoru,
       description: p.description ?? "",
     })),
     addons: addons.map((a) => ({

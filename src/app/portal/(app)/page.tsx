@@ -87,7 +87,7 @@ export default async function PortalDashboard() {
                     {r.theme?.emoji} {formatDatum(r.date)} · {r.slotStart}–{r.slotEnd}
                     <span className="ml-2 font-mono text-xs text-ink-400">{r.code}</span>
                   </p>
-                  <p className="text-sm text-ink-500">{r.room.name} · {r.package.name} · {r.numChildren} djece · {formatEur(r.totalCents)}</p>
+                  <p className="text-sm text-ink-500">{r.room.name} · {r.package.name} · {r.numChildren} djece · {r.totalCents > 0 ? formatEur(r.totalCents) : hr.paketi.poDogovoru}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={r.status} />

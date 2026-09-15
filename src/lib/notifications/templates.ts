@@ -24,6 +24,11 @@ interface RezervacijaPodaci {
 
 const KONTAKT = `${hr.kontakt.telefon} (i WhatsApp) ili ${hr.kontakt.email}`;
 
+/** Iznos ili "po dogovoru" (paket s cijenom po dogovoru prije upisa dogovorenog iznosa). */
+function iznos(cents: number): string {
+  return cents > 0 ? formatEur(cents) : "po dogovoru";
+}
+
 export function predlozakZaprimljenogUpita(r: RezervacijaPodaci): { naslov: string; tijelo: string } {
   return {
     naslov: `Zaprimili smo vaš upit ${r.code} — ${hr.brand.naziv}`,
@@ -38,7 +43,7 @@ export function predlozakZaprimljenogUpita(r: RezervacijaPodaci): { naslov: stri
       `Termin: ${r.slotStart} – ${r.slotEnd}`,
       `Igraonica: ${r.roomName}`,
       `Paket: ${r.packageName} (${brojDjece(r.numChildren)})`,
-      `Okvirna cijena: ${formatEur(r.totalCents)}`,
+      `Okvirna cijena: ${iznos(r.totalCents)}`,
       ``,
       `Ovo još nije potvrđena rezervacija. Provjerit ćemo termin i javiti vam se s potvrdom u najkraćem roku.`,
       `Za pitanja: ${KONTAKT}.`,
@@ -69,7 +74,7 @@ export function predlozakNovogUpita(
       `E-pošta: ${kontakt.email || "—"}`,
       `Telefon: ${kontakt.phone || "—"}`,
       kontakt.notes ? `Napomene: ${kontakt.notes}` : null,
-      `Okvirna cijena: ${formatEur(r.totalCents)}`,
+      `Okvirna cijena: ${iznos(r.totalCents)}`,
       ``,
       `Odobrite, uredite ili odbijte upit: ${adminUrl}`,
     ]
@@ -112,9 +117,9 @@ export function predlozakPotvrde(r: RezervacijaPodaci): { naslov: string; tijelo
       `Igraonica: ${r.roomName}`,
       `Paket: ${r.packageName} (${brojDjece(r.numChildren)})`,
       ``,
-      `Ukupno: ${formatEur(r.totalCents)}`,
+      `Ukupno: ${iznos(r.totalCents)}`,
       (r.paidCents ?? 0) > 0 ? `Plaćeno: ${formatEur(r.paidCents ?? 0)}` : null,
-      `Za plaćanje uživo na dan proslave: ${formatEur(r.totalCents - (r.paidCents ?? 0))}`,
+      r.totalCents > 0 ? `Za plaćanje uživo na dan proslave: ${formatEur(r.totalCents - (r.paidCents ?? 0))}` : null,
       ``,
       r.qrUrl ? `QR kod za prijavu dolaska: ${r.qrUrl}` : `Na ulaz ponesite QR kod iz potvrde.`,
       ``,

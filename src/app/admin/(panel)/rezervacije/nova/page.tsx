@@ -29,6 +29,7 @@ export default async function RucniUnosPage() {
     childName: "",
     childBirthDate: "",
     napomene: "",
+    dogovorenaCijena: "",
     status: "potvrdjeno",
     posaljiPotvrdu: "on",
   };
@@ -52,6 +53,7 @@ export default async function RucniUnosPage() {
             durationMin: p.durationMin,
             basePriceCents: p.basePriceCents,
             perChildCents: p.perChildCents,
+            cijenaPoDogovoru: p.cijenaPoDogovoru,
             minChildren: p.minChildren,
             maxChildren: p.maxChildren,
           }))}

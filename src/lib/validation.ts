@@ -59,6 +59,12 @@ export const adminRezervacijaSchema = z
       .default("")
       .refine((v) => v === "" || DATUM.test(v), "Neispravan datum rođenja."),
     napomene: z.string().trim().default(""),
+    // Samo za pakete s cijenom po dogovoru; prazno = iznos još nije dogovoren.
+    dogovorenaCijena: z
+      .string()
+      .trim()
+      .default("")
+      .refine((v) => v === "" || /^\d+([.,]\d{1,2})?$/.test(v), "Dogovorena cijena mora biti iznos u eurima, npr. 450 ili 450,50."),
   })
   .refine((d) => d.email !== "" || d.phone.length >= 6, { message: "Unesite e-poštu ili telefon roditelja.", path: ["email"] });
 

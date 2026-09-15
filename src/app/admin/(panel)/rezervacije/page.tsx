@@ -81,7 +81,7 @@ export default async function RezervacijePage({ searchParams }: { searchParams: 
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">{r.secondRoom ? `${r.room.name} +1` : r.room.name}</td>
                 <td className="px-4 py-3">{r.package.name}</td>
-                <td className="px-4 py-3 text-right font-medium">{formatEur(r.totalCents)}</td>
+                <td className="px-4 py-3 text-right font-medium">{r.totalCents > 0 ? formatEur(r.totalCents) : "Po dogovoru"}</td>
                 <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
               </tr>
             ))}

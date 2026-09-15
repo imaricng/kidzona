@@ -22,6 +22,7 @@ export interface PaketOpcija {
   perChildCents: number;
   minChildren: number;
   maxChildren: number;
+  cijenaPoDogovoru: boolean;
 }
 
 export interface TemaOpcija {
@@ -130,13 +131,13 @@ function Polja({
           </Polje>
           <Polje
             label="Paket *"
-            pomoc={paket ? `Uključeno do ${paket.maxChildren} djece${paket.perChildCents > 0 ? ` · +${formatEur(paket.perChildCents)} po dodatnom djetetu` : ""}` : undefined}
+            pomoc={paket ? `Uključeno do ${paket.maxChildren} djece${paket.perChildCents > 0 && !paket.cijenaPoDogovoru ? ` · +${formatEur(paket.perChildCents)} po dodatnom djetetu` : ""}` : undefined}
           >
             <select name="packageId" required value={packageId} onChange={(e) => setPackageId(e.target.value)} className="input !py-2">
               <option value="">{roomId ? "Odaberite…" : "Najprije odaberite igraonicu"}</option>
               {paketiSobe.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {formatEur(p.basePriceCents)} · {trajanjeSati(p.durationMin)}
+                  {p.name} — {p.cijenaPoDogovoru ? "po dogovoru" : formatEur(p.basePriceCents)} · {trajanjeSati(p.durationMin)}
                 </option>
               ))}
             </select>
@@ -206,10 +207,23 @@ function Polja({
         </div>
       )}
 
-      {cijena !== null && paket && (
-        <p className="rounded-2xl bg-ink-50 px-4 py-3 text-sm text-ink-700">
-          Cijena paketa: <strong className="text-brand-600">{formatEur(cijena)}</strong> ({paket.name}, {brojDjece(djece)})
-        </p>
+      {paket?.cijenaPoDogovoru ? (
+        <div className="grid gap-4 rounded-2xl bg-sun-100 px-4 py-3 sm:grid-cols-[1fr,12rem] sm:items-end">
+          <p className="text-sm text-brand-900">
+            <strong>{paket.name}</strong> ima cijenu po dogovoru. Upišite iznos dogovoren s roditeljem — dok ga nema, kupac
+            vidi „Po dogovoru”, a rezervacija se ne može označiti plaćenom.
+          </p>
+          <Polje label="Dogovorena cijena (€)">
+            <input name="dogovorenaCijena" inputMode="decimal" placeholder="npr. 450" defaultValue={v.dogovorenaCijena ?? ""} className="input !py-2" />
+          </Polje>
+        </div>
+      ) : (
+        cijena !== null &&
+        paket && (
+          <p className="rounded-2xl bg-ink-50 px-4 py-3 text-sm text-ink-700">
+            Cijena paketa: <strong className="text-brand-600">{formatEur(cijena)}</strong> ({paket.name}, {brojDjece(djece)})
+          </p>
+        )
       )}
     </div>
   );

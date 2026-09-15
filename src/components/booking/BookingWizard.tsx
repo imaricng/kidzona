@@ -13,6 +13,7 @@ export interface Katalog {
   packages: {
     id: string; name: string; slug: string; roomId: string | null; basePriceCents: number; perChildCents: number;
     includedItems: string[]; minChildren: number; maxChildren: number; durationMin: number; popular: boolean; description: string;
+    cijenaPoDogovoru: boolean;
   }[];
   addons: { id: string; name: string; priceCents: number; unit: "per_child" | "flat"; category: string; description: string }[];
   themes: { id: string; name: string; emoji: string; gradient: string }[];
@@ -281,7 +282,7 @@ export function BookingWizard({
             />
           )}
           {korak === 4 && izracun && (
-            <KorakPregled izracun={izracun} voucherCode={voucherCode} setVoucherCode={setVoucherCode} />
+            <KorakPregled izracun={izracun} poDogovoru={!!paket?.cijenaPoDogovoru} voucherCode={voucherCode} setVoucherCode={setVoucherCode} />
           )}
         </div>
 
@@ -317,6 +318,7 @@ export function BookingWizard({
           numChildren={numChildren}
           tema={katalog.themes.find((t) => t.id === themeId)?.name}
           izracun={izracun}
+          poDogovoru={!!paket?.cijenaPoDogovoru}
         />
       </aside>
     </div>
@@ -474,14 +476,16 @@ function KorakSoba({
                 {p.popular && <span className="chip mb-2 w-fit bg-brand-500 text-white text-xs">⭐ {hr.paketi.popularno}</span>}
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="font-bold text-ink-900">{p.name}</span>
-                  <span className="font-display text-lg font-bold text-brand-600">{formatEur(p.basePriceCents)}</span>
+                  <span className="font-display text-lg font-bold text-brand-600">
+                    {p.cijenaPoDogovoru ? hr.paketi.poDogovoru : formatEur(p.basePriceCents)}
+                  </span>
                 </span>
                 <span className="mt-1 text-xs text-ink-500">
                   {trajanjeSati(p.durationMin)}{start ? ` · ${start} – ${krajTermina(start, p.durationMin)}` : ""}
                 </span>
                 <span className="mt-1 text-xs text-ink-500">
                   {hr.paketi.doBroj} {p.maxChildren} {hr.paketi.odDjece} · {hr.paketi.slavljenikGratis}
-                  {p.perChildCents > 0 ? ` · +${formatEur(p.perChildCents)} ${hr.paketi.poDodatnomDjetetu}` : ""}
+                  {p.perChildCents > 0 && !p.cijenaPoDogovoru ? ` · +${formatEur(p.perChildCents)} ${hr.paketi.poDodatnomDjetetu}` : ""}
                 </span>
                 {p.includedItems.length > 0 && (
                   <ul className="mt-2 space-y-0.5 text-xs text-ink-600">
@@ -519,7 +523,7 @@ function KorakDjeca({
         <h3 className="font-semibold text-ink-800">{hr.booking.brojDjece}</h3>
         <p className="text-sm text-ink-400">
           {paket.name}: {hr.paketi.doBroj} {paket.maxChildren} {hr.paketi.odDjece} · {hr.paketi.slavljenikGratis}
-          {paket.perChildCents > 0 ? ` · +${formatEur(paket.perChildCents)} ${hr.paketi.poDodatnomDjetetu}` : ""}
+          {paket.perChildCents > 0 && !paket.cijenaPoDogovoru ? ` · +${formatEur(paket.perChildCents)} ${hr.paketi.poDodatnomDjetetu}` : ""}
         </p>
         <p className="text-xs text-ink-400">{hr.booking.brojDjeceNapomena}</p>
         <div className="mt-3 flex items-center gap-4">
@@ -528,7 +532,7 @@ function KorakDjeca({
           <button type="button" className="btn-secondary !h-11 !w-11 !p-0 text-xl" onClick={() => setNumChildren(Math.min(maxDjece, numChildren + 1))}>+</button>
           <span className="text-ink-500">{brojDjece(numChildren)}</span>
         </div>
-        {dodatnaDjeca > 0 && paket.perChildCents > 0 && (
+        {dodatnaDjeca > 0 && paket.perChildCents > 0 && !paket.cijenaPoDogovoru && (
           <p className="mt-2 text-sm font-semibold text-berry-600">
             +{formatEur(dodatnaDjeca * paket.perChildCents)} ({brojDjece(dodatnaDjeca)} {hr.booking.iznadPaketa})
           </p>
@@ -660,9 +664,10 @@ function KorakPodaci(p: {
 
 // --- Korak 5: pregled i slanje upita ----------------------------------
 function KorakPregled({
-  izracun, voucherCode, setVoucherCode,
+  izracun, poDogovoru, voucherCode, setVoucherCode,
 }: {
   izracun: ReturnType<typeof izracunajCijenu>;
+  poDogovoru: boolean;
   voucherCode: string; setVoucherCode: (v: string) => void;
 }) {
   const [provjera, setProvjera] = useState(false);
@@ -695,9 +700,9 @@ function KorakPregled({
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-ink-50 px-4 py-3">
         <span>
           <span className="block font-semibold text-ink-800">{hr.booking.okvirnaCijena}</span>
-          <span className="text-xs text-ink-500">{hr.booking.zaPlatitiUzivo}</span>
+          <span className="text-xs text-ink-500">{poDogovoru ? hr.paketi.poDogovoruNapomena : hr.booking.zaPlatitiUzivo}</span>
         </span>
-        <span className="text-xl font-extrabold text-brand-600">{formatEur(izracun.totalCents)}</span>
+        <span className="text-xl font-extrabold text-brand-600">{poDogovoru ? hr.paketi.poDogovoru : formatEur(izracun.totalCents)}</span>
       </div>
 
       {/* Poklon-bon: provjera valjanosti; primjenjuje se pri potvrdi rezervacije */}
@@ -723,10 +728,10 @@ function KorakPregled({
 
 // --- Sažetak ----------------------------------------------------------
 function Sazetak({
-  datum, termin, soba, soba2, paket, numChildren, tema, izracun,
+  datum, termin, soba, soba2, paket, numChildren, tema, izracun, poDogovoru,
 }: {
   datum: string | null; termin: string | null; soba?: string; soba2?: string; paket?: string;
-  numChildren: number; tema?: string; izracun: ReturnType<typeof izracunajCijenu> | null;
+  numChildren: number; tema?: string; izracun: ReturnType<typeof izracunajCijenu> | null; poDogovoru: boolean;
 }) {
   return (
     <div className="card">
@@ -739,7 +744,13 @@ function Sazetak({
         <Red naziv="Broj djece" vrijednost={paket ? brojDjece(numChildren) : "—"} />
         <Red naziv="Tema" vrijednost={tema ?? "—"} />
       </dl>
-      {izracun && (
+      {poDogovoru && (
+        <div className="mt-4 flex justify-between border-t border-black/5 pt-3 text-lg font-bold text-ink-900">
+          <span>{hr.booking.okvirnaCijena}</span>
+          <span className="text-brand-600">{hr.paketi.poDogovoru}</span>
+        </div>
+      )}
+      {izracun && !poDogovoru && (
         <>
           <div className="mt-4 space-y-1 border-t border-black/5 pt-4 text-sm text-ink-600">
             {izracun.stavke.map((s, i) => (

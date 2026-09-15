@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
@@ -29,6 +29,10 @@ async function promijeniStatus(code: string, status: string) {
   "use server";
   await zahtijevajOsoblje();
   const r = await prisma.reservation.findUniqueOrThrow({ where: { code } });
+  // Paket s cijenom po dogovoru: bez upisanog iznosa nema što naplatiti ni fiskalizirati.
+  if (status === "placeno" && r.totalCents <= 0) {
+    redirect(`/admin/rezervacije/${code}?greska=${encodeURIComponent("Najprije upišite dogovorenu cijenu (uređivanje niže), pa označite plaćeno.")}`);
+  }
   // Kod plaćanja uživo: kad osoblje označi "plaćeno", evidentira se uplata,
   // bilježi se plaćanje i izdaje fiskalizirani račun.
   if (status === "placeno") {
@@ -189,10 +193,10 @@ export default async function RezervacijaDetalj({
           <div className="card">
             <h2 className="font-semibold text-ink-800">Naplata</h2>
             <dl className="mt-3 space-y-2 text-sm">
-              <Red n={jeUpit ? "Okvirna cijena" : "Ukupno"} v={formatEur(r.totalCents)} />
+              <Red n={jeUpit ? "Okvirna cijena" : "Ukupno"} v={r.totalCents > 0 ? formatEur(r.totalCents) : "Po dogovoru (upišite iznos)"} />
               <Red n="Akontacija" v={formatEur(r.depositCents)} />
               <Red n="Plaćeno" v={formatEur(r.paidCents)} />
-              <Red n="Ostatak" v={formatEur(r.totalCents - r.paidCents)} />
+              <Red n="Ostatak" v={r.totalCents > 0 ? formatEur(r.totalCents - r.paidCents) : "—"} />
             </dl>
             {racun && (
               <div className="mt-3 rounded-2xl bg-ink-50 px-4 py-3 text-xs text-ink-600">
@@ -253,6 +257,7 @@ export default async function RezervacijaDetalj({
                 durationMin: p.durationMin,
                 basePriceCents: p.basePriceCents,
                 perChildCents: p.perChildCents,
+                cijenaPoDogovoru: p.cijenaPoDogovoru,
                 minChildren: p.minChildren,
                 maxChildren: p.maxChildren,
               }))}
@@ -271,6 +276,7 @@ export default async function RezervacijaDetalj({
                 childName: r.childName ?? "",
                 childBirthDate: r.childBirthDate ? r.childBirthDate.toISOString().slice(0, 10) : "",
                 napomene: r.notes ?? "",
+                dogovorenaCijena: r.package.cijenaPoDogovoru && r.totalCents > 0 ? (r.totalCents / 100).toFixed(2) : "",
               }}
             />
           </div>
