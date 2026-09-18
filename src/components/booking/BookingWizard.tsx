@@ -75,7 +75,6 @@ export function BookingWizard({
 
   // Korak 3 — djeca, dodaci, tema
   const [numChildren, setNumChildren] = useState<number>(pocetniBrojDjece ?? 8);
-  const [numAdults, setNumAdults] = useState<number>(2);
   const [dodaci, setDodaci] = useState<Record<string, number>>({});
   const [themeId, setThemeId] = useState<string | null>(null);
 
@@ -200,7 +199,6 @@ export function BookingWizard({
           packageId,
           themeId,
           numChildren,
-          numAdults,
           dodaci: Object.entries(dodaci).filter(([, q]) => q > 0).map(([id, quantity]) => ({ id, quantity })),
           parentName,
           email,
@@ -271,8 +269,6 @@ export function BookingWizard({
               maxDjece={maxDjece}
               numChildren={numChildren}
               setNumChildren={setNumChildren}
-              numAdults={numAdults}
-              setNumAdults={setNumAdults}
               addons={katalog.addons}
               dodaci={dodaci}
               setDodaci={setDodaci}
@@ -522,10 +518,9 @@ function KorakSoba({
 
 // --- Korak 3: djeca + dodaci + tema ----------------------------------
 function KorakDjeca({
-  paket, maxDjece, numChildren, setNumChildren, numAdults, setNumAdults, addons, dodaci, setDodaci, themes, themeId, setThemeId,
+  paket, maxDjece, numChildren, setNumChildren, addons, dodaci, setDodaci, themes, themeId, setThemeId,
 }: {
   paket: Paket; maxDjece: number; numChildren: number; setNumChildren: (n: number) => void;
-  numAdults: number; setNumAdults: (n: number) => void;
   addons: Katalog["addons"]; dodaci: Record<string, number>; setDodaci: (d: Record<string, number>) => void;
   themes: Katalog["themes"]; themeId: string | null; setThemeId: (id: string | null) => void;
 }) {
@@ -556,15 +551,6 @@ function KorakDjeca({
             +{formatEur(dodatnaDjeca * paket.perChildCents)} ({brojDjece(dodatnaDjeca)} {hr.booking.iznadPaketa})
           </p>
         )}
-
-        <h3 className="mt-5 font-semibold text-ink-800">{hr.booking.brojOdraslih}</h3>
-        <p className="text-sm text-ink-400">Za planiranje kapaciteta i posluženja.</p>
-        <div className="mt-3 flex items-center gap-4">
-          <button type="button" className="btn-secondary !h-11 !w-11 !p-0 text-xl" onClick={() => setNumAdults(Math.max(0, numAdults - 1))}>−</button>
-          <span className="w-16 text-center text-2xl font-bold text-ink-900">{numAdults}</span>
-          <button type="button" className="btn-secondary !h-11 !w-11 !p-0 text-xl" onClick={() => setNumAdults(Math.min(60, numAdults + 1))}>+</button>
-          <span className="text-ink-500">{hr.zajednicko.osoba}</span>
-        </div>
       </div>
 
       {addons.length > 0 && (
