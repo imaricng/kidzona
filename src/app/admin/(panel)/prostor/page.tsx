@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Igraonice i teme" };
+export const metadata = { title: "Igraonice" };
 
 function slugify(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -51,51 +52,12 @@ async function obrisiSobu(formData: FormData) {
   revalidatePath("/admin/prostor");
 }
 
-// --- Teme -------------------------------------------------------------
-async function azurirajTemu(formData: FormData) {
-  "use server";
-  await prisma.theme.update({
-    where: { id: String(formData.get("id")) },
-    data: {
-      name: String(formData.get("name") || "Tema"),
-      emoji: String(formData.get("emoji") || "🎉"),
-      gradient: String(formData.get("gradient") || "from-brand-400 to-berry-400"),
-      description: String(formData.get("description") || ""),
-      active: formData.get("active") === "on",
-    },
-  });
-  revalidatePath("/admin/prostor");
-}
-async function kreirajTemu(formData: FormData) {
-  "use server";
-  const name = String(formData.get("name") || "Nova tema");
-  const zadnja = await prisma.theme.findFirst({ orderBy: { sortOrder: "desc" } });
-  await prisma.theme.create({
-    data: {
-      name, slug: slugify(name), emoji: String(formData.get("emoji") || "🎉"),
-      gradient: String(formData.get("gradient") || "from-brand-400 to-berry-400"),
-      description: String(formData.get("description") || ""), sortOrder: (zadnja?.sortOrder ?? 0) + 1,
-    },
-  });
-  revalidatePath("/admin/prostor");
-}
-async function obrisiTemu(formData: FormData) {
-  "use server";
-  const id = String(formData.get("id"));
-  try { await prisma.theme.delete({ where: { id } }); }
-  catch { await prisma.theme.update({ where: { id }, data: { active: false } }); }
-  revalidatePath("/admin/prostor");
-}
-
 export default async function ProstorPage() {
-  const [sobe, teme] = await Promise.all([
-    prisma.room.findMany({ orderBy: { sortOrder: "asc" } }),
-    prisma.theme.findMany({ orderBy: { sortOrder: "asc" } }),
-  ]);
+  const sobe = await prisma.room.findMany({ orderBy: { sortOrder: "asc" } });
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-extrabold text-ink-900">Igraonice i teme</h1>
+      <h1 className="font-display text-2xl font-extrabold text-ink-900">Igraonice</h1>
 
       {/* SOBE */}
       <h2 className="mt-6 font-semibold text-ink-800">Igraonice</h2>
@@ -125,31 +87,10 @@ export default async function ProstorPage() {
         <button type="submit" className="btn-secondary !py-2">Dodaj</button>
       </form>
 
-      {/* TEME */}
-      <h2 className="mt-10 font-semibold text-ink-800">Teme</h2>
-      <div className="mt-3 space-y-2">
-        {teme.map((t) => (
-          <form key={t.id} action={azurirajTemu} className={`card flex flex-wrap items-end gap-3 ${t.active ? "" : "opacity-60"}`}>
-            <input type="hidden" name="id" value={t.id} />
-            <Polje label="Emotikon"><input name="emoji" defaultValue={t.emoji} className="input !py-2 w-16 text-center" /></Polje>
-            <Polje label="Naziv"><input name="name" defaultValue={t.name} className="input !py-2" /></Polje>
-            <Polje label="Opis"><input name="description" defaultValue={t.description ?? ""} className="input !py-2" /></Polje>
-            <Polje label="Gradijent (Tailwind klase)"><input name="gradient" defaultValue={t.gradient} className="input !py-2 w-48" /></Polje>
-            <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="active" defaultChecked={t.active} className="h-4 w-4 accent-brand-500" /> Aktivno</label>
-            <span className={`chip bg-gradient-to-br ${t.gradient} text-white`}>{t.emoji} {t.name}</span>
-            <button type="submit" className="btn-primary !py-2 !text-sm">{hr.zajednicko.spremi}</button>
-            <ConfirmSubmit poruka={`Obrisati temu „${t.name}"?`} className="text-sm text-ink-400 hover:text-red-600 pb-2">🗑️</ConfirmSubmit>
-          </form>
-        ))}
-      </div>
-      <form action={kreirajTemu} className="card mt-3 flex flex-wrap items-end gap-3 border-dashed">
-        <h3 className="w-full font-semibold text-ink-800">+ Nova tema</h3>
-        <Polje label="Emotikon"><input name="emoji" defaultValue="🎉" className="input !py-2 w-16 text-center" /></Polje>
-        <Polje label="Naziv"><input name="name" className="input !py-2" placeholder="npr. Pirati" /></Polje>
-        <Polje label="Opis"><input name="description" className="input !py-2" /></Polje>
-        <Polje label="Gradijent (Tailwind klase)"><input name="gradient" defaultValue="from-brand-400 to-berry-400" className="input !py-2 w-48" /></Polje>
-        <button type="submit" className="btn-secondary !py-2">Dodaj</button>
-      </form>
+      <p className="mt-10 text-sm text-ink-500">
+        Teme za proslavu uređuju se na stranici{" "}
+        <Link href="/admin/paketi" className="font-semibold text-brand-600 hover:underline">{hr.admin.paketi}</Link>.
+      </p>
     </div>
   );
 }

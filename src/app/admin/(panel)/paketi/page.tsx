@@ -4,6 +4,7 @@ import { hr } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
+import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.paketi };
@@ -134,6 +135,51 @@ async function obrisiDodatak(formData: FormData) {
   revalidatePath("/admin/paketi");
 }
 
+// --- Server actions: teme --------------------------------------------
+async function azurirajTemu(formData: FormData) {
+  "use server";
+  await prisma.theme.update({
+    where: { id: String(formData.get("id")) },
+    data: {
+      name: String(formData.get("name") || "Tema"),
+      emoji: String(formData.get("emoji") || "🎉"),
+      gradient: String(formData.get("gradient") || "from-brand-400 to-berry-400"),
+      description: String(formData.get("description") || ""),
+      active: formData.get("active") === "on",
+    },
+  });
+  revalidatePath("/admin/paketi");
+}
+
+async function kreirajTemu(formData: FormData) {
+  "use server";
+  const name = String(formData.get("name") || "Nova tema");
+  const zadnja = await prisma.theme.findFirst({ orderBy: { sortOrder: "desc" } });
+  await prisma.theme.create({
+    data: {
+      name,
+      slug: slugify(name),
+      emoji: String(formData.get("emoji") || "🎉"),
+      gradient: String(formData.get("gradient") || "from-brand-400 to-berry-400"),
+      description: String(formData.get("description") || ""),
+      sortOrder: (zadnja?.sortOrder ?? 0) + 1,
+    },
+  });
+  revalidatePath("/admin/paketi");
+}
+
+async function obrisiTemu(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id"));
+  // Tema vezana uz rezervaciju ne može se obrisati (FK) — tada se samo gasi.
+  try {
+    await prisma.theme.delete({ where: { id } });
+  } catch {
+    await prisma.theme.update({ where: { id }, data: { active: false } });
+  }
+  revalidatePath("/admin/paketi");
+}
+
 // --- Stranica ---------------------------------------------------------
 export default async function AdminPaketiPage() {
   const [paketi, dodaci, teme, sobe] = await Promise.all([
@@ -254,13 +300,36 @@ export default async function AdminPaketiPage() {
         <button type="submit" className="btn-secondary !py-2">Dodaj dodatak</button>
       </form>
 
-      {/* TEME (pregled) */}
-      <h2 className="mt-10 font-semibold text-ink-800">Teme</h2>
-      <div className="mt-3 flex flex-wrap gap-2">
+      {/* TEME */}
+      <h2 className="mt-10 font-semibold text-ink-800">{hr.admin.teme}</h2>
+      <p className="mt-1 text-sm text-ink-500">
+        Teme roditelji biraju pri rezervaciji. Neaktivna tema nestaje s ponude, a postojeće rezervacije
+        zadržavaju svoju. Tema vezana uz rezervaciju ne može se obrisati — bit će samo deaktivirana.
+      </p>
+      <div className="mt-3 space-y-2">
         {teme.map((t) => (
-          <span key={t.id} className={`chip bg-gradient-to-br ${t.gradient} text-white`}>{t.emoji} {t.name}</span>
+          <form key={t.id} action={azurirajTemu} className={`card flex flex-wrap items-end gap-3 ${t.active ? "" : "opacity-60"}`}>
+            <input type="hidden" name="id" value={t.id} />
+            <Polje label="Emotikon"><input name="emoji" defaultValue={t.emoji} className="input !py-2 w-16 text-center" /></Polje>
+            <Polje label="Naziv"><input name="name" defaultValue={t.name} className="input !py-2" /></Polje>
+            <Polje label="Opis"><input name="description" defaultValue={t.description ?? ""} className="input !py-2" /></Polje>
+            <Polje label="Boje"><OdabirGradijenta defaultValue={t.gradient} /></Polje>
+            <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="active" defaultChecked={t.active} className="h-4 w-4 accent-brand-500" /> Aktivno</label>
+            <span className={`chip bg-gradient-to-br ${t.gradient} text-white`}>{t.emoji} {t.name}</span>
+            <button type="submit" className="btn-primary !py-2 !text-sm">{hr.zajednicko.spremi}</button>
+            <ConfirmSubmit poruka={`Obrisati temu „${t.name}"?`} className="text-sm text-ink-400 hover:text-red-600 pb-2">🗑️</ConfirmSubmit>
+          </form>
         ))}
       </div>
+
+      <form action={kreirajTemu} className="card mt-4 flex flex-wrap items-end gap-3 border-dashed">
+        <h3 className="w-full font-semibold text-ink-800">+ Nova tema</h3>
+        <Polje label="Emotikon"><input name="emoji" defaultValue="🎉" className="input !py-2 w-16 text-center" /></Polje>
+        <Polje label="Naziv"><input name="name" className="input !py-2" placeholder="npr. Pirati" /></Polje>
+        <Polje label="Opis"><input name="description" className="input !py-2" placeholder="Potraga za blagom." /></Polje>
+        <Polje label="Boje"><OdabirGradijenta defaultValue="from-brand-400 to-berry-400" /></Polje>
+        <button type="submit" className="btn-secondary !py-2">Dodaj temu</button>
+      </form>
     </div>
   );
 }

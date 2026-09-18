@@ -12,7 +12,7 @@ const STAVKE = [
   { href: "/admin/crm", label: hr.admin.crm, ikona: "👨‍👩‍👧" },
   { href: "/admin/osoblje", label: hr.admin.osoblje, ikona: "🧑‍🏫" },
   { href: "/admin/paketi", label: hr.admin.paketi, ikona: "🎁" },
-  { href: "/admin/prostor", label: "Igraonice i teme", ikona: "🏠" },
+  { href: "/admin/prostor", label: "Igraonice", ikona: "🏠" },
   { href: "/admin/pokloni", label: hr.pokloni.naslov, ikona: "🎀" },
   { href: "/admin/clanstva", label: "Članstva i vjernost", ikona: "⭐" },
   { href: "/admin/pos", label: hr.admin.pos, ikona: "🛒" },
