@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.paketi };
@@ -161,7 +162,7 @@ export default async function AdminPaketiPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Polje label="Igraonica"><OdabirSobe sobe={sobe} defaultValue={p.roomId ?? ""} /></Polje>
               <Polje label="Naziv"><input name="name" defaultValue={p.name} className="input !py-2" /></Polje>
-              <Polje label="Cijena (€, fiksno)"><input name="basePrice" defaultValue={(p.basePriceCents / 100).toFixed(2)} className="input !py-2" /></Polje>
+              <CijenaPaketa defaultCijena={(p.basePriceCents / 100).toFixed(2)} defaultPoDogovoru={p.cijenaPoDogovoru} />
               <Polje label="Nadoplata po djetetu (€)"><input name="perChild" defaultValue={(p.perChildCents / 100).toFixed(2)} className="input !py-2" /></Polje>
               <Polje label="Trajanje (min)"><input name="durationMin" type="number" defaultValue={p.durationMin} className="input !py-2" /></Polje>
               <Polje label="Najmanje djece"><input name="minChildren" type="number" defaultValue={p.minChildren} className="input !py-2" /></Polje>
@@ -169,7 +170,6 @@ export default async function AdminPaketiPage() {
               <Polje label="Opis"><input name="description" defaultValue={p.description ?? ""} className="input !py-2" /></Polje>
               <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="popular" defaultChecked={p.popular} className="h-4 w-4 accent-brand-500" /> Popularno</label>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="cijenaPoDogovoru" defaultChecked={p.cijenaPoDogovoru} className="h-4 w-4 accent-brand-500" /> Cijena po dogovoru</label>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={p.active} className="h-4 w-4 accent-brand-500" /> Aktivno</label>
               </div>
             </div>
@@ -208,13 +208,12 @@ export default async function AdminPaketiPage() {
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Polje label="Igraonica"><OdabirSobe sobe={sobe.filter((s) => s.active)} defaultValue="" /></Polje>
           <Polje label="Naziv"><input name="name" className="input !py-2" placeholder="npr. Platinum" /></Polje>
-          <Polje label="Cijena (€, fiksno)"><input name="basePrice" className="input !py-2" defaultValue="0" /></Polje>
+          <CijenaPaketa defaultCijena="0" defaultPoDogovoru={false} />
           <Polje label="Nadoplata po djetetu (€)"><input name="perChild" className="input !py-2" defaultValue="10" /></Polje>
           <Polje label="Trajanje (min)"><input name="durationMin" type="number" className="input !py-2" defaultValue="120" /></Polje>
           <Polje label="Najmanje djece"><input name="minChildren" type="number" className="input !py-2" defaultValue="1" /></Polje>
           <Polje label="Uključeno djece"><input name="maxChildren" type="number" className="input !py-2" defaultValue="15" /></Polje>
           <Polje label="Opis"><input name="description" className="input !py-2" /></Polje>
-          <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" name="cijenaPoDogovoru" className="h-4 w-4 accent-brand-500" /> Cijena po dogovoru</label>
         </div>
         <Polje label="Uključeno (jedna stavka po retku)"><textarea name="includedItems" rows={2} className="input !py-2" /></Polje>
         <button type="submit" className="btn-secondary mt-3 !py-2">Dodaj paket</button>
