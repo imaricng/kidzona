@@ -79,16 +79,16 @@ export const en = {
   },
   termini: {
     naslov: "Schedule and time slots",
-    podnaslov: "Parties start right on time — Standard lasts 2 hours, Premium 3 hours.",
+    podnaslov: "Parties start right on time — Basic and Standard last 2 hours, Premium 3 hours.",
     vikend: {
       naslov: "Weekend",
       dani: "Friday, Saturday and Sunday",
-      stavke: ["14:00 – 16:00 (Standard) or 14:00 – 17:00 (Premium)", "17:00 – 19:00 (Standard) or 17:00 – 20:00 (Premium)"],
+      stavke: ["14:00 – 16:00 (Basic and Standard) or 14:00 – 17:00 (Premium)", "17:00 – 19:00 (Basic and Standard) or 17:00 – 20:00 (Premium)"],
     },
     tjedan: {
       naslov: "Weekdays",
       dani: "Monday and Wednesday",
-      stavke: ["17:00 – 19:00 (Standard)", "17:00 – 20:00 (Premium)"],
+      stavke: ["17:00 – 19:00 (Basic and Standard)", "17:00 – 20:00 (Premium)"],
     },
     druzionica: {
       naslov: "Open play room",
@@ -120,7 +120,7 @@ export const en = {
     pitanja: [
       { p: "How does booking work?", o: "Pick a date, time slot, play room and package on the site and send an inquiry. We check the slot and confirm your booking by email or phone." },
       { p: "What age are the play rooms for?", o: "Kids Play is designed for younger kids, and Kids Challenge for kids aged 7 to 13." },
-      { p: "How long does a party last?", o: "The Standard package lasts 2 hours, Premium 3 hours. Parties start at 14:00 or 17:00 (Friday–Sunday) and at 17:00 on Mondays and Wednesdays." },
+      { p: "How long does a party last?", o: "The Basic and Standard packages last 2 hours, Premium 3 hours. Parties start at 14:00 or 17:00 (Friday–Sunday) and at 17:00 on Mondays and Wednesdays." },
       { p: "What food and cake are included?", o: "Snacks, juices and pizza plus a Ledo Medo cake are included. The Kids Challenge Premium package comes with a McDonald's meal." },
       { p: "What if more kids come?", o: "Each package includes a set number of kids, and the birthday child is always free. Every extra child is €10." },
       { p: "What about allergies?", o: "Let us know the children's allergies when booking and we'll adjust the food." },

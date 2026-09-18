@@ -82,16 +82,16 @@ export const hr = {
   // Raspored za posjetitelje — mora odgovarati rasporedu u `src/lib/slots.ts`.
   termini: {
     naslov: "Termini i raspored",
-    podnaslov: "Proslave počinju u točno vrijeme — Standard traje 2 sata, Premium 3 sata.",
+    podnaslov: "Proslave počinju u točno vrijeme — Basic i Standard traju 2 sata, Premium 3 sata.",
     vikend: {
       naslov: "Vikend",
       dani: "Petak, subota i nedjelja",
-      stavke: ["14:00 – 16:00 (Standard) ili 14:00 – 17:00 (Premium)", "17:00 – 19:00 (Standard) ili 17:00 – 20:00 (Premium)"],
+      stavke: ["14:00 – 16:00 (Basic i Standard) ili 14:00 – 17:00 (Premium)", "17:00 – 19:00 (Basic i Standard) ili 17:00 – 20:00 (Premium)"],
     },
     tjedan: {
       naslov: "Preko tjedna",
       dani: "Ponedjeljak i srijeda",
-      stavke: ["17:00 – 19:00 (Standard)", "17:00 – 20:00 (Premium)"],
+      stavke: ["17:00 – 19:00 (Basic i Standard)", "17:00 – 20:00 (Premium)"],
     },
     druzionica: {
       naslov: "Slobodna igraonica / Družionica",
@@ -123,7 +123,7 @@ export const hr = {
     pitanja: [
       { p: "Kako funkcionira rezervacija?", o: "Na stranici odaberete datum, termin, igraonicu i paket te pošaljete upit. Mi provjerimo termin i potvrdimo rezervaciju e-poštom ili telefonom." },
       { p: "Za koju dob su igraonice?", o: "Kids Play prilagođena je mlađoj djeci, a Kids Challenge djeci od 7 do 13 godina." },
-      { p: "Koliko traje proslava?", o: "Standard paket traje 2 sata, a Premium 3 sata. Proslave počinju u 14:00 ili 17:00 (petak–nedjelja) te u 17:00 ponedjeljkom i srijedom." },
+      { p: "Koliko traje proslava?", o: "Basic i Standard paket traju 2 sata, a Premium 3 sata. Proslave počinju u 14:00 ili 17:00 (petak–nedjelja) te u 17:00 ponedjeljkom i srijedom." },
       { p: "Što je uključeno od hrane i torte?", o: "Grickalice, sokovi i pizza te torta Ledo Medo uključeni su u pakete. U Kids Challenge Premium paketu djeca dobivaju McDonald's meni." },
       { p: "Što ako dođe više djece?", o: "Svaki paket uključuje određen broj djece, a slavljenik je uvijek gratis. Svako dodatno dijete naplaćuje se 10 €." },
       { p: "Što s alergijama?", o: "Pri rezervaciji navedite alergije djece; prilagodit ćemo ponudu hrane." },

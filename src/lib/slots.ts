@@ -15,8 +15,8 @@ export interface Termin {
 /**
  * Početci proslava po danu u tjednu (0 = nedjelja … 6 = subota).
  * Vikend (pet–ned): 14:00 i 17:00; ponedjeljak i srijeda: 17:00.
- * Standard traje 2 h, Premium 3 h. Kad je u 14:00 Standard (14–16), ostaje sat
- * vremena za čišćenje i provjetravanje prije termina u 17:00.
+ * Basic i Standard traju 2 h, Premium 3 h. Kad je u 14:00 dvosatni paket
+ * (14–16), ostaje sat vremena za čišćenje i provjetravanje prije 17:00.
  */
 export const POCETCI_PO_DANU: Record<number, string[]> = {
   0: ["14:00", "17:00"],
