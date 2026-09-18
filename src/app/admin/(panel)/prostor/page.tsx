@@ -2,16 +2,12 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
+import { jedinstvenSlug } from "@/lib/slug";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Igraonice" };
 
-function slugify(s: string): string {
-  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/[čć]/g, "c").replace(/đ/g, "d").replace(/š/g, "s").replace(/ž/g, "z")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `stavka-${Date.now()}`;
-}
 function broj(v: FormDataEntryValue | null, f = 0): number { const n = Number(v); return Number.isFinite(n) ? n : f; }
 
 // --- Sobe -------------------------------------------------------------
@@ -34,10 +30,13 @@ async function azurirajSobu(formData: FormData) {
 async function kreirajSobu(formData: FormData) {
   "use server";
   const name = String(formData.get("name") || "Nova igraonica");
-  const zadnja = await prisma.room.findFirst({ orderBy: { sortOrder: "desc" } });
+  const [zadnja, postojece] = await Promise.all([
+    prisma.room.findFirst({ orderBy: { sortOrder: "desc" } }),
+    prisma.room.findMany({ select: { slug: true } }),
+  ]);
   await prisma.room.create({
     data: {
-      name, slug: slugify(name), color: String(formData.get("color") || "#6A3DE8"),
+      name, slug: jedinstvenSlug(name, postojece.map((s) => s.slug)), color: String(formData.get("color") || "#6A3DE8"),
       capacity: broj(formData.get("capacity"), 20), minChildren: broj(formData.get("minChildren"), 5),
       maxChildren: broj(formData.get("maxChildren"), 15), sortOrder: (zadnja?.sortOrder ?? 0) + 1,
     },

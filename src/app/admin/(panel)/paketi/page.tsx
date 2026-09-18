@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
+import { jedinstvenSlug } from "@/lib/slug";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
@@ -10,15 +11,6 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.paketi };
 
 // --- Pomoćnici --------------------------------------------------------
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[čć]/g, "c").replace(/đ/g, "d").replace(/š/g, "s").replace(/ž/g, "z")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || `stavka-${Date.now()}`;
-}
 /** Pretvara euro string (npr. "45,00" ili "45.5") u cente. */
 function uCente(v: FormDataEntryValue | null): number {
   const n = Number(String(v ?? "0").replace(",", "."));
@@ -60,10 +52,13 @@ async function azurirajPaket(formData: FormData) {
 async function kreirajPaket(formData: FormData) {
   "use server";
   const name = String(formData.get("name") || "Novi paket");
-  const zadnji = await prisma.package.findFirst({ orderBy: { sortOrder: "desc" } });
+  const [zadnji, postojeci] = await Promise.all([
+    prisma.package.findFirst({ orderBy: { sortOrder: "desc" } }),
+    prisma.package.findMany({ select: { slug: true } }),
+  ]);
   await prisma.package.create({
     data: {
-      name, slug: `${slugify(name)}-${Date.now().toString(36)}`,
+      name, slug: jedinstvenSlug(name, postojeci.map((p) => p.slug)),
       description: String(formData.get("description") || ""),
       roomId: sobaIzForme(formData),
       basePriceCents: uCente(formData.get("basePrice")),
@@ -111,10 +106,13 @@ async function azurirajDodatak(formData: FormData) {
 async function kreirajDodatak(formData: FormData) {
   "use server";
   const name = String(formData.get("name") || "Novi dodatak");
-  const zadnji = await prisma.addOn.findFirst({ orderBy: { sortOrder: "desc" } });
+  const [zadnji, postojeci] = await Promise.all([
+    prisma.addOn.findFirst({ orderBy: { sortOrder: "desc" } }),
+    prisma.addOn.findMany({ select: { slug: true } }),
+  ]);
   await prisma.addOn.create({
     data: {
-      name, slug: slugify(name),
+      name, slug: jedinstvenSlug(name, postojeci.map((a) => a.slug)),
       category: String(formData.get("category") || "ostalo"),
       priceCents: uCente(formData.get("price")),
       unit: String(formData.get("unit") || "flat"),
@@ -154,11 +152,14 @@ async function azurirajTemu(formData: FormData) {
 async function kreirajTemu(formData: FormData) {
   "use server";
   const name = String(formData.get("name") || "Nova tema");
-  const zadnja = await prisma.theme.findFirst({ orderBy: { sortOrder: "desc" } });
+  const [zadnja, postojece] = await Promise.all([
+    prisma.theme.findFirst({ orderBy: { sortOrder: "desc" } }),
+    prisma.theme.findMany({ select: { slug: true } }),
+  ]);
   await prisma.theme.create({
     data: {
       name,
-      slug: slugify(name),
+      slug: jedinstvenSlug(name, postojece.map((t) => t.slug)),
       emoji: String(formData.get("emoji") || "🎉"),
       gradient: String(formData.get("gradient") || "from-brand-400 to-berry-400"),
       description: String(formData.get("description") || ""),
