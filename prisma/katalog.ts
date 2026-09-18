@@ -97,7 +97,7 @@ export const PAKETI: PaketKatalog[] = [
     minChildren: 1,
     maxChildren: 15,
     durationMin: 120,
-    popular: false,
+    popular: true, // bedž „Najpopularnije” na karticama paketa
     sortOrder: 2,
     includedItems: [
       "Softplay igraonica i animator",
@@ -159,7 +159,7 @@ export const PAKETI: PaketKatalog[] = [
     minChildren: 1,
     maxChildren: 15,
     durationMin: 120,
-    popular: false,
+    popular: true, // bedž „Najpopularnije” na karticama paketa
     sortOrder: 5,
     includedItems: [
       "Grickalice, sokovi i pizza",

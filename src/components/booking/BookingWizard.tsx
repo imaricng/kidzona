@@ -488,7 +488,7 @@ function KorakSoba({
                 onClick={() => setPackageId(p.id)}
                 className={`flex flex-col rounded-2xl border p-4 text-left transition ${packageId === p.id ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300" : "border-ink-200 hover:border-brand-300"}`}
               >
-                {p.popular && <span className="chip mb-2 w-fit bg-brand-500 text-white text-xs">⭐ {hr.paketi.popularno}</span>}
+                {p.popular && <span className="chip mb-2 w-fit bg-sun-400 text-xs font-bold text-brand-900">★ {hr.paketi.popularno}</span>}
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="font-bold text-ink-900">{p.name}</span>
                   <span className="font-display text-lg font-bold text-brand-600">

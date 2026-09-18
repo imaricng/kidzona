@@ -1,14 +1,15 @@
 /**
- * Sinkronizira igraonice i pakete iz `prisma/katalog.ts` u postojeću bazu BEZ
- * brisanja podataka: upsert po slugu, a igraonice i paketi kojih nema u katalogu
- * se deaktiviraju (postojeće rezervacije ostaju netaknute).
+ * Dopunjava bazu igraonicama, paketima i temama iz `prisma/katalog.ts`.
  *
- * Upsert ide po slugu i prepisuje nazive, cijene i sadržaj paketa, pa razlika
- * između kataloga i onoga što je netko u međuvremenu promijenio u administraciji
- * znači gubitak tih izmjena. Zato skripta bez potvrde samo ISPISUJE razlike:
+ * Katalog je polazna točka za praznu bazu, a NE izvor istine za postojeću:
+ * paketi se svakodnevno uređuju u administraciji (cijene, opisi, sadržaj), pa
+ * bi prepisivanje po katalogu tiho poništilo te izmjene. Zato skripta samo
+ * DODAJE ono čega u bazi nema, a postojeće zapise nikad ne dira.
  *
  *   npm run db:sync-katalog              → pregled (ništa se ne zapisuje)
- *   npm run db:sync-katalog -- --potvrdi → primjena
+ *   npm run db:sync-katalog -- --potvrdi → zapisuje ono što nedostaje
+ *
+ * Za uređivanje postojećih paketa koristite administraciju (/admin/paketi).
  */
 import { PrismaClient } from "@prisma/client";
 import { NEAKTIVNI_DODACI, PAKETI, SOBE, TEME } from "./katalog";
@@ -16,83 +17,66 @@ import { NEAKTIVNI_DODACI, PAKETI, SOBE, TEME } from "./katalog";
 const prisma = new PrismaClient();
 const POTVRDA = process.argv.includes("--potvrdi");
 
-/** Polja u kojima se zapis razlikuje od kataloga (za pregled prije pisanja). */
-function razlike(postojeci: Record<string, unknown>, zeljeni: Record<string, unknown>): string[] {
-  return Object.entries(zeljeni)
-    .filter(([k, v]) => JSON.stringify(postojeci[k]) !== JSON.stringify(v))
-    .map(([k, v]) => `${k}: ${JSON.stringify(postojeci[k])} → ${JSON.stringify(v)}`);
-}
-
 async function main() {
-  console.log(POTVRDA ? "✍️  Primjena kataloga na bazu.\n" : "🔍 Pregled (ništa se ne zapisuje). Za primjenu dodajte `-- --potvrdi`.\n");
-  let izmjena = 0;
+  console.log(POTVRDA ? "✍️  Dodajem ono čega u bazi nema.\n" : "🔍 Pregled (ništa se ne zapisuje). Za zapis dodajte `-- --potvrdi`.\n");
+  let novih = 0;
+  let postojecih = 0;
 
   const sobaIds = new Map<string, string>();
   for (const { slug, ...s } of SOBE) {
     const postojeca = await prisma.room.findUnique({ where: { slug } });
-    const promjene = postojeca ? razlike(postojeca, { ...s, active: true }) : null;
-    if (!postojeca) console.log(`🏠 NOVO  ${s.name} (${slug})`);
-    else if (promjene?.length) console.log(`🏠 MIJENJA SE  ${postojeca.name} (${slug})\n   ${promjene.join("\n   ")}`);
-    if (!postojeca || promjene?.length) izmjena++;
-
-    if (POTVRDA) {
-      const soba = await prisma.room.upsert({ where: { slug }, update: { ...s, active: true }, create: { slug, ...s } });
-      sobaIds.set(slug, soba.id);
-    } else if (postojeca) {
+    if (postojeca) {
       sobaIds.set(slug, postojeca.id);
+      postojecih++;
+      continue;
+    }
+    console.log(`🏠 NEDOSTAJE  igraonica ${s.name} (${slug})`);
+    novih++;
+    if (POTVRDA) {
+      const soba = await prisma.room.create({ data: { slug, ...s } });
+      sobaIds.set(slug, soba.id);
     }
   }
 
   for (const { slug, roomSlug, ...p } of PAKETI) {
-    const roomId = sobaIds.get(roomSlug);
-    if (!roomId) {
-      if (POTVRDA) throw new Error(`Paket ${slug}: nepoznata igraonica ${roomSlug}`);
-      console.log(`🎁 NOVO  ${p.name} (${slug}) — igraonica ${roomSlug} još ne postoji`);
-      izmjena++;
+    if (await prisma.package.findUnique({ where: { slug } })) {
+      postojecih++;
       continue;
     }
-    const postojeci = await prisma.package.findUnique({ where: { slug } });
-    const promjene = postojeci ? razlike(postojeci, { ...p, roomId, active: true }) : null;
-    if (!postojeci) console.log(`🎁 NOVO  ${roomSlug} / ${p.name} (${slug})`);
-    else if (promjene?.length) console.log(`🎁 MIJENJA SE  ${roomSlug} / ${postojeci.name} (${slug})\n   ${promjene.join("\n   ")}`);
-    if (!postojeci || promjene?.length) izmjena++;
-
+    console.log(`🎁 NEDOSTAJE  paket ${roomSlug} / ${p.name} (${slug})`);
+    novih++;
     if (POTVRDA) {
-      await prisma.package.upsert({ where: { slug }, update: { ...p, roomId, active: true }, create: { slug, ...p, roomId } });
+      const roomId = sobaIds.get(roomSlug);
+      if (!roomId) throw new Error(`Paket ${slug}: nepoznata igraonica ${roomSlug}`);
+      await prisma.package.create({ data: { slug, ...p, roomId } });
     }
   }
 
-  // Teme se samo dodaju/ažuriraju (teme dodane u administraciji ostaju netaknute).
   for (const { slug, ...t } of TEME) {
-    const postojeca = await prisma.theme.findUnique({ where: { slug } });
-    const promjene = postojeca ? razlike(postojeca, { ...t, active: true }) : null;
-    if (!postojeca) console.log(`${t.emoji} NOVO  tema ${t.name} (${slug})`);
-    else if (promjene?.length) console.log(`${t.emoji} MIJENJA SE  tema ${postojeca.name} (${slug})\n   ${promjene.join("\n   ")}`);
-    if (!postojeca || promjene?.length) izmjena++;
-
-    if (POTVRDA) await prisma.theme.upsert({ where: { slug }, update: { ...t, active: true }, create: { slug, ...t } });
+    if (await prisma.theme.findUnique({ where: { slug } })) {
+      postojecih++;
+      continue;
+    }
+    console.log(`${t.emoji} NEDOSTAJE  tema ${t.name} (${slug})`);
+    novih++;
+    if (POTVRDA) await prisma.theme.create({ data: { slug, ...t } });
   }
 
-  // Deaktivacije se uvijek imenuju — nikad tiho, jer nestaju s javnih stranica.
-  const [sobeOff, paketiOff, dodaciOff] = await Promise.all([
-    prisma.room.findMany({ where: { slug: { notIn: SOBE.map((s) => s.slug) }, active: true }, select: { name: true, slug: true } }),
-    prisma.package.findMany({ where: { slug: { notIn: PAKETI.map((p) => p.slug) }, active: true }, select: { name: true, slug: true } }),
-    prisma.addOn.findMany({ where: { slug: { in: NEAKTIVNI_DODACI }, active: true }, select: { name: true, slug: true } }),
-  ]);
-  for (const s of sobeOff) console.log(`⚠️  DEAKTIVIRA SE igraonica ${s.name} (${s.slug}) — nema je u katalogu`);
-  for (const p of paketiOff) console.log(`⚠️  DEAKTIVIRA SE paket ${p.name} (${p.slug}) — nema ga u katalogu`);
+  // Jedina namjerna deaktivacija: dodaci s izričitog popisa u katalogu.
+  const dodaciOff = await prisma.addOn.findMany({
+    where: { slug: { in: NEAKTIVNI_DODACI }, active: true },
+    select: { name: true, slug: true },
+  });
   for (const d of dodaciOff) console.log(`⚠️  DEAKTIVIRA SE dodatak ${d.name} (${d.slug})`);
-  izmjena += sobeOff.length + paketiOff.length + dodaciOff.length;
-
-  if (POTVRDA) {
-    await prisma.room.updateMany({ where: { slug: { in: sobeOff.map((s) => s.slug) } }, data: { active: false } });
-    await prisma.package.updateMany({ where: { slug: { in: paketiOff.map((p) => p.slug) } }, data: { active: false } });
+  if (POTVRDA && dodaciOff.length > 0) {
     await prisma.addOn.updateMany({ where: { slug: { in: dodaciOff.map((d) => d.slug) } }, data: { active: false } });
   }
 
-  if (izmjena === 0) console.log("✅ Baza već odgovara katalogu — nema izmjena.");
-  else if (POTVRDA) console.log(`\n✅ Primijenjeno: ${izmjena} izmjena.`);
-  else console.log(`\n⏹️  ${izmjena} izmjena NIJE zapisano. Provjerite popis, pa pokrenite: npm run db:sync-katalog -- --potvrdi`);
+  const ukupno = novih + dodaciOff.length;
+  console.log(`\n${postojecih} zapisa već postoji i ostaje netaknuto (uređuju se u administraciji).`);
+  if (ukupno === 0) console.log("✅ Ništa ne nedostaje.");
+  else if (POTVRDA) console.log(`✅ Zapisano: ${ukupno}.`);
+  else console.log(`⏹️  ${ukupno} zapisa nedostaje. Za zapis: npm run db:sync-katalog -- --potvrdi`);
 }
 
 main()

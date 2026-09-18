@@ -127,7 +127,7 @@ npm install
 cp .env.example .env        # na Windowsu: copy .env.example .env
 
 # 3) u .env postavi DATABASE_URL (PostgreSQL), stvori tablice i unesi katalog i administratora
-npm run db:push && npm run db:sync-katalog
+npm run db:push && npm run db:sync-katalog -- --potvrdi
 ADMIN_EMAIL="..." ADMIN_PASSWORD="..." npm run db:admin
 
 # 4) pokreni razvojni server
@@ -153,7 +153,7 @@ Otvori **http://localhost:3000**.
 | `npm run db:push` | sinkronizira shemu s bazom |
 | `npm run db:seed` | puni probne podatke — briše sve (**samo lokalna baza**) |
 | `npm run db:reset` | briše bazu i puni probne podatke (**samo lokalna baza**) |
-| `npm run db:sync-katalog` | unosi igraonice i pakete iz `prisma/katalog.ts` bez brisanja podataka |
+| `npm run db:sync-katalog` | ispisuje što iz `prisma/katalog.ts` nedostaje u bazi; s `-- --potvrdi` to i zapisuje. Postojeće igraonice, pakete i teme nikad ne mijenja — oni se uređuju u administraciji |
 | `npm run db:admin` | stvara ili mijenja administratora (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, lozinka barem 12 znakova) |
 | `npm test` | pokreće jedinične testove (Vitest) |
 
