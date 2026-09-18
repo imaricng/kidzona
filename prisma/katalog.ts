@@ -4,8 +4,14 @@
  *
  * Paket: `maxChildren` = broj djece uključen u cijenu (slavljenik se ne broji),
  * `perChildCents` = nadoplata za svako dijete iznad toga, `durationMin` određuje
- * kraj termina (Standard 2 h, Premium 3 h).
+ * kraj termina (Basic i Standard 2 h, Premium 3 h).
  * Soba: `maxChildren` = gornja granica djece u igraonici (uključujući nadoplatu).
+ *
+ * VAŽNO — slugovi paketa: sinkronizacija radi upsert **po slugu**, pa slug mora
+ * odgovarati onome što je već u bazi. Paketi su kroz administraciju s vremenom
+ * preimenovani, zbog čega slugovi više ne opisuju sadržaj (npr. `game-standard`
+ * je danas Kids Play / Premium). Slugovi se ne diraju jer ih pamte i podijeljene
+ * poveznice (`/rezervacija?paket=<slug>`); mjerodavni su `name` i `roomSlug`.
  */
 
 export interface SobaKatalog {
@@ -43,7 +49,7 @@ export const SOBE: SobaKatalog[] = [
     minChildren: 1,
     maxChildren: 30,
     capacity: 50,
-    color: "#FF4DA6",
+    color: "#ff4da6",
     sortOrder: 1,
   },
   {
@@ -53,7 +59,7 @@ export const SOBE: SobaKatalog[] = [
     minChildren: 1,
     maxChildren: 25,
     capacity: 40,
-    color: "#6A3DE8",
+    color: "#6a3de8",
     sortOrder: 2,
   },
 ];
@@ -61,70 +67,131 @@ export const SOBE: SobaKatalog[] = [
 export const PAKETI: PaketKatalog[] = [
   // --- Kids Play ---
   {
-    slug: "mini-standard",
+    slug: "mini-standard", // povijesni slug u bazi; ne mijenjati (v. napomenu na vrhu)
+    roomSlug: "mini-kidzona",
+    name: "Basic",
+    tier: 1,
+    description: "2 sata zabave u igraonici",
+    basePriceCents: 15000,
+    perChildCents: 1000,
+    minChildren: 1,
+    maxChildren: 10,
+    durationMin: 120,
+    popular: false,
+    sortOrder: 1,
+    includedItems: [
+      "Softplay igraonica i animator",
+      "Grickalice, sokovi",
+      "Osnovna rođendanska dekoracija",
+      "Pozivnice",
+    ],
+  },
+  {
+    slug: "mini-premium", // povijesni slug u bazi; ne mijenjati (v. napomenu na vrhu)
     roomSlug: "mini-kidzona",
     name: "Standard",
-    tier: 1,
-    description: "2 sata zabave uz pizzu i tortu.",
+    tier: 2,
+    description: "2 sata zabave u igraonici",
     basePriceCents: 20000,
     perChildCents: 1000,
     minChildren: 1,
     maxChildren: 15,
     durationMin: 120,
     popular: false,
-    sortOrder: 1,
-    includedItems: ["Grickalice, sokovi i pizza", "Torta Ledo Medo", "Osnovna rođendanska dekoracija", "Pozivnice"],
+    sortOrder: 2,
+    includedItems: [
+      "Softplay igraonica i animator",
+      "Grickalice, sokovi i pizza",
+      "Torta Ledo Medo",
+      "Rođendanska dekoracija",
+      "Pozivnice",
+    ],
   },
   {
-    slug: "mini-premium",
+    slug: "game-standard", // povijesni slug u bazi; ne mijenjati (v. napomenu na vrhu)
     roomSlug: "mini-kidzona",
     name: "Premium",
-    tier: 2,
-    description: "3 sata, tematska dekoracija i pinjata.",
-    basePriceCents: 27000,
+    tier: 3,
+    description: "3 sata igre, Tematska dekoracija",
+    basePriceCents: 30000,
     perChildCents: 1000,
     minChildren: 1,
     maxChildren: 20,
     durationMin: 180,
     popular: false,
-    sortOrder: 2,
-    includedItems: ["Grickalice, sokovi i pizza", "Torta Ledo Medo", "Tematska dekoracija po izboru", "Pozivnice + pinjata"],
+    sortOrder: 3,
+    includedItems: [
+      "Softplay igraonica i animator",
+      "Grickalice, sokovi i pizza",
+      "Torta Ledo Medo",
+      "Tematska Rođendanska dekoracija i pozivnice",
+    ],
   },
   // --- Kids Challenge ---
   {
-    slug: "game-standard",
+    slug: "game-premium", // povijesni slug u bazi; ne mijenjati (v. napomenu na vrhu)
     roomSlug: "game-teen",
-    name: "Standard",
+    name: "Basic",
     tier: 1,
-    description: "2 sata videoigara i zabave.",
-    basePriceCents: 20000,
+    description: "2 sata, slobodna igra",
+    basePriceCents: 16000,
     perChildCents: 1000,
     minChildren: 1,
-    maxChildren: 12,
+    maxChildren: 10,
     durationMin: 120,
-    popular: false,
-    sortOrder: 3,
-    includedItems: ["Grickalice, sokovi i pizza", "Torta Ledo Medo", "Rođendanska dekoracija i pozivnice", "Slobodna igra na konzolama"],
-  },
-  {
-    slug: "game-premium",
-    roomSlug: "game-teen",
-    name: "Premium",
-    tier: 2,
-    description: "3 sata, McDonald's meni i turnir u videoigrama.",
-    basePriceCents: 30000,
-    perChildCents: 1000,
-    minChildren: 1,
-    maxChildren: 15,
-    durationMin: 180,
     popular: false,
     sortOrder: 4,
     includedItems: [
-      "McDonald's meni + grickalice i sokovi",
+      "Grickalice i sokovi",
+      "Gaming konzole neograničeno",
+      "Mini Nogomet / Girls SPA / Neon party / PS5",
+      "Foto kutak s dekoracijom",
+    ],
+  },
+  {
+    slug: "platinum-mu1jpawq", // povijesni slug u bazi; ne mijenjati (v. napomenu na vrhu)
+    roomSlug: "game-teen",
+    name: "Standard",
+    tier: 2,
+    description: "2 sata videoigara, sporta i zabave",
+    basePriceCents: 22000,
+    perChildCents: 1000,
+    minChildren: 1,
+    maxChildren: 15,
+    durationMin: 120,
+    popular: false,
+    sortOrder: 5,
+    includedItems: [
+      "Grickalice, sokovi i pizza",
       "Torta Ledo Medo",
-      "Rođendanska dekoracija i pozivnice",
-      "Slobodna igra na konzolama",
-      "Organizirani turnir (FIFA / Fortnite / Mario Kart) s medaljom za pobjednika",
+      "Mini Nogomet / Girls SPA / Neon party / PS5",
+      "Foto kutak s dekoracijom",
+      "Neograničeni broj žetona za sve aparate",
+    ],
+  },
+  {
+    slug: "premium-mu6n9wnj", // povijesni slug u bazi; ne mijenjati (v. napomenu na vrhu)
+    roomSlug: "game-teen",
+    name: "Premium",
+    tier: 3,
+    description: "3 sata videoigara, sporta i zabave",
+    basePriceCents: 30000,
+    perChildCents: 1000,
+    minChildren: 1,
+    maxChildren: 18,
+    durationMin: 180,
+    popular: false,
+    sortOrder: 6,
+    includedItems: [
+      "Grickalice, sokovi i pizza",
+      "Torta Ledo Medo",
+      "Mini Nogomet / Girls SPA / Neon party / PS5",
+      "Foto kutak s tematskom dekoracijom",
+      "Neograničeni broj žetona za sve aparate",
+      "Veliki Challenge kroz sve igre",
+      "Medalje za top 3",
+      "Girls SPA puna radionica (lak, maske, glitter)",
+      "Premium doživljaj",
     ],
   },
 ];
