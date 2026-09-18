@@ -11,6 +11,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { izracunajCijenu } from "@/lib/pricing";
+import { sastaviNapomene } from "@/lib/napomene";
 import { jeDozvoljenPocetak, krajTermina, preklapaSe, type Termin } from "@/lib/slots";
 import { kodRezervacije, qrToken, brojRacuna } from "@/lib/codes";
 import { getPaymentService } from "@/lib/payments";
@@ -55,6 +56,7 @@ export interface PodaciRezervacije {
   secondRoomId?: string | null;
   packageId: string;
   themeId?: string | null;
+  temaZelja?: string; // tema izvan ponude, opisana riječima
   numChildren: number;
   numAdults?: number;
   parentName: string;
@@ -228,7 +230,7 @@ export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezan
   });
   const datum = new Date(`${input.dateISO}T00:00:00`);
   const bon = input.voucherCode?.trim().toUpperCase();
-  const napomene = [input.napomene?.trim(), bon ? `Poklon-bon: ${bon}` : null].filter(Boolean).join("\n") || null;
+  const napomene = sastaviNapomene({ temaZelja: input.temaZelja, napomene: input.napomene, bon });
 
   const r = await prisma.$transaction(async (tx) => {
     const code = await noviKod(tx, datum.getFullYear());

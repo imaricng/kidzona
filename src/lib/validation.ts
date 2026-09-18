@@ -44,6 +44,8 @@ export const adminRezervacijaSchema = z
       .string()
       .optional()
       .transform((v) => v || null),
+    // Tema izvan ponude: opis se zapisuje u napomene rezervacije.
+    temaZelja: z.string().trim().max(500, "Opis teme može imati najviše 500 znakova.").default(""),
     numChildren: z.coerce.number().int().min(1, "Unesite broj djece."),
     numAdults: z.coerce.number().int().min(0, "Broj odraslih ne može biti negativan.").default(0),
     parentName: z.string().trim().min(2, "Unesite ime i prezime roditelja."),

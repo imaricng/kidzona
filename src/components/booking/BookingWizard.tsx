@@ -77,6 +77,9 @@ export function BookingWizard({
   const [numChildren, setNumChildren] = useState<number>(pocetniBrojDjece ?? 8);
   const [dodaci, setDodaci] = useState<Record<string, number>>({});
   const [themeId, setThemeId] = useState<string | null>(null);
+  // Tema izvan ponude: roditelj je opisuje riječima, a opis ide u napomene upita.
+  const [vlastitaTema, setVlastitaTema] = useState(false);
+  const [temaZelja, setTemaZelja] = useState("");
 
   // Korak 4 — podaci (unaprijed popunjeno za prijavljenog roditelja)
   const [parentName, setParentName] = useState(pocetniKontakt?.parentName ?? "");
@@ -198,6 +201,7 @@ export function BookingWizard({
           secondRoomId,
           packageId,
           themeId,
+          temaZelja: vlastitaTema ? temaZelja.trim() : "",
           numChildren,
           dodaci: Object.entries(dodaci).filter(([, q]) => q > 0).map(([id, quantity]) => ({ id, quantity })),
           parentName,
@@ -275,6 +279,10 @@ export function BookingWizard({
               themes={katalog.themes}
               themeId={themeId}
               setThemeId={setThemeId}
+              vlastitaTema={vlastitaTema}
+              setVlastitaTema={setVlastitaTema}
+              temaZelja={temaZelja}
+              setTemaZelja={setTemaZelja}
             />
           )}
           {korak === 3 && (
@@ -317,7 +325,7 @@ export function BookingWizard({
           soba2={secondRoomId ? katalog.rooms.find((r) => r.id === secondRoomId)?.name : undefined}
           paket={paket?.name}
           numChildren={numChildren}
-          tema={katalog.themes.find((t) => t.id === themeId)?.name}
+          tema={vlastitaTema ? temaZelja.trim() || hr.booking.vlastitaTema : katalog.themes.find((t) => t.id === themeId)?.name}
           izracun={izracun}
           poDogovoru={!!paket?.cijenaPoDogovoru}
         />
@@ -519,10 +527,13 @@ function KorakSoba({
 // --- Korak 3: djeca + dodaci + tema ----------------------------------
 function KorakDjeca({
   paket, maxDjece, numChildren, setNumChildren, addons, dodaci, setDodaci, themes, themeId, setThemeId,
+  vlastitaTema, setVlastitaTema, temaZelja, setTemaZelja,
 }: {
   paket: Paket; maxDjece: number; numChildren: number; setNumChildren: (n: number) => void;
   addons: Katalog["addons"]; dodaci: Record<string, number>; setDodaci: (d: Record<string, number>) => void;
   themes: Katalog["themes"]; themeId: string | null; setThemeId: (id: string | null) => void;
+  vlastitaTema: boolean; setVlastitaTema: (v: boolean) => void;
+  temaZelja: string; setTemaZelja: (v: string) => void;
 }) {
   const dodatnaDjeca = Math.max(0, numChildren - paket.maxChildren);
   function toggle(id: string) {
@@ -583,8 +594,11 @@ function KorakDjeca({
         <div className="mt-3 flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={() => setThemeId(null)}
-            className={`chip ${themeId === null ? "bg-brand-500 text-white" : "bg-ink-100 text-ink-600"}`}
+            onClick={() => {
+              setThemeId(null);
+              setVlastitaTema(false);
+            }}
+            className={`chip ${themeId === null && !vlastitaTema ? "bg-brand-500 text-white" : "bg-ink-100 text-ink-600"}`}
           >
             {hr.booking.bezTeme}
           </button>
@@ -592,13 +606,42 @@ function KorakDjeca({
             <button
               key={t.id}
               type="button"
-              onClick={() => setThemeId(t.id)}
-              className={`chip ${themeId === t.id ? "bg-brand-500 text-white" : "bg-ink-100 text-ink-600"}`}
+              onClick={() => {
+                setThemeId(t.id);
+                setVlastitaTema(false);
+              }}
+              className={`chip ${themeId === t.id && !vlastitaTema ? "bg-brand-500 text-white" : "bg-ink-100 text-ink-600"}`}
             >
               {t.emoji} {t.name}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => {
+              setThemeId(null);
+              setVlastitaTema(true);
+            }}
+            className={`chip ${vlastitaTema ? "bg-brand-500 text-white" : "bg-ink-100 text-ink-600"}`}
+          >
+            ✏️ {hr.booking.vlastitaTema}
+          </button>
         </div>
+
+        {vlastitaTema && (
+          <div className="mt-4">
+            <label className="label" htmlFor="tema-zelja">{hr.booking.vlastitaTemaUpis}</label>
+            <textarea
+              id="tema-zelja"
+              rows={3}
+              maxLength={500}
+              className="input"
+              placeholder={hr.booking.vlastitaTemaPlaceholder}
+              value={temaZelja}
+              onChange={(e) => setTemaZelja(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-ink-500">{hr.booking.vlastitaTemaNapomena}</p>
+          </div>
+        )}
       </div>
     </div>
   );
