@@ -14,6 +14,12 @@ let instanca: NotificationService | null = null;
 export function getNotificationService(): NotificationService {
   if (instanca) return instanca;
   switch (env.notificationProvider) {
+    case "smtp": {
+      // Lijeni import — provider koristi nodemailer (Gmail SMTP).
+      const { SmtpNotificationProvider } = require("./smtp-provider") as typeof import("./smtp-provider");
+      instanca = new SmtpNotificationProvider();
+      break;
+    }
     case "resend": {
       // Lijeni import — provider koristi Resend (email) i Twilio (SMS) preko fetch-a.
       const { ResendNotificationProvider } = require("./resend-provider") as typeof import("./resend-provider");

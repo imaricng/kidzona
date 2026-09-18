@@ -66,6 +66,24 @@ export const env = {
   // Adresa na koju stižu odgovori kupaca na automatske poruke.
   emailReplyTo: str(process.env.EMAIL_REPLY_TO, "kidzonang@gmail.com"),
   resendApiKey: str(process.env.RESEND_API_KEY),
+  // SMTP (Gmail): lozinka mora biti Google App Password, obična ne prolazi.
+  smtpHost: str(process.env.SMTP_HOST, "smtp.gmail.com"),
+  smtpPort: int(process.env.SMTP_PORT, 465),
+  smtpUser: str(process.env.SMTP_USER),
+  smtpPassword: str(process.env.SMTP_PASSWORD),
+  // Poveznica na ostavljanje recenzije (Google poslovni profil).
+  _reviewUrl: str(process.env.REVIEW_URL),
+  /** Kamo vodi „ostavite recenziju"; bez postavljenog URL-a vodi na naslovnicu. */
+  get reviewUrl(): string {
+    return this._reviewUrl || str(process.env.NEXT_PUBLIC_APP_URL, "http://localhost:3000");
+  },
+  // Google Calendar: servisni račun s pravom pisanja u kalendar igraonice.
+  googleCalendarId: str(process.env.GOOGLE_CALENDAR_ID),
+  googleClientEmail: str(process.env.GOOGLE_CLIENT_EMAIL),
+  googlePrivateKey: str(process.env.GOOGLE_PRIVATE_KEY),
+  get googleCalendarAktivan(): boolean {
+    return !!(this.googleCalendarId && this.googleClientEmail && this.googlePrivateKey);
+  },
   twilioAccountSid: str(process.env.TWILIO_ACCOUNT_SID),
   twilioAuthToken: str(process.env.TWILIO_AUTH_TOKEN),
   twilioFromNumber: str(process.env.TWILIO_FROM_NUMBER),

@@ -71,7 +71,7 @@ export async function pokreniPodsjetnike(): Promise<RezultatPodsjetnika> {
     if (await vecPoslano(r.id, "zahvala")) continue;
     const p = predlozakZahvale(
       { code: r.code, parentName: r.parentName, childName: r.childName, date: r.date, slotStart: r.slotStart, slotEnd: r.slotEnd, roomName: r.room.name, packageName: r.package.name, numChildren: r.numChildren, totalCents: r.totalCents, depositCents: r.depositCents },
-      `${env.appUrl}/recenzija`,
+      env.reviewUrl,
     );
     await posaljiIZabiljezi({ tip: "zahvala", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
     // Označi proslavu završenom nakon zahvale

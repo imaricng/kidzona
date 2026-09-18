@@ -14,6 +14,7 @@ import { RezervacijaForma } from "@/components/admin/RezervacijaForma";
 import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
 import { otkaziRezervaciju, izdajRacun } from "@/lib/reservations";
+import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
 import { odbijUpitAkcija, odobriUpitAkcija, spremiIzmjene } from "../akcije";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,8 @@ async function promijeniStatus(code: string, status: string) {
   } else {
     await prisma.reservation.update({ where: { code }, data: { status } });
   }
+  // Otkazan termin oslobađa i kalendar igraonice.
+  if (status === "otkazano") await ukloniProslavuIzKalendara(code);
   revalidatePath(`/admin/rezervacije/${code}`);
 }
 
@@ -70,7 +73,7 @@ async function posaljiZahvalu(code: string) {
   const r = await prisma.reservation.findUniqueOrThrow({ where: { code }, include: { room: true, secondRoom: true, package: true } });
   const p = predlozakZahvale(
     { code: r.code, parentName: r.parentName, childName: r.childName, date: r.date, slotStart: r.slotStart, slotEnd: r.slotEnd, roomName: r.room.name, packageName: r.package.name, numChildren: r.numChildren, totalCents: r.totalCents, depositCents: r.depositCents },
-    `${env.appUrl}/recenzija`,
+    env.reviewUrl,
   );
   await posaljiIZabiljezi({ tip: "zahvala", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
   revalidatePath(`/admin/rezervacije/${code}`);

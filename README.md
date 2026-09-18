@@ -156,6 +156,7 @@ Otvori **http://localhost:3000**.
 | `npm run db:sync-katalog` | ispisuje što iz `prisma/katalog.ts` nedostaje u bazi; s `-- --potvrdi` to i zapisuje. Postojeće igraonice, pakete i teme nikad ne mijenja — oni se uređuju u administraciji |
 | `npm run db:admin` | stvara ili mijenja administratora (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, lozinka barem 12 znakova) |
 | `npm test` | pokreće jedinične testove (Vitest) |
+| `npm run provjeri` | ispisuje postavke e-pošte i kalendara; `-- --posalji adresa@x` šalje testnu poruku, `-- --kalendar` upisuje i briše probni događaj |
 
 ---
 
@@ -171,7 +172,12 @@ Vidi `.env.example` za potpuni popis i komentare. Najvažnije:
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | — | koristi ih `npm run db:admin` (i lokalni seed) |
 | `DEPOSIT_PERCENT` | `30` | postotak akontacije |
 | `STRIPE_SECRET_KEY` | prazno → **probni način** | Stripe tajni ključ (EUR) |
-| `NOTIFICATION_PROVIDER` | `console` | `console` / (kasnije) `resend`, `twilio` |
+| `NOTIFICATION_PROVIDER` | `console` | `console` (samo zapis, **ništa se ne šalje**) / `smtp` (Gmail) / `resend` |
+| `SMTP_USER` / `SMTP_PASSWORD` | — | Gmail račun i **App Password** (lozinka računa ne radi na SMTP-u) |
+| `SMTP_HOST` / `SMTP_PORT` | `smtp.gmail.com` / `465` | poslužitelj za slanje |
+| `REVIEW_URL` | naslovnica | kamo vodi „ostavite recenziju" iz poruke zahvale |
+| `GOOGLE_CALENDAR_ID` | — | kalendar u koji se upisuju potvrđene proslave |
+| `GOOGLE_CLIENT_EMAIL` / `GOOGLE_PRIVATE_KEY` | — | servisni račun s pravom „Mijenjanje događaja" nad tim kalendarom |
 | `EMAIL_FROM` | `info@kidzona.hr` | pošiljatelj automatskih poruka (domena potvrđena kod servisa za slanje) |
 | `STAFF_EMAIL` | `kidzonang@gmail.com` | primatelj obavijesti osoblju o novim rezervacijama |
 | `EMAIL_REPLY_TO` | `kidzonang@gmail.com` | adresa za odgovore kupaca na automatske poruke |

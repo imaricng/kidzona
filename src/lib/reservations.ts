@@ -12,7 +12,8 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { izracunajCijenu } from "@/lib/pricing";
 import { sastaviNapomene } from "@/lib/napomene";
-import { jeDozvoljenPocetak, krajTermina, preklapaSe, type Termin } from "@/lib/slots";
+import { jeDozvoljenPocetak, krajTermina, lokalniISO, preklapaSe, type Termin } from "@/lib/slots";
+import { upisiProslavuUKalendar, ukloniProslavuIzKalendara } from "@/lib/kalendar";
 import { kodRezervacije, qrToken, brojRacuna } from "@/lib/codes";
 import { getPaymentService } from "@/lib/payments";
 import { getFiscalizationService } from "@/lib/fiscalization";
@@ -86,7 +87,7 @@ export interface UpitInput extends PodaciRezervacije {
   voucherCode?: string | null;
 }
 
-const UKLJUCI = { room: true, secondRoom: true, package: true, addOns: { include: { addOn: true } } } as const;
+const UKLJUCI = { room: true, secondRoom: true, package: true, theme: true, addOns: { include: { addOn: true } } } as const;
 type RezervacijaSPovezanim = Prisma.ReservationGetPayload<{ include: typeof UKLJUCI }>;
 
 // --- Pomoćnici --------------------------------------------------------
@@ -192,6 +193,35 @@ function podaciZaPoruku(r: RezervacijaSPovezanim) {
   };
 }
 
+/**
+ * Potvrđena proslava u kalendaru igraonice. Kalendar je pomoćni sustav — ako
+ * upis ne uspije (ili nije konfiguriran), rezervacija svejedno vrijedi.
+ */
+export async function sinkronizirajKalendar(r: RezervacijaSPovezanim): Promise<void> {
+  const dodaciOpis = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
+  await upisiProslavuUKalendar({
+    code: r.code,
+    datumISO: lokalniISO(r.date),
+    slotStart: r.slotStart,
+    slotEnd: r.slotEnd,
+    naslov: `${r.childName ? `${r.childName} — ` : ""}${r.package.name} (${brojDjece(r.numChildren)})`,
+    opis: [
+      `Kod: ${r.code}`,
+      `Paket: ${r.package.name}`,
+      `Roditelj: ${r.parentName}`,
+      r.phone ? `Telefon: ${r.phone}` : null,
+      r.email ? `E-pošta: ${r.email}` : null,
+      r.theme ? `Tema: ${r.theme.name}` : null,
+      dodaciOpis ? `Dodaci: ${dodaciOpis}` : null,
+      r.notes ? `Napomene: ${r.notes}` : null,
+      `Rezervacija: ${env.appUrl}/admin/rezervacije/${r.code}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    lokacija: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
+  });
+}
+
 /** Potvrda kupcu (ako je traženo i ima e-poštu) i obavijest osoblju za pripremu. */
 async function posaljiPotvrdu(r: RezervacijaSPovezanim, kupcu: boolean): Promise<void> {
   const podaci = podaciZaPoruku(r);
@@ -202,6 +232,7 @@ async function posaljiPotvrdu(r: RezervacijaSPovezanim, kupcu: boolean): Promise
   const dodaciOpis = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
   const o = predlozakOsoblje(podaci, dodaciOpis);
   await posaljiIZabiljezi({ tip: "osoblje", kanal: "email", primatelj: env.staffEmail, naslov: o.naslov, tijelo: o.tijelo, reservationId: r.id });
+  await sinkronizirajKalendar(r);
 }
 
 // --- Upit s weba ------------------------------------------------------
@@ -430,6 +461,12 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
       },
     });
   });
+
+  // Termin koji zauzima igraonicu prati i kalendar (novo vrijeme, soba, paket).
+  if (STATUSI_ZAUZIMAJU_TERMIN.includes(postojeca.status)) {
+    const azurirana = await prisma.reservation.findUnique({ where: { id: postojeca.id }, include: UKLJUCI });
+    if (azurirana) await sinkronizirajKalendar(azurirana);
+  }
 }
 
 // --- Račun + fiskalizacija -------------------------------------------
@@ -521,6 +558,8 @@ export async function otkaziRezervaciju(code: string, refund = true): Promise<Ot
     where: { id: r.id },
     data: { status: "otkazano", paidCents: refund ? 0 : r.paidCents },
   });
+  // Oslobođen termin nestaje i iz kalendara igraonice.
+  await ukloniProslavuIzKalendara(r.code);
 
   // Obavijest kupcu
   if (r.email) {
