@@ -71,6 +71,11 @@ export const env = {
   smtpPort: int(process.env.SMTP_PORT, 465),
   smtpUser: str(process.env.SMTP_USER),
   smtpPassword: str(process.env.SMTP_PASSWORD),
+  // Chatbot (Claude). Bez ključa se chat ne prikazuje ni ne odgovara.
+  anthropicApiKey: str(process.env.ANTHROPIC_API_KEY),
+  get chatAktivan(): boolean {
+    return !!this.anthropicApiKey;
+  },
   // Google Analytics (mjerni ID je javan; mjeri se samo uz privolu posjetitelja).
   gaId: str(process.env.NEXT_PUBLIC_GA_ID, "G-NNRMJVYJLR"),
   // Poveznica na ostavljanje recenzije (Google poslovni profil).

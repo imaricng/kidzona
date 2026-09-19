@@ -4,6 +4,7 @@ import "./globals.css";
 import { env } from "@/lib/env";
 import { CookieConsent } from "@/components/CookieConsent";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 // Brand fontovi (self-hosted preko next/font, bez vanjskog zahtjeva i blokiranja prikaza):
 // "Nunito" za tekst, "Fredoka" za logotip i naslove, "Kalam" za rukopisne potpise.
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <CookieConsent />
         <GoogleAnalytics id={env.gaId} />
+        {env.chatAktivan && <ChatWidget />}
       </body>
     </html>
   );
