@@ -19,11 +19,15 @@ export const bookingSchema = z.object({
   dodaci: z
     .array(z.object({ id: z.string().min(1), quantity: z.number().int().min(0).max(50) }))
     .default([]),
-  parentName: z.string().min(2, "Unesite ime i prezime"),
-  email: z.string().email("Neispravna adresa e-pošte"),
-  phone: z.string().min(6, "Unesite broj telefona"),
-  childName: z.string().min(2, "Unesite ime djeteta"),
-  childBirthDate: z.string().regex(DATUM, "Unesite datum rođenja djeteta"),
+  // `required_error` je nužan: bez njega polje koje uopće nije poslano vrati
+  // Zodovu zadanu poruku "Required", pa kupac ne zna što nedostaje.
+  parentName: z.string({ required_error: "Unesite ime i prezime roditelja" }).min(2, "Unesite ime i prezime"),
+  email: z.string({ required_error: "Unesite adresu e-pošte" }).email("Neispravna adresa e-pošte"),
+  phone: z.string({ required_error: "Unesite broj telefona" }).min(6, "Unesite broj telefona"),
+  childName: z.string({ required_error: "Unesite ime djeteta" }).min(2, "Unesite ime djeteta"),
+  childBirthDate: z
+    .string({ required_error: "Unesite datum rođenja djeteta" })
+    .regex(DATUM, "Unesite datum rođenja djeteta"),
   napomene: z.string().optional(),
   gdprConsent: z.literal(true, { errorMap: () => ({ message: "Privola za obradu podataka je obvezna." }) }),
   marketingConsent: z.boolean().default(false),

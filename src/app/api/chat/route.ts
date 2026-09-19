@@ -25,18 +25,23 @@ const zahtjevSchema = z.object({
   poruke: z.array(porukaSchema).min(1).max(40),
 });
 
-/** Podaci koje model priprema; slanje potvrđuje roditelj u sučelju. */
+/**
+ * Podaci koje model priprema; slanje potvrđuje roditelj u sučelju.
+ * Mora tražiti isto što i `bookingSchema` — inače model složi upit koji
+ * `/api/booking` odbije tek na kraju, kad je roditelj već sve ispričao.
+ */
 const pripremaSchema = z.object({
   dateISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   slotStart: z.string().regex(/^\d{2}:\d{2}$/),
   roomId: z.string().min(1),
   packageId: z.string().min(1),
   themeId: z.string().optional(),
-  numChildren: z.number().int().min(1).max(60),
-  parentName: z.string().trim().min(2),
-  email: z.string().trim().email(),
-  phone: z.string().trim().optional(),
-  childName: z.string().trim().optional(),
+  numChildren: z.number().int().min(1).max(40),
+  parentName: z.string().trim().min(2, "Treba ime i prezime roditelja."),
+  email: z.string().trim().email("Treba ispravna adresa e-pošte."),
+  phone: z.string().trim().min(6, "Treba broj telefona roditelja."),
+  childName: z.string().trim().min(2, "Treba ime slavljenika."),
+  childBirthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Treba datum rođenja slavljenika (GGGG-MM-DD)."),
   temaZelja: z.string().trim().max(500).optional(),
   napomene: z.string().trim().max(1000).optional(),
   dodaciIds: z.array(z.string()).max(20).optional(),
@@ -99,10 +104,22 @@ const ALATI: Anthropic.Tool[] = [
         email: { type: "string" },
         telefon: { type: "string" },
         imeSlavljenika: { type: "string" },
+        datumRodjenja: { type: "string", description: "Datum rođenja slavljenika, GGGG-MM-DD" },
         napomene: { type: "string" },
         dodaciIds: { type: "array", items: { type: "string" } },
       },
-      required: ["datum", "pocetak", "igraonicaId", "paketId", "brojDjece", "imeRoditelja", "email"],
+      required: [
+        "datum",
+        "pocetak",
+        "igraonicaId",
+        "paketId",
+        "brojDjece",
+        "imeRoditelja",
+        "email",
+        "telefon",
+        "imeSlavljenika",
+        "datumRodjenja",
+      ],
       additionalProperties: false,
     },
   },
@@ -121,6 +138,7 @@ async function pripremiUpit(ulaz: Record<string, unknown>): Promise<{ ok: true; 
     email: ulaz.email,
     phone: ulaz.telefon,
     childName: ulaz.imeSlavljenika,
+    childBirthDate: ulaz.datumRodjenja,
     temaZelja: ulaz.temaZelja,
     napomene: ulaz.napomene,
     dodaciIds: ulaz.dodaciIds,
@@ -156,8 +174,9 @@ async function pripremiUpit(ulaz: Record<string, unknown>): Promise<{ ok: true; 
     ...(dodaci.length ? [{ naziv: "Dodaci", vrijednost: dodaci.map((d) => d.name).join(", ") }] : []),
     { naziv: "Roditelj", vrijednost: p.parentName },
     { naziv: "E-pošta", vrijednost: p.email },
-    ...(p.phone ? [{ naziv: "Telefon", vrijednost: p.phone }] : []),
-    ...(p.childName ? [{ naziv: "Slavljenik", vrijednost: p.childName }] : []),
+    { naziv: "Telefon", vrijednost: p.phone },
+    { naziv: "Slavljenik", vrijednost: p.childName },
+    { naziv: "Datum rođenja", vrijednost: formatDatumDugi(new Date(`${p.childBirthDate}T00:00:00`)) },
     ...(p.napomene ? [{ naziv: "Napomene", vrijednost: p.napomene }] : []),
     {
       naziv: "Okvirna cijena",

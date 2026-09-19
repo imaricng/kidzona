@@ -22,8 +22,9 @@ interface Priprema {
   numChildren: number;
   parentName: string;
   email: string;
-  phone?: string;
-  childName?: string;
+  phone: string;
+  childName: string;
+  childBirthDate: string;
   temaZelja?: string;
   napomene?: string;
   dodaciIds?: string[];
@@ -105,9 +106,9 @@ export function ChatWidget() {
           dodaci: (priprema.dodaciIds ?? []).map((id) => ({ id, quantity: 1 })),
           parentName: priprema.parentName,
           email: priprema.email,
-          phone: priprema.phone || undefined,
-          childName: priprema.childName || undefined,
-          childBirthDate: null,
+          phone: priprema.phone,
+          childName: priprema.childName,
+          childBirthDate: priprema.childBirthDate,
           napomene: priprema.napomene || undefined,
           gdprConsent: gdpr,
           marketingConsent: marketing,
