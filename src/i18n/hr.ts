@@ -146,6 +146,9 @@ export const hr = {
     sada: "Trenutno ne radimo",
     uskoro: "Ne radimo",
     ostaliDatumi: "Upite za ostale datume rado primamo.",
+    // Traka dok još ne radimo: poziva na rezervaciju umjesto da samo javlja da smo zatvoreni.
+    popunjavaju: "termini se popunjavaju.",
+    rezervirajOdmah: "Rezerviraj odmah!",
     naDan: "Na odabrani datum ne radimo",
     prviOtvoreni: "Prvi slobodan datum",
   },

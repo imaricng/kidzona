@@ -142,6 +142,8 @@ export const en = {
     sada: "We are currently closed",
     uskoro: "Closed",
     ostaliDatumi: "Enquiries for other dates are welcome.",
+    popunjavaju: "dates are filling up.",
+    rezervirajOdmah: "Book now!",
     naDan: "We are closed on the selected date",
     prviOtvoreni: "First available date",
   },
