@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import type { NotificationService, Poruka, RezultatSlanja } from "./types";
+import { tijeloUHtml } from "./html";
 
 /**
  * Stvarni provider notifikacija:
@@ -31,7 +32,7 @@ export class ResendNotificationProvider implements NotificationService {
           to: poruka.primatelj,
           subject: poruka.naslov ?? "Kidzona",
           // Jednostavan tekst → HTML (zadržava prijelome redaka).
-          html: `<pre style="font-family:inherit;white-space:pre-wrap">${escapeHtml(poruka.tijelo)}</pre>`,
+          html: tijeloUHtml(poruka.tijelo),
           text: poruka.tijelo,
         }),
       });
@@ -64,6 +65,3 @@ export class ResendNotificationProvider implements NotificationService {
   }
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}

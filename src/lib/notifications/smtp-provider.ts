@@ -1,6 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "@/lib/env";
 import type { NotificationService, Poruka, RezultatSlanja } from "./types";
+import { tijeloUHtml } from "./html";
 
 /**
  * Slanje e-pošte preko SMTP-a (Gmail račun igraonice). Aktivira se s
@@ -42,7 +43,7 @@ export class SmtpNotificationProvider implements NotificationService {
         to: poruka.primatelj,
         subject: poruka.naslov ?? "Kidzona",
         text: poruka.tijelo,
-        html: `<pre style="font-family:inherit;white-space:pre-wrap">${escapeHtml(poruka.tijelo)}</pre>`,
+        html: tijeloUHtml(poruka.tijelo),
       });
       return { status: "poslano", providerRef: info.messageId };
     } catch (e) {
@@ -50,12 +51,9 @@ export class SmtpNotificationProvider implements NotificationService {
     }
   }
 
-  /** Provjera postavki bez slanja poruke — koristi `npm run mail:test`. */
+  /** Provjera postavki bez slanja poruke — koristi `npm run provjeri`. */
   async provjeriVezu(): Promise<void> {
     await this.veza().verify();
   }
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
