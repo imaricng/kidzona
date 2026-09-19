@@ -115,9 +115,6 @@ export const hr = {
     zabava: { naslov: "Zabava za svaku dob", opis: "Animatori, igre i teme prilagođene dobi djece." },
     bezbriznost: { naslov: "Bezbrižnost za roditelje", opis: "Sve pripremamo i raspremamo mi — vi samo uživate." },
   },
-  recenzije: {
-    naslov: "Što kažu roditelji",
-  },
   faq: {
     naslov: "Česta pitanja",
     pitanja: [

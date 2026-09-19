@@ -327,25 +327,6 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* RECENZIJE */}
-        <section className="section py-16">
-          <SectionNaslov naslov={hr.recenzije.naslov} />
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {[
-              { ime: "Marija K.", tekst: "Najbolji rođendan do sada! Djeca su bila oduševljena, a mi se nismo morali ni za što brinuti.", zvj: 5 },
-              { ime: "Ivan P.", tekst: "Rezervacija putem interneta u nekoliko minuta, sve organizirano i čisto. Toplo preporučujem.", zvj: 5 },
-              { ime: "Sara M.", tekst: "Tematska dekoracija jednoroga bila je predivna. Hvala cijeloj ekipi!", zvj: 5 },
-            ].map((r, i) => (
-              <div key={i} className="card relative">
-                <span aria-hidden className="absolute right-5 top-1 font-display text-7xl leading-none text-brand-100">”</span>
-                <div className="text-xl tracking-wider text-sun-500" aria-label={`${r.zvj} od 5`}>{"★".repeat(r.zvj)}</div>
-                <p className="relative mt-3 text-ink-700">„{r.tekst}"</p>
-                <p className="mt-4 font-display font-bold text-brand-700">{r.ime}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* FAQ */}
         <section id="faq" className="bg-white py-16">
           <div className="section">

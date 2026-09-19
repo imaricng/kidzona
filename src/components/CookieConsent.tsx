@@ -1,31 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
-const KEY = "kz_cookie_consent";
+import { procitajPrivolu, zapisiPrivolu } from "@/lib/privola";
 
 /**
- * GDPR cookie-consent banner. Pojavljuje se dok korisnik ne odabere. Odluka se
- * sprema u localStorage. (Demo aplikacija ne postavlja marketinške kolačiće —
- * banner je za usklađenost i proširenje.)
+ * GDPR cookie-consent banner. Pojavljuje se dok posjetitelj ne odabere; odluka
+ * se sprema u localStorage. O njoj ovisi i Google Analytics — bez privole se
+ * mjerenje uopće ne učitava (vidi `GoogleAnalytics`).
  */
 export function CookieConsent() {
   const [vidljiv, setVidljiv] = useState(false);
 
   useEffect(() => {
-    try {
-      if (!localStorage.getItem(KEY)) setVidljiv(true);
-    } catch {
-      /* localStorage nedostupan */
-    }
+    if (!procitajPrivolu()) setVidljiv(true);
   }, []);
 
   function odluka(vrijednost: "prihvaceno" | "odbijeno") {
-    try {
-      localStorage.setItem(KEY, vrijednost);
-    } catch {
-      /* ignore */
-    }
+    zapisiPrivolu(vrijednost);
     setVidljiv(false);
   }
 

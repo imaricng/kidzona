@@ -30,9 +30,11 @@ export default function PrivatnostPage() {
             ili na zahtjev na {hr.kontakt.email}. Računi ostaju u zakonskoj evidenciji bez poveznice
             na vaš profil.
           </Section>
-          <Section naslov="Kolačići">
-            Koristimo nužne kolačiće za rad stranice (npr. prijava). Marketinške kolačiće
-            postavljamo samo uz vašu privolu.
+          <Section naslov="Kolačići i mjerenje posjećenosti">
+            Koristimo nužne kolačiće za rad stranice (npr. prijava). Uz vašu privolu koristimo
+            Google Analytics, koji nam pokazuje koliko je posjeta i koje su stranice zanimljive;
+            te podatke obrađuje Google LLC. Ako u banneru odaberete „Samo nužni", mjerenje se ne
+            učitava. Odluku možete promijeniti brisanjem podataka stranice u pregledniku.
           </Section>
           <Section naslov="Čuvanje i sigurnost">
             Podatke čuvamo samo koliko je potrebno za navedene svrhe te primjenjujemo razumne

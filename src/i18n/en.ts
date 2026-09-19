@@ -112,9 +112,6 @@ export const en = {
     zabava: { naslov: "Fun for every age", opis: "Entertainers, games and themes tailored to the kids' age." },
     bezbriznost: { naslov: "Peace of mind for parents", opis: "We set everything up and clean up — you just enjoy." },
   },
-  recenzije: {
-    naslov: "What parents say",
-  },
   faq: {
     naslov: "Frequently asked questions",
     pitanja: [

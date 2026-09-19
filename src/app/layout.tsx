@@ -3,6 +3,7 @@ import { Fredoka, Kalam, Nunito } from "next/font/google";
 import "./globals.css";
 import { env } from "@/lib/env";
 import { CookieConsent } from "@/components/CookieConsent";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 
 // Brand fontovi (self-hosted preko next/font, bez vanjskog zahtjeva i blokiranja prikaza):
 // "Nunito" za tekst, "Fredoka" za logotip i naslove, "Kalam" za rukopisne potpise.
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <CookieConsent />
+        <GoogleAnalytics id={env.gaId} />
       </body>
     </html>
   );
