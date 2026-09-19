@@ -101,7 +101,7 @@ export default async function PortalDashboard() {
                   {OTKAZIVO.includes(r.status) && r.date > new Date() && (
                     <form action={otkaziAction}>
                       <input type="hidden" name="code" value={r.code} />
-                      <ConfirmSubmit poruka={`Otkazati rezervaciju ${r.code}? Akontacija/uplata se vraća.`} className="text-sm text-ink-400 hover:text-red-600">
+                      <ConfirmSubmit poruka={`Otkazati rezervaciju ${r.code}? Ako je nešto plaćeno, iznos se vraća.`} className="text-sm text-ink-400 hover:text-red-600">
                         Otkaži
                       </ConfirmSubmit>
                     </form>

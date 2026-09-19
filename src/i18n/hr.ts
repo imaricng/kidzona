@@ -125,7 +125,7 @@ export const hr = {
       { p: "Što ako dođe više djece?", o: "Svaki paket uključuje određen broj djece, a slavljenik je uvijek gratis. Svako dodatno dijete naplaćuje se 10 €." },
       { p: "Što s alergijama?", o: "Pri rezervaciji navedite alergije djece; prilagodit ćemo ponudu hrane." },
       { p: "Mogu li slaviti dva rođendana istovremeno?", o: "Možete — imamo dvije odvojene igraonice, pa u istom terminu mogu trajati dvije proslave." },
-      { p: "Kako funkcionira otkazivanje?", o: "Besplatno otkazivanje do 7 dana prije termina; akontacija se vraća ili prebacuje na novi termin." },
+      { p: "Kako funkcionira otkazivanje?", o: "Otkazivanje je besplatno — javite nam se čim znate da termin ne odgovara i rado ćemo ga prebaciti na drugi datum." },
     ],
   },
   kontakt: {

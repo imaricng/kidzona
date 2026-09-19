@@ -55,7 +55,8 @@ export const env = {
   get paymentsMock(): boolean {
     return !this.stripeSecretKey;
   },
-  depositPercent: int(process.env.DEPOSIT_PERCENT, 30),
+  // Postotak akontacije; 0 = ne naplaćuje se unaprijed (plaća se sve na dan proslave).
+  depositPercent: int(process.env.DEPOSIT_PERCENT, 0),
 
   // Obavijesti
   notificationProvider: str(process.env.NOTIFICATION_PROVIDER, "console"),

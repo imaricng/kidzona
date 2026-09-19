@@ -170,7 +170,7 @@ Vidi `.env.example` za potpuni popis i komentare. Najvažnije:
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | osnovna adresa (QR poveznice, e-pošta) |
 | `AUTH_SECRET` | — | tajna za potpis prijave; **u produkciji obvezna** (bez nje prijava ne radi) |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | — | koristi ih `npm run db:admin` (i lokalni seed) |
-| `DEPOSIT_PERCENT` | `30` | postotak akontacije |
+| `DEPOSIT_PERCENT` | `0` | postotak akontacije; `0` znači da se ne naplaćuje unaprijed |
 | `STRIPE_SECRET_KEY` | prazno → **probni način** | Stripe tajni ključ (EUR) |
 | `NOTIFICATION_PROVIDER` | `console` | `console` (samo zapis, **ništa se ne šalje**) / `smtp` (Gmail) / `resend` |
 | `SMTP_USER` / `SMTP_PASSWORD` | — | Gmail račun i **App Password** (lozinka računa ne radi na SMTP-u) |

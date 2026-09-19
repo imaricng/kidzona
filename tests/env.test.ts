@@ -20,7 +20,7 @@ describe("env", () => {
     const env = await ucitajEnv();
     expect(env.staffEmail).toBe("kidzonang@gmail.com");
     expect(env.emailReplyTo).toBe("kidzonang@gmail.com");
-    expect(env.depositPercent).toBe(30);
+    expect(env.depositPercent).toBe(0); // bez akontacije: sve se plaća na dan proslave
     expect(env.featureLoyalty).toBe(true);
     expect(env.fiscalBusinessSpace).toBe("POSL1");
   });

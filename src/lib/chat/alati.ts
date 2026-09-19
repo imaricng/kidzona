@@ -131,9 +131,10 @@ export async function provjeriTermin(dateISO: string, roomId?: string): Promise<
   });
 
   if (slobodni.length === 0) {
+    // Neutralno: koliko je toga dana rezervirano nije podatak za goste.
     return {
       moguce: false,
-      razlog: "Svi termini toga dana su zauzeti.",
+      razlog: "Taj datum nemamo slobodan termin.",
       prijedlogDatuma: sljedeciDatumSTerminima(dateISO),
     };
   }
@@ -162,6 +163,7 @@ export interface IzracunCijene {
   razlog?: string;
   ukupno?: string;
   akontacija?: string;
+  placanje?: string;
   stavke?: string[];
   poDogovoru?: boolean;
 }
@@ -200,7 +202,9 @@ export async function izracunajZaChat(input: {
   return {
     ok: true,
     ukupno: formatEur(izracun.totalCents),
-    akontacija: formatEur(izracun.depositCents),
+    // Bez akontacije se ne spominje ništa unaprijed — sve se plaća na dan proslave.
+    akontacija: izracun.depositCents > 0 ? formatEur(izracun.depositCents) : undefined,
+    placanje: izracun.depositCents > 0 ? "akontacija unaprijed, ostatak na dan proslave" : "plaća se na dan proslave",
     stavke: izracun.stavke.map((s) => `${s.naziv}: ${formatEur(s.iznosCents)}`),
   };
 }

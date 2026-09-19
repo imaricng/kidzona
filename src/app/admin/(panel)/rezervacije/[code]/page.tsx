@@ -204,7 +204,8 @@ export default async function RezervacijaDetalj({
             <h2 className="font-semibold text-ink-800">Naplata</h2>
             <dl className="mt-3 space-y-2 text-sm">
               <Red n={jeUpit ? "Okvirna cijena" : "Ukupno"} v={r.totalCents > 0 ? formatEur(r.totalCents) : "Po dogovoru (upišite iznos)"} />
-              <Red n="Akontacija" v={formatEur(r.depositCents)} />
+              {/* Bez akontacije (DEPOSIT_PERCENT=0) redak samo zbunjuje. */}
+              {r.depositCents > 0 && <Red n="Akontacija" v={formatEur(r.depositCents)} />}
               <Red n="Plaćeno" v={formatEur(r.paidCents)} />
               <Red n="Ostatak" v={r.totalCents > 0 ? formatEur(r.totalCents - r.paidCents) : "—"} />
             </dl>

@@ -106,7 +106,7 @@ async function main() {
     const prvi = ponuda.paketi.find((p) => !p.cijenaPoDogovoru);
     if (prvi) {
       const c = await izracunajZaChat({ packageId: prvi.id, numChildren: prvi.ukljucenoDjece + 2 });
-      console.log(`  izracunaj_cijenu → ${prvi.naziv} za ${prvi.ukljucenoDjece + 2} djece: ukupno ${c.ukupno}, akontacija ${c.akontacija}`);
+      console.log(`  izracunaj_cijenu → ${prvi.naziv} za ${prvi.ukljucenoDjece + 2} djece: ukupno ${c.ukupno} (${c.placanje})`);
     }
   }
 

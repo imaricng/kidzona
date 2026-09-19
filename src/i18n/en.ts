@@ -122,7 +122,7 @@ export const en = {
       { p: "What if more kids come?", o: "Each package includes a set number of kids, and the birthday child is always free. Every extra child is €10." },
       { p: "What about allergies?", o: "Let us know the children's allergies when booking and we'll adjust the food." },
       { p: "Can we host two birthdays at the same time?", o: "You can — we have two separate play rooms, so two parties can run in the same time slot." },
-      { p: "How does cancellation work?", o: "Free cancellation up to 7 days before; the deposit is refunded or moved to a new date." },
+      { p: "How does cancellation work?", o: "Cancellation is free — let us know as soon as the date no longer suits you and we'll gladly move it." },
     ],
   },
   kontakt: {
