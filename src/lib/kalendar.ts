@@ -42,6 +42,20 @@ export function idDogadjaja(code: string): string {
   return code.toLowerCase().replace(/[^0-9a-v]/g, "").padEnd(5, "0");
 }
 
+/**
+ * Privatni ključ servisnog računa u oblik koji traži `crypto`. Ključ se
+ * prepisuje iz JSON datoteke rukom, pa se čisti ono što se pritom najčešće
+ * zalijepi uz njega: okolni navodnici iz JSON-a i "\n" kao dva znaka umjesto
+ * stvarnog prijeloma retka.
+ */
+export function pemKljuc(vrijednost: string): string {
+  return vrijednost
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\n/g, "\n")
+    .trim();
+}
+
 /** Pristupni token servisnog računa (vrijedi sat vremena; ne keširamo ga). */
 async function pristupniToken(): Promise<string> {
   const sada = Math.floor(Date.now() / 1000);
@@ -55,8 +69,7 @@ async function pristupniToken(): Promise<string> {
       exp: sada + 3600,
     }),
   );
-  // Ključ iz env-a ima "\n" kao dva znaka; PEM traži stvarne prijelome redaka.
-  const kljuc = env.googlePrivateKey.replace(/\\n/g, "\n");
+  const kljuc = pemKljuc(env.googlePrivateKey);
   const potpis = createSign("RSA-SHA256").update(`${zaglavlje}.${tijelo}`).sign(kljuc, "base64url");
 
   const res = await fetch(TOKEN_URL, {

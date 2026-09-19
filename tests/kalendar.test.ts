@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { idDogadjaja } from "../src/lib/kalendar";
+import { idDogadjaja, pemKljuc } from "../src/lib/kalendar";
 
 /** Google dopušta samo base32hex: znamenke i slova a–v, najmanje 5 znakova. */
 const DOPUSTEN_ID = /^[0-9a-v]{5,}$/;
@@ -22,5 +22,24 @@ describe("idDogadjaja", () => {
   it("i vrlo kratak kod daje valjan ID dovoljne duljine", () => {
     expect(idDogadjaja("KZ-1")).toMatch(DOPUSTEN_ID);
     expect(idDogadjaja("")).toMatch(DOPUSTEN_ID);
+  });
+});
+
+describe("pemKljuc", () => {
+  const PEM = "-----BEGIN PRIVATE KEY-----\nMIIEv\n-----END PRIVATE KEY-----\n";
+
+  it("pretvara dvoznakovni \\n iz JSON-a u stvarne prijelome redaka", () => {
+    const izJsona = String.raw`-----BEGIN PRIVATE KEY-----\nMIIEv\n-----END PRIVATE KEY-----\n`;
+    expect(izJsona).toContain("\\n"); // ulaz doista ima backslash + n, ne prijelom
+    expect(pemKljuc(izJsona)).toBe(PEM.trim());
+  });
+
+  it("skida navodnike koji se zalijepe zajedno s vrijednošću iz JSON-a", () => {
+    expect(pemKljuc(`"${PEM}"`)).toBe(PEM.trim());
+    expect(pemKljuc(`'${PEM}'`)).toBe(PEM.trim());
+  });
+
+  it("ispravno zalijepljen ključ ostaje nepromijenjen", () => {
+    expect(pemKljuc(PEM)).toBe(PEM.trim());
   });
 });
