@@ -90,12 +90,28 @@ function apiUrl(putanja = ""): string {
   return `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(env.googleCalendarId)}/events${putanja}`;
 }
 
+/** Ishod upisa; `razlog` objašnjava zašto nije uspio (prikazuje se u administraciji). */
+export interface IshodKalendara {
+  ok: boolean;
+  razlog?: string;
+}
+
+/** Koje varijable nedostaju da bi upis uopće bio moguć. */
+function nedostajuPostavke(): string {
+  const manjka = [
+    env.googleCalendarId ? null : "GOOGLE_CALENDAR_ID",
+    env.googleClientEmail ? null : "GOOGLE_CLIENT_EMAIL",
+    env.googlePrivateKey ? null : "GOOGLE_PRIVATE_KEY",
+  ].filter(Boolean);
+  return `Kalendar nije postavljen — nedostaje: ${manjka.join(", ")}.`;
+}
+
 /**
- * Upisuje ili ažurira događaj proslave. Vraća `false` ako kalendar nije
- * konfiguriran ili je upis pao — pozivatelj zbog toga ne prekida svoj posao.
+ * Upisuje ili ažurira događaj proslave. Ne baca iznimku — pozivatelj zbog
+ * kalendara ne prekida svoj posao, nego zabilježi razlog.
  */
-export async function upisiProslavuUKalendar(d: DogadjajProslave): Promise<boolean> {
-  if (!env.googleCalendarAktivan) return false;
+export async function upisiProslavuUKalendar(d: DogadjajProslave): Promise<IshodKalendara> {
+  if (!env.googleCalendarAktivan) return { ok: false, razlog: nedostajuPostavke() };
   try {
     const token = await pristupniToken();
     const id = idDogadjaja(d.code);
@@ -115,25 +131,38 @@ export async function upisiProslavuUKalendar(d: DogadjajProslave): Promise<boole
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(dogadjaj),
     });
-    if (put.ok) return true;
-    if (put.status !== 404) throw new Error(`Calendar PUT ${put.status}: ${await put.text()}`);
+    if (put.ok) return { ok: true };
+    if (put.status !== 404) throw new Error(objasni(put.status, await put.text()));
 
     const post = await fetch(apiUrl(), {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(dogadjaj),
     });
-    if (!post.ok) throw new Error(`Calendar POST ${post.status}: ${await post.text()}`);
-    return true;
+    if (!post.ok) throw new Error(objasni(post.status, await post.text()));
+    return { ok: true };
   } catch (e) {
     console.error(`Kalendar: upis proslave ${d.code} nije uspio:`, e);
-    return false;
+    return { ok: false, razlog: String(e instanceof Error ? e.message : e) };
   }
 }
 
+/**
+ * Poruke Google Calendar API-ja su tehničke; najčešći uzroci prevode se u
+ * uputu koju osoblje može provesti bez razvojnog tima.
+ */
+function objasni(status: number, tijelo: string): string {
+  if (status === 401) return "Google je odbio prijavu (401) — provjerite GOOGLE_CLIENT_EMAIL i GOOGLE_PRIVATE_KEY.";
+  if (status === 403) {
+    return "Google je odbio pristup (403) — podijelite kalendar s adresom servisnog računa uz pravo „Izmjene događaja\" ili uključite Calendar API u projektu.";
+  }
+  if (status === 404) return "Kalendar nije pronađen (404) — provjerite GOOGLE_CALENDAR_ID i je li podijeljen sa servisnim računom.";
+  return `Google Calendar ${status}: ${tijelo.slice(0, 300)}`;
+}
+
 /** Otkazani termin: događaj se briše iz kalendara (ako ondje postoji). */
-export async function ukloniProslavuIzKalendara(code: string): Promise<boolean> {
-  if (!env.googleCalendarAktivan) return false;
+export async function ukloniProslavuIzKalendara(code: string): Promise<IshodKalendara> {
+  if (!env.googleCalendarAktivan) return { ok: false, razlog: nedostajuPostavke() };
   try {
     const token = await pristupniToken();
     const res = await fetch(`${apiUrl(`/${idDogadjaja(code)}`)}`, {
@@ -141,10 +170,10 @@ export async function ukloniProslavuIzKalendara(code: string): Promise<boolean> 
       headers: { Authorization: `Bearer ${token}` },
     });
     // 404/410 = događaja nema (ručno obrisan ili nikad upisan) — to nije greška.
-    if (res.ok || res.status === 404 || res.status === 410) return true;
-    throw new Error(`Calendar DELETE ${res.status}: ${await res.text()}`);
+    if (res.ok || res.status === 404 || res.status === 410) return { ok: true };
+    throw new Error(objasni(res.status, await res.text()));
   } catch (e) {
     console.error(`Kalendar: uklanjanje proslave ${code} nije uspjelo:`, e);
-    return false;
+    return { ok: false, razlog: String(e instanceof Error ? e.message : e) };
   }
 }

@@ -81,10 +81,10 @@ async function main() {
       opis: "Probni događaj koji je upisao sustav Party Kidzona.",
       lokacija: "Party Kidzona Nova Gradiška",
     });
-    console.log(`Upis (${idDogadjaja(code)}):`, upisan ? "✅ uspio" : "❌ nije uspio (razlog je ispisan iznad)");
-    if (upisan) {
+    console.log(`Upis (${idDogadjaja(code)}):`, upisan.ok ? "✅ uspio" : `❌ nije uspio — ${upisan.razlog}`);
+    if (upisan.ok) {
       const uklonjen = await ukloniProslavuIzKalendara(code);
-      console.log("Brisanje probnog događaja:", uklonjen ? "✅ uspjelo" : "❌ nije uspjelo");
+      console.log("Brisanje probnog događaja:", uklonjen.ok ? "✅ uspjelo" : `❌ nije uspjelo — ${uklonjen.razlog}`);
     }
   }
 

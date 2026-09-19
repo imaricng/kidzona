@@ -19,6 +19,13 @@ import { odbijUpitAkcija, odobriUpitAkcija, spremiIzmjene } from "../akcije";
 
 export const dynamic = "force-dynamic";
 
+const KANALI: Record<string, string> = { email: "e-pošta", sms: "SMS", kalendar: "kalendar" };
+const STATUSI_PORUKA: Record<string, string> = {
+  poslano: "poslano",
+  greska: "NIJE USPJELO",
+  logirano: "samo zapisano (slanje nije uključeno)",
+};
+
 const PORUKE: Record<string, string> = {
   odobreno: "✅ Upit je odobren — termin je zauzet, a kupac je dobio potvrdu.",
   odbijeno: "Upit je odbijen i kupac je obaviješten.",
@@ -291,9 +298,18 @@ export default async function RezervacijaDetalj({
         <h2 className="font-semibold text-ink-800">Automatske poruke ({r.notifications.length})</h2>
         <ul className="mt-3 space-y-2 text-sm">
           {r.notifications.map((n) => (
-            <li key={n.id} className="flex items-center justify-between gap-2 border-b border-black/5 pb-2">
-              <span className="text-ink-700">{n.subject ?? n.type}</span>
-              <span className="text-xs text-ink-400">{n.recipient || "—"} · {n.channel === "email" ? "e-pošta" : n.channel.toUpperCase()} · {formatDatumVrijeme(n.createdAt)}</span>
+            <li key={n.id} className="border-b border-black/5 pb-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-ink-700">
+                  {n.status === "greska" && <span className="mr-1">⚠️</span>}
+                  {n.subject ?? n.type}
+                </span>
+                <span className="text-xs text-ink-400">
+                  {n.recipient || "—"} · {KANALI[n.channel] ?? n.channel.toUpperCase()} · {formatDatumVrijeme(n.createdAt)} · {STATUSI_PORUKA[n.status] ?? n.status}
+                </span>
+              </div>
+              {/* Razlog neuspjeha sadrži uputu što popraviti, pa se prikazuje. */}
+              {n.status === "greska" && <p className="mt-1 text-xs text-red-700">{n.body}</p>}
             </li>
           ))}
           {r.notifications.length === 0 && <li className="text-ink-400">Nema poruka.</li>}

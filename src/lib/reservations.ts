@@ -199,7 +199,7 @@ function podaciZaPoruku(r: RezervacijaSPovezanim) {
  */
 export async function sinkronizirajKalendar(r: RezervacijaSPovezanim): Promise<void> {
   const dodaciOpis = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
-  await upisiProslavuUKalendar({
+  const ishod = await upisiProslavuUKalendar({
     code: r.code,
     datumISO: lokalniISO(r.date),
     slotStart: r.slotStart,
@@ -219,6 +219,20 @@ export async function sinkronizirajKalendar(r: RezervacijaSPovezanim): Promise<v
       .filter(Boolean)
       .join("\n"),
     lokacija: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
+  });
+
+  // Ishod se bilježi uz rezervaciju: bez toga neuspjeh ostaje samo u logovima
+  // poslužitelja, a osoblje vidi prazan kalendar i ne zna zašto.
+  await prisma.notificationLog.create({
+    data: {
+      type: "kalendar",
+      channel: "kalendar",
+      recipient: env.googleCalendarId || "—",
+      subject: ishod.ok ? "Proslava upisana u kalendar" : "Upis u kalendar nije uspio",
+      body: ishod.razlog ?? `Termin ${lokalniISO(r.date)} ${r.slotStart}–${r.slotEnd}.`,
+      reservationId: r.id,
+      status: ishod.ok ? "poslano" : "greska",
+    },
   });
 }
 
