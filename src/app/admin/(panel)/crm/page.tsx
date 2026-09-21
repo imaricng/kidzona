@@ -4,6 +4,8 @@ import { hr } from "@/i18n/hr";
 import { formatDatum, dobGodine } from "@/lib/format";
 import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakRodjendanGodina } from "@/lib/notifications/templates";
+import { zahtijevajOsoblje } from "@/lib/admin-sesija";
+import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.crm };
@@ -23,6 +25,33 @@ async function posaljiRodjendanskiPodsjetnik(childId: string) {
   const novaDob = dobGodine(dijete.birthDate) + 1;
   const p = predlozakRodjendanGodina(dijete.family.parentName, dijete.firstName, novaDob);
   await posaljiIZabiljezi({ tip: "rodjendan-godina", kanal: "email", primatelj: dijete.family.email, naslov: p.naslov, tijelo: p.tijelo });
+  revalidatePath("/admin/crm");
+}
+
+// --- Server actions: brisanje ------------------------------------------
+/**
+ * Briše obitelj kao i brisanje računa u portalu (GDPR): kaskadno djeca,
+ * bodovi vjernosti i članstva. Rezervacije i računi ostaju u evidenciji
+ * (zakonska obveza), samo bez poveznice na obitelj.
+ */
+async function obrisiObitelj(familyId: string) {
+  "use server";
+  await zahtijevajOsoblje();
+  const obitelj = await prisma.family.findUnique({ where: { id: familyId }, include: { user: true } });
+  if (!obitelj) return;
+  await prisma.family.delete({ where: { id: familyId } });
+  // Roditeljev račun u portalu bez obitelji nema svrhu. Račun osoblja se nikad ne briše odavde.
+  if (obitelj.user?.role === "roditelj") {
+    await prisma.user.delete({ where: { id: obitelj.user.id } }).catch(() => {});
+  }
+  revalidatePath("/admin/crm");
+}
+
+/** Pojedino dijete (npr. pogrešno upisano) — obitelj ostaje. */
+async function obrisiDijete(childId: string) {
+  "use server";
+  await zahtijevajOsoblje();
+  await prisma.child.delete({ where: { id: childId } }).catch(() => {});
   revalidatePath("/admin/crm");
 }
 
@@ -104,9 +133,25 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                     <p className="text-sm text-ink-500">{o.email}{o.phone ? ` · ${o.phone}` : ""}</p>
                     <p className="text-xs text-ink-400">{o.city} · {o._count.reservations} rezervacija</p>
                   </div>
-                  <span className={`chip text-xs ${o.marketingConsent ? "bg-mint-100 text-mint-700" : "bg-ink-100 text-ink-500"}`}>
-                    {o.marketingConsent ? hr.admin.marketingDa : hr.admin.marketingNe}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`chip text-xs ${o.marketingConsent ? "bg-mint-100 text-mint-700" : "bg-ink-100 text-ink-500"}`}>
+                      {o.marketingConsent ? hr.admin.marketingDa : hr.admin.marketingNe}
+                    </span>
+                    <form action={obrisiObitelj.bind(null, o.id)}>
+                      <ConfirmSubmit
+                        poruka={
+                          `Trajno obrisati obitelj „${o.parentName}"` +
+                          (o.children.length ? ` i ${o.children.length} ${o.children.length === 1 ? "dijete" : "djece"}` : "") +
+                          ` iz baze?\n\nRezervacije (${o._count.reservations}) i računi ostaju u evidenciji, ali bez poveznice na obitelj.` +
+                          (o.userId ? "\nBriše se i njihov račun u roditeljskom portalu." : "") +
+                          "\n\nOvo se ne može poništiti."
+                        }
+                        className="rounded-full px-2 py-1 text-xs text-ink-400 transition hover:bg-red-50 hover:text-red-600"
+                      >
+                        🗑️ Obriši
+                      </ConfirmSubmit>
+                    </form>
+                  </div>
                 </div>
 
                 {o.children.length > 0 && (
@@ -115,6 +160,14 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                       <span key={c.id} className="chip bg-brand-50 text-ink-700 text-xs">
                         👶 {c.firstName} · {dobGodine(c.birthDate)} g. · {formatDatum(c.birthDate)}
                         {c.allergies ? ` · ⚠️ ${c.allergies}` : ""}
+                        <form action={obrisiDijete.bind(null, c.id)} className="inline">
+                          <ConfirmSubmit
+                            poruka={`Obrisati dijete „${c.firstName}" (${formatDatum(c.birthDate)}) iz obitelji ${o.parentName}?`}
+                            className="ml-1 text-ink-400 hover:text-red-600"
+                          >
+                            <span aria-label={`Obriši dijete ${c.firstName}`}>×</span>
+                          </ConfirmSubmit>
+                        </form>
                       </span>
                     ))}
                   </div>
