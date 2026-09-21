@@ -8,6 +8,7 @@ import { izracunajCijenu, SPAJANJE_SOBE_CENTS } from "@/lib/pricing";
 import { druzionicaZaDatum, krajTermina, lokalniISO, pocetciZaDatum, trajanjeSati } from "@/lib/slots";
 import { prviOtvoreniDatum, rasponDatuma, zatvaranjeZaDatum, type Zatvaranje } from "@/lib/zatvaranja";
 import { SidrenaCijenaOznaka } from "@/components/SidrenaCijena";
+import { DatumPolje } from "@/components/DatumPolje";
 
 // --- Tipovi kataloga (serijalizirano s poslužitelja) ------------------
 export interface Katalog {
@@ -369,14 +370,9 @@ function KorakTermin({
   return (
     <div className="card">
       <label className="label" htmlFor="datum">{hr.booking.odaberiDatum}</label>
-      <input
-        id="datum"
-        type="date"
-        className="input max-w-xs"
-        value={datum}
-        min={danasISO()}
-        onChange={(e) => e.target.value && setDatum(e.target.value)}
-      />
+      <div className="max-w-xs">
+        <DatumPolje id="datum" value={datum} min={danasISO()} onChange={(iso) => iso && setDatum(iso)} />
+      </div>
       <p className="mt-2 text-sm text-ink-500">{formatDatumDugi(new Date(`${datum}T00:00:00`))}</p>
       <p className="mt-1 text-xs text-ink-400">{hr.booking.rasporedNapomena}</p>
 
@@ -691,7 +687,7 @@ function KorakPodaci(p: {
         </div>
         <div>
           <label className="label">{hr.booking.datumRodjenja} *</label>
-          <input className="input" type="date" max={danasISO()} value={p.childBirthDate} onChange={(e) => p.setChildBirthDate(e.target.value)} />
+          <DatumPolje max={danasISO()} value={p.childBirthDate} onChange={p.setChildBirthDate} />
           <p className="mt-1 text-xs text-ink-400">Koristimo za podsjetnik za sljedeći rođendan (uz vašu privolu).</p>
         </div>
         <div className="sm:col-span-2">

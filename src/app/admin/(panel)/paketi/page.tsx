@@ -8,6 +8,7 @@ import { REFERENTNI_DATUM } from "@/lib/sidrena-cijena";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
+import { DatumPolje } from "@/components/DatumPolje";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.paketi };
@@ -245,7 +246,7 @@ export default async function AdminPaketiPage() {
               <Polje label="Opis"><input name="description" defaultValue={p.description ?? ""} className="input !py-2" /></Polje>
               <Polje label="Sidrena cijena (€)"><input name="sidrenaCijena" defaultValue={p.sidrenaCijenaCents ? (p.sidrenaCijenaCents / 100).toFixed(2) : ""} placeholder="npr. 200,00" className="input !py-2" /></Polje>
               <Polje label="Sidrena nadoplata (€)"><input name="sidrenaPerChild" defaultValue={p.sidrenaPerChildCents ? (p.sidrenaPerChildCents / 100).toFixed(2) : ""} placeholder="npr. 10,00" className="input !py-2" /></Polje>
-              <Polje label="Sidreni datum"><input name="sidrenaDatum" type="date" defaultValue={p.sidrenaDatum ?? REFERENTNI_DATUM} className="input !py-2" /></Polje>
+              <Polje label="Sidreni datum"><DatumPolje name="sidrenaDatum" defaultValue={p.sidrenaDatum ?? REFERENTNI_DATUM} className="input !py-2" /></Polje>
               <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="popular" defaultChecked={p.popular} className="h-4 w-4 accent-brand-500" /> Popularno</label>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={p.active} className="h-4 w-4 accent-brand-500" /> Aktivno</label>
@@ -307,7 +308,7 @@ export default async function AdminPaketiPage() {
             <Polje label="Naziv"><input name="name" defaultValue={d.name} className="input !py-2" /></Polje>
             <Polje label="Cijena (€)"><input name="price" defaultValue={(d.priceCents / 100).toFixed(2)} className="input !py-2 w-28" /></Polje>
             <Polje label="Sidrena (€)"><input name="sidrenaCijena" defaultValue={d.sidrenaCijenaCents ? (d.sidrenaCijenaCents / 100).toFixed(2) : ""} className="input !py-2 w-24" /></Polje>
-            <Polje label="Sidreni datum"><input name="sidrenaDatum" type="date" defaultValue={d.sidrenaDatum ?? REFERENTNI_DATUM} className="input !py-2 w-40" /></Polje>
+            <Polje label="Sidreni datum"><DatumPolje name="sidrenaDatum" defaultValue={d.sidrenaDatum ?? REFERENTNI_DATUM} className="input !py-2 w-44" /></Polje>
             <Polje label="Jedinica">
               <select name="unit" defaultValue={d.unit} className="input !py-2">
                 <option value="flat">fiksno</option>

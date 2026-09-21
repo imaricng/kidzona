@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionFamily } from "@/lib/portal";
 import { hr } from "@/i18n/hr";
 import { formatDatum, dobGodine } from "@/lib/format";
+import { DatumPolje } from "@/components/DatumPolje";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.portal.mojaDjeca };
@@ -65,7 +66,7 @@ export default async function PortalDjeca() {
         <h2 className="font-semibold text-ink-800">{hr.portal.dodajDijete}</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <input name="firstName" className="input" placeholder="Ime djeteta" required />
-          <input name="birthDate" type="date" className="input" required />
+          <DatumPolje name="birthDate" required />
           <input name="allergies" className="input" placeholder="Alergije (nije obvezno)" />
         </div>
         <button type="submit" className="btn-primary mt-4">+ {hr.portal.dodajDijete}</button>

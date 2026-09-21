@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { hr } from "@/i18n/hr";
+import { DatumPolje } from "@/components/DatumPolje";
 
 interface DijeteUnos {
   firstName: string;
@@ -95,7 +96,7 @@ export function RegistracijaForm() {
           {djeca.map((d, i) => (
             <div key={i} className="grid gap-2 rounded-2xl border border-ink-200 p-3 sm:grid-cols-[1fr,1fr,1fr,auto]">
               <input className="input !py-2" placeholder="Ime djeteta" value={d.firstName} onChange={(e) => azurirajDijete(i, "firstName", e.target.value)} />
-              <input className="input !py-2" type="date" value={d.birthDate} onChange={(e) => azurirajDijete(i, "birthDate", e.target.value)} />
+              <DatumPolje className="input !py-2" value={d.birthDate} onChange={(iso) => azurirajDijete(i, "birthDate", iso)} />
               <input className="input !py-2" placeholder="Alergije (nije obvezno)" value={d.allergies} onChange={(e) => azurirajDijete(i, "allergies", e.target.value)} />
               {djeca.length > 1 && (
                 <button type="button" className="text-sm text-ink-400 hover:text-red-600" onClick={() => ukloniDijete(i)}>{hr.portal.ukloni}</button>

@@ -8,6 +8,7 @@ import { lokalniISO } from "@/lib/slots";
 import { rasponDatuma } from "@/lib/zatvaranja";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DatumPolje } from "@/components/DatumPolje";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Neradni dani" };
@@ -100,11 +101,11 @@ export default async function ZatvaranjaPage({ searchParams }: { searchParams: P
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-[10rem,10rem,1fr]">
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink-500">Od datuma *</span>
-            <input name="od" type="date" required min={danas} className="input !py-2" />
+            <DatumPolje name="od" required min={danas} className="input !py-2" />
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink-500">Do datuma (uključivo)</span>
-            <input name="do" type="date" min={danas} className="input !py-2" />
+            <DatumPolje name="do" min={danas} className="input !py-2" />
           </label>
           <label className="block sm:col-span-2 lg:col-span-1">
             <span className="mb-1 block text-xs font-medium text-ink-500">Razlog (vide ga kupci) *</span>

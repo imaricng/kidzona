@@ -6,6 +6,7 @@ import { formatEur } from "@/lib/format";
 import { izracunajCijenu } from "@/lib/pricing";
 import { krajTermina, trajanjeSati } from "@/lib/slots";
 import type { StanjeObrasca } from "@/app/admin/(panel)/rezervacije/akcije";
+import { DatumPolje, VrijemePolje } from "@/components/DatumPolje";
 
 export interface SobaOpcija {
   id: string;
@@ -116,10 +117,10 @@ function Polja({
         <h3 className="font-semibold text-ink-800">Proslava</h3>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Polje label="Datum *">
-            <input name="dateISO" type="date" required defaultValue={v.dateISO} className="input !py-2" />
+            <DatumPolje name="dateISO" required defaultValue={v.dateISO} className="input !py-2" />
           </Polje>
           <Polje label="Početak *" pomoc={kraj && paket ? `Kraj: ${kraj} (${trajanjeSati(paket.durationMin)})` : "Kraj se računa iz paketa"}>
-            <input name="slotStart" type="time" required step={900} value={slotStart} onChange={(e) => setSlotStart(e.target.value)} className="input !py-2" />
+            <VrijemePolje name="slotStart" required value={slotStart} onChange={setSlotStart} className="input !py-2" />
           </Polje>
           <Polje label="Igraonica *">
             <select name="roomId" required value={roomId} onChange={(e) => promijeniSobu(e.target.value)} className="input !py-2">
@@ -184,7 +185,7 @@ function Polja({
             <input name="childName" defaultValue={v.childName} className="input !py-2" />
           </Polje>
           <Polje label="Datum rođenja slavljenika">
-            <input name="childBirthDate" type="date" defaultValue={v.childBirthDate} className="input !py-2" />
+            <DatumPolje name="childBirthDate" defaultValue={v.childBirthDate} className="input !py-2" />
           </Polje>
           <Polje label="Napomene (alergije, dogovor…)" className="sm:col-span-2 lg:col-span-3">
             <textarea name="napomene" rows={3} defaultValue={v.napomene} className="input !py-2" />
