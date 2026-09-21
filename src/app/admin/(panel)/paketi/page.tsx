@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
 import { jedinstvenSlug } from "@/lib/slug";
+import { lokalniISO } from "@/lib/slots";
+import { REFERENTNI_DATUM } from "@/lib/sidrena-cijena";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
@@ -24,6 +26,20 @@ function broj(v: FormDataEntryValue | null, fallback = 0): number {
 function sobaIzForme(formData: FormData): string | null {
   return String(formData.get("roomId") ?? "") || null;
 }
+/**
+ * Sidrena (dodatna) cijena: prazno polje znači „nije upisano", ne nula —
+ * propis izričito ne dopušta 0,00 € kao dodatnu cijenu.
+ */
+function uCenteIliNista(v: FormDataEntryValue | null): number | null {
+  const tekst = String(v ?? "").trim();
+  if (!tekst) return null;
+  const cents = uCente(tekst);
+  return cents > 0 ? cents : null;
+}
+function datumIliNista(v: FormDataEntryValue | null): string | null {
+  const tekst = String(v ?? "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(tekst) ? tekst : null;
+}
 
 // --- Server actions: paketi ------------------------------------------
 async function azurirajPaket(formData: FormData) {
@@ -42,6 +58,9 @@ async function azurirajPaket(formData: FormData) {
       maxChildren: broj(formData.get("maxChildren"), 15),
       popular: formData.get("popular") === "on",
       cijenaPoDogovoru: formData.get("cijenaPoDogovoru") === "on",
+      sidrenaCijenaCents: uCenteIliNista(formData.get("sidrenaCijena")),
+      sidrenaPerChildCents: uCenteIliNista(formData.get("sidrenaPerChild")),
+      sidrenaDatum: datumIliNista(formData.get("sidrenaDatum")),
       active: formData.get("active") === "on",
       includedItems: String(formData.get("includedItems") || "").split("\n").map((l) => l.trim()).filter(Boolean),
     },
@@ -68,6 +87,11 @@ async function kreirajPaket(formData: FormData) {
       maxChildren: broj(formData.get("maxChildren"), 15),
       sortOrder: (zadnji?.sortOrder ?? 0) + 1,
       cijenaPoDogovoru: formData.get("cijenaPoDogovoru") === "on",
+      // Stavka uvedena nakon referentnog datuma: sidrena cijena je ona s dana
+      // kad je prvi put ponuđena, dakle današnja.
+      sidrenaCijenaCents: uCente(formData.get("basePrice")) || null,
+      sidrenaPerChildCents: uCente(formData.get("perChild")) || null,
+      sidrenaDatum: lokalniISO(new Date()),
       includedItems: String(formData.get("includedItems") || "").split("\n").map((l) => l.trim()).filter(Boolean),
     },
   });
@@ -97,6 +121,8 @@ async function azurirajDodatak(formData: FormData) {
       category: String(formData.get("category") || ""),
       priceCents: uCente(formData.get("price")),
       unit: String(formData.get("unit") || "flat"),
+      sidrenaCijenaCents: uCenteIliNista(formData.get("sidrenaCijena")),
+      sidrenaDatum: datumIliNista(formData.get("sidrenaDatum")),
       active: formData.get("active") === "on",
     },
   });
@@ -117,6 +143,8 @@ async function kreirajDodatak(formData: FormData) {
       priceCents: uCente(formData.get("price")),
       unit: String(formData.get("unit") || "flat"),
       sortOrder: (zadnji?.sortOrder ?? 0) + 1,
+      sidrenaCijenaCents: uCente(formData.get("price")) || null,
+      sidrenaDatum: lokalniISO(new Date()),
     },
   });
   revalidatePath("/admin/paketi");
@@ -215,6 +243,9 @@ export default async function AdminPaketiPage() {
               <Polje label="Najmanje djece"><input name="minChildren" type="number" defaultValue={p.minChildren} className="input !py-2" /></Polje>
               <Polje label="Uključeno djece"><input name="maxChildren" type="number" defaultValue={p.maxChildren} className="input !py-2" /></Polje>
               <Polje label="Opis"><input name="description" defaultValue={p.description ?? ""} className="input !py-2" /></Polje>
+              <Polje label="Sidrena cijena (€)"><input name="sidrenaCijena" defaultValue={p.sidrenaCijenaCents ? (p.sidrenaCijenaCents / 100).toFixed(2) : ""} placeholder="npr. 200,00" className="input !py-2" /></Polje>
+              <Polje label="Sidrena nadoplata (€)"><input name="sidrenaPerChild" defaultValue={p.sidrenaPerChildCents ? (p.sidrenaPerChildCents / 100).toFixed(2) : ""} placeholder="npr. 10,00" className="input !py-2" /></Polje>
+              <Polje label="Sidreni datum"><input name="sidrenaDatum" type="date" defaultValue={p.sidrenaDatum ?? REFERENTNI_DATUM} className="input !py-2" /></Polje>
               <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="popular" defaultChecked={p.popular} className="h-4 w-4 accent-brand-500" /> Popularno</label>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={p.active} className="h-4 w-4 accent-brand-500" /> Aktivno</label>
@@ -261,6 +292,7 @@ export default async function AdminPaketiPage() {
           <Polje label="Najmanje djece"><input name="minChildren" type="number" className="input !py-2" defaultValue="1" /></Polje>
           <Polje label="Uključeno djece"><input name="maxChildren" type="number" className="input !py-2" defaultValue="15" /></Polje>
           <Polje label="Opis"><input name="description" className="input !py-2" /></Polje>
+          <p className="self-end pb-2 text-xs text-ink-400">Sidrena cijena novog paketa postavlja se sama na današnju cijenu i datum.</p>
         </div>
         <Polje label="Uključeno (jedna stavka po retku)"><textarea name="includedItems" rows={2} className="input !py-2" /></Polje>
         <button type="submit" className="btn-secondary mt-3 !py-2">Dodaj paket</button>
@@ -274,6 +306,8 @@ export default async function AdminPaketiPage() {
             <input type="hidden" name="id" value={d.id} />
             <Polje label="Naziv"><input name="name" defaultValue={d.name} className="input !py-2" /></Polje>
             <Polje label="Cijena (€)"><input name="price" defaultValue={(d.priceCents / 100).toFixed(2)} className="input !py-2 w-28" /></Polje>
+            <Polje label="Sidrena (€)"><input name="sidrenaCijena" defaultValue={d.sidrenaCijenaCents ? (d.sidrenaCijenaCents / 100).toFixed(2) : ""} className="input !py-2 w-24" /></Polje>
+            <Polje label="Sidreni datum"><input name="sidrenaDatum" type="date" defaultValue={d.sidrenaDatum ?? REFERENTNI_DATUM} className="input !py-2 w-40" /></Polje>
             <Polje label="Jedinica">
               <select name="unit" defaultValue={d.unit} className="input !py-2">
                 <option value="flat">fiksno</option>

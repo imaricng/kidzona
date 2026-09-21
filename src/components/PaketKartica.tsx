@@ -3,6 +3,7 @@ import type { Rjecnik } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
 import { trajanjeSati } from "@/lib/slots";
 import { Ikona } from "@/components/Decor";
+import { SidrenaCijenaOznaka } from "@/components/SidrenaCijena";
 
 const PAKET_AKCENT = ["bg-sky2-400", "bg-berry-500", "bg-brand-500"];
 
@@ -14,6 +15,9 @@ export interface PaketKarticaPodaci {
   basePriceCents: number;
   perChildCents: number;
   cijenaPoDogovoru: boolean;
+  sidrenaCijenaCents: number | null;
+  sidrenaPerChildCents: number | null;
+  sidrenaDatum: string | null;
   popular: boolean;
   durationMin: number;
   maxChildren: number;
@@ -42,6 +46,8 @@ export function PaketKartica({ paket: p, indeks, t }: { paket: PaketKarticaPodac
           </>
         )}
       </div>
+      {/* Dodatna (sidrena) cijena — obvezna uz svaku javno istaknutu cijenu. */}
+      <SidrenaCijenaOznaka stavka={p} className="mt-1 block text-xs" />
       <ul className="mt-4 flex flex-wrap gap-2 font-semibold">
         <li className="chip bg-brand-50 !text-xs text-brand-700">⏱ {trajanjeSati(p.durationMin)}</li>
         <li className="chip bg-berry-50 !text-xs text-berry-700">
@@ -50,6 +56,10 @@ export function PaketKartica({ paket: p, indeks, t }: { paket: PaketKarticaPodac
         {p.perChildCents > 0 && !p.cijenaPoDogovoru && (
           <li className="chip bg-sun-100 !text-xs text-brand-900">
             +{formatEur(p.perChildCents)} {t.paketi.poDodatnomDjetetu}
+            <SidrenaCijenaOznaka
+              stavka={{ sidrenaCijenaCents: p.sidrenaPerChildCents, sidrenaDatum: p.sidrenaDatum }}
+              className="ml-1 !text-ink-500"
+            />
           </li>
         )}
       </ul>

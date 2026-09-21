@@ -115,6 +115,7 @@ export default async function IgraonicaPage({ params }: { params: Promise<{ slug
               <PaketKartica key={p.id} paket={p} indeks={i} t={t} />
             ))}
           </div>
+          <p className="mt-8 text-center text-xs text-ink-400">{t.paketi.sidrenaNapomena}</p>
         </section>
 
         {/* Termini */}

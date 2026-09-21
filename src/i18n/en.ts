@@ -76,6 +76,7 @@ export const en = {
     poDodatnomDjetetu: "per extra child",
     poDogovoru: "Price on request",
     poDogovoruNapomena: "we agree the price based on your wishes",
+    sidrenaNapomena: "A price shown with a date is the additional (anchor) price — what that item cost on that day.",
   },
   termini: {
     naslov: "Schedule and time slots",

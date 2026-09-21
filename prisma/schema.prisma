@@ -139,6 +139,12 @@ model Package {
   popular        Boolean @default(false)
   // Cijena se javno ne prikazuje ("Po dogovoru"); iznos se upisuje po rezervaciji.
   cijenaPoDogovoru Boolean @default(false)
+  // Sidrena (dodatna) cijena - Zakon o zastiti potrosaca, obveza od 1.10.2026.
+  // Iznos koji je za stavku vrijedio na referentni datum, i taj datum ("GGGG-MM-DD").
+  // Prazno = nema sto isticati (npr. paket koji se ne nudi javno).
+  sidrenaCijenaCents Int?
+  sidrenaPerChildCents Int?
+  sidrenaDatum       String?
   sortOrder      Int    @default(0)
   active         Boolean @default(true)
 
@@ -156,6 +162,9 @@ model AddOn {
   category    String? // "hrana" | "dekoracija" | "zabava" | "ostalo"
   priceCents  Int     @default(0)
   unit        String  @default("flat")
+  // Sidrena (dodatna) cijena - vidi Package.
+  sidrenaCijenaCents Int?
+  sidrenaDatum       String?
   sortOrder   Int     @default(0)
   active      Boolean @default(true)
 

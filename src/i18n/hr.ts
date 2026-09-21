@@ -78,6 +78,7 @@ export const hr = {
     poDodatnomDjetetu: "po dodatnom djetetu",
     poDogovoru: "Po dogovoru",
     poDogovoruNapomena: "cijenu dogovaramo prema vašim željama",
+    sidrenaNapomena: "Cijena s naznačenim datumom je dodatna (sidrena) cijena — iznos koji je za tu stavku vrijedio na taj dan.",
   },
   // Raspored za posjetitelje — mora odgovarati rasporedu u `src/lib/slots.ts`.
   termini: {

@@ -7,6 +7,7 @@ import { formatEur, formatDatumDugi } from "@/lib/format";
 import { izracunajCijenu, SPAJANJE_SOBE_CENTS } from "@/lib/pricing";
 import { druzionicaZaDatum, krajTermina, lokalniISO, pocetciZaDatum, trajanjeSati } from "@/lib/slots";
 import { prviOtvoreniDatum, rasponDatuma, zatvaranjeZaDatum, type Zatvaranje } from "@/lib/zatvaranja";
+import { SidrenaCijenaOznaka } from "@/components/SidrenaCijena";
 
 // --- Tipovi kataloga (serijalizirano s poslužitelja) ------------------
 export interface Katalog {
@@ -15,8 +16,13 @@ export interface Katalog {
     id: string; name: string; slug: string; roomId: string | null; basePriceCents: number; perChildCents: number;
     includedItems: string[]; minChildren: number; maxChildren: number; durationMin: number; popular: boolean; description: string;
     cijenaPoDogovoru: boolean;
+    // Sidrena (dodatna) cijena — obvezna uz javno istaknutu cijenu od 1. 10. 2026.
+    sidrenaCijenaCents: number | null; sidrenaPerChildCents: number | null; sidrenaDatum: string | null;
   }[];
-  addons: { id: string; name: string; priceCents: number; unit: "per_child" | "flat"; category: string; description: string }[];
+  addons: {
+    id: string; name: string; priceCents: number; unit: "per_child" | "flat"; category: string; description: string;
+    sidrenaCijenaCents: number | null; sidrenaDatum: string | null;
+  }[];
   themes: { id: string; name: string; emoji: string; gradient: string }[];
   depositPercent: number;
   onlinePayments: boolean;
@@ -499,8 +505,11 @@ function KorakSoba({
                 {p.popular && <span className="chip mb-2 w-fit bg-sun-400 text-xs font-bold text-brand-900">★ {hr.paketi.popularno}</span>}
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="font-bold text-ink-900">{p.name}</span>
-                  <span className="font-display text-lg font-bold text-brand-600">
-                    {p.cijenaPoDogovoru ? hr.paketi.poDogovoru : formatEur(p.basePriceCents)}
+                  <span className="text-right">
+                    <span className="block font-display text-lg font-bold text-brand-600">
+                      {p.cijenaPoDogovoru ? hr.paketi.poDogovoru : formatEur(p.basePriceCents)}
+                    </span>
+                    <SidrenaCijenaOznaka stavka={p} className="block text-[11px] leading-tight" />
                   </span>
                 </span>
                 <span className="mt-1 text-xs text-ink-500">
@@ -517,6 +526,7 @@ function KorakSoba({
                 )}
               </button>
             ))}
+            <p className="text-xs text-ink-400">{hr.paketi.sidrenaNapomena}</p>
           </div>
         )}
       </div>
@@ -580,6 +590,7 @@ function KorakDjeca({
                     <span className="block font-medium text-ink-800">{a.name}</span>
                     <span className="text-sm text-ink-500">
                       {formatEur(a.priceCents)} {a.unit === "per_child" ? hr.paketi.poDjetetu : ""}
+                      <SidrenaCijenaOznaka stavka={a} className="ml-1 text-[11px]" />
                     </span>
                   </span>
                 </label>

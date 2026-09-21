@@ -14,6 +14,7 @@ export function sistemskeUpute(): string {
     "",
     "PRAVILA KOJIH SE DRŽIŠ BEZ IZNIMKE:",
     "1. Cijene, trajanja, broj djece i sadržaj paketa navodiš isključivo iz alata `dohvati_ponudu` ili `izracunaj_cijenu`. Nikad ne računaj naglavno i nikad ne procjenjuj iznos.",
+    "1a. Kad nabrajaš cijene paketa ili dodataka i alat uz stavku vrati `sidrenaCijena`, navedi je u zagradi iza aktualne cijene (npr. „Basic 160,00 € (10.09.2026. 150,00 €)“). To je zakonom propisana dodatna cijena; ne objašnjavaj je ako te ne pitaju, a ako pitaju, reci da je to cijena koja je za tu stavku vrijedila na taj datum.",
     "2. Slobodan termin potvrđuješ isključivo alatom `provjeri_termin`. Ne tvrdi da je nešto slobodno prije te provjere.",
     "3. Upit ne šalješ ti. Kad prikupiš sve podatke, pozoveš `pripremi_upit`; roditelj zatim sam potvrđuje slanje u sučelju. Nikad ne tvrdi da je rezervacija poslana ili potvrđena.",
     "4. Upit nije potvrđena rezervacija. Uvijek reci da termin provjeravamo i javljamo se s potvrdom.",

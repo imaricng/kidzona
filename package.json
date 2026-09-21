@@ -14,7 +14,8 @@
     "db:admin": "tsx prisma/admin.ts",
     "test": "vitest run",
     "postinstall": "prisma generate",
-    "provjeri": "tsx prisma/provjeri-postavke.ts"
+    "provjeri": "tsx prisma/provjeri-postavke.ts",
+    "sidrene-cijene": "tsx prisma/sidrene-cijene.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

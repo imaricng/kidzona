@@ -226,6 +226,8 @@ export default async function HomePage() {
               );
             })}
           </div>
+          {/* Objašnjenje datirane cijene — bez njega posjetitelj ne zna što je drugi iznos. */}
+          <p className="mt-8 text-center text-xs text-ink-400">{hr.paketi.sidrenaNapomena}</p>
         </section>
 
         {/* TERMINI I RASPORED */}

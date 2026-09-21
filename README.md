@@ -156,6 +156,7 @@ Otvori **http://localhost:3000**.
 | `npm run db:sync-katalog` | ispisuje što iz `prisma/katalog.ts` nedostaje u bazi; s `-- --potvrdi` to i zapisuje. Postojeće igraonice, pakete i teme nikad ne mijenja — oni se uređuju u administraciji |
 | `npm run db:admin` | stvara ili mijenja administratora (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, lozinka barem 12 znakova) |
 | `npm test` | pokreće jedinične testove (Vitest) |
+| `npm run sidrene-cijene` | ispisuje koje stavke nemaju sidrenu (dodatnu) cijenu; s `-- --potvrdi` upisuje današnju cijenu s referentnim datumom |
 | `npm run provjeri` | ispisuje postavke e-pošte, kalendara i chatbota; `-- --posalji adresa@x` šalje testnu poruku, `-- --kalendar` upisuje i briše probni događaj, `-- --chat` provjerava alate chatbota |
 
 ---

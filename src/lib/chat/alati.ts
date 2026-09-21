@@ -21,6 +21,7 @@ import {
   trajanjeSati,
 } from "@/lib/slots";
 import { zatvaranjeZaDatum } from "@/lib/zatvaranja";
+import { tekstSidrene } from "@/lib/sidrena-cijena";
 
 const DATUM = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -52,12 +53,16 @@ export async function dohvatiPonudu() {
       ukljucenoDjece: p.maxChildren,
       najmanjeDjece: p.minChildren,
       nadoplataPoDodatnomDjetetu: p.perChildCents > 0 ? formatEur(p.perChildCents) : null,
+      // Dodatna (sidrena) cijena — zakonska obveza uz svaku javno istaknutu cijenu.
+      sidrenaCijena: tekstSidrene(p),
+      sidrenaNadoplata: tekstSidrene({ sidrenaCijenaCents: p.sidrenaPerChildCents, sidrenaDatum: p.sidrenaDatum }),
       ukljuceno: (p.includedItems as string[]) ?? [],
     })),
     dodaci: dodaci.map((d) => ({
       id: d.id,
       naziv: d.name,
       cijena: formatEur(d.priceCents),
+      sidrenaCijena: tekstSidrene(d),
       poDjetetu: d.unit === "per_child",
     })),
     teme: teme.map((t) => ({ id: t.id, naziv: t.name })),

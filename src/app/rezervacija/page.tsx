@@ -69,6 +69,9 @@ export default async function RezervacijaPage({
       popular: p.popular,
       cijenaPoDogovoru: p.cijenaPoDogovoru,
       description: p.description ?? "",
+      sidrenaCijenaCents: p.sidrenaCijenaCents,
+      sidrenaPerChildCents: p.sidrenaPerChildCents,
+      sidrenaDatum: p.sidrenaDatum,
     })),
     addons: addons.map((a) => ({
       id: a.id,
@@ -77,6 +80,8 @@ export default async function RezervacijaPage({
       unit: a.unit as "per_child" | "flat",
       category: a.category ?? "",
       description: a.description ?? "",
+      sidrenaCijenaCents: a.sidrenaCijenaCents,
+      sidrenaDatum: a.sidrenaDatum,
     })),
     themes: themes.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji, gradient: t.gradient })),
     depositPercent: env.depositPercent,
