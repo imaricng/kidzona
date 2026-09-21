@@ -1,3 +1,4 @@
+import { bezKontakta, nedostajuciPodaci } from "@/lib/nepotpuno";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -123,6 +124,7 @@ export default async function RezervacijaDetalj({
   const jeUpit = r.status === "upit";
   const potvrdjena = STATUSI_ZAUZIMAJU_TERMIN.includes(r.status);
   const mozeUredivati = r.status !== "otkazano" && r.status !== "odbijeno";
+  const nedostaje = nedostajuciPodaci(r);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -139,6 +141,19 @@ export default async function RezervacijaDetalj({
       )}
       {greska && (
         <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 ring-1 ring-red-200">{greska}</p>
+      )}
+
+      {/* Rezervacija spremljena bez dijela podataka — podsjetnik što doznati. */}
+      {mozeUredivati && nedostaje.length > 0 && (
+        <div className="mt-4 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-brand-900 ring-1 ring-sun-400">
+          <p className="font-semibold">📝 Nepotpuni podaci — nedostaje: {nedostaje.join(", ")}.</p>
+          <p className="mt-0.5 text-xs text-ink-600">
+            {bezKontakta(r)
+              ? "Nema ni e-pošte ni telefona — kupca se trenutačno ne može kontaktirati. "
+              : ""}
+            Dopunite ih u odjeljku „Uredi rezervaciju" niže kad ih doznate.
+          </p>
+        </div>
       )}
 
       {/* Upit čeka odluku */}
@@ -194,7 +209,7 @@ export default async function RezervacijaDetalj({
           <div className="card">
             <h2 className="font-semibold text-ink-800">Kontakt</h2>
             <dl className="mt-3 space-y-2 text-sm">
-              <Red n="Roditelj" v={r.parentName} />
+              <Red n="Roditelj" v={r.parentName || "—"} />
               <Red n="E-pošta" v={r.email || "—"} />
               <Red n="Telefon" v={r.phone ?? "—"} />
               {r.family && <Red n="Obitelj u bazi" v={`${brojDjece(r.family.children.length)} u bazi`} />}

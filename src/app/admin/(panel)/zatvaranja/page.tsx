@@ -1,3 +1,4 @@
+import { imeProslave } from "@/lib/nepotpuno";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -166,7 +167,7 @@ export default async function ZatvaranjaPage({ searchParams }: { searchParams: P
                     {rezervacije.map((r) => (
                       <li key={r.id} className="flex flex-wrap items-center gap-2">
                         <Link href={`/admin/rezervacije/${r.code}`} className="font-mono text-xs font-semibold text-brand-600 hover:underline">{r.code}</Link>
-                        <span className="text-ink-700">{formatDatum(r.date)} u {r.slotStart} · {r.childName ?? r.parentName}</span>
+                        <span className="text-ink-700">{formatDatum(r.date)} u {r.slotStart} · {imeProslave(r)}</span>
                         <StatusBadge status={r.status} />
                       </li>
                     ))}

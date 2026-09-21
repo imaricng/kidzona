@@ -7,6 +7,7 @@
  * Tok: kupac šalje UPIT (ne zauzima termin) → administrator ga odobrava (termin
  * se zauzima i kupcu ide potvrda), uređuje pa odobrava ili odbija.
  */
+import { pozdrav } from "@/lib/nepotpuno";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
@@ -150,7 +151,8 @@ async function poveziObitelj(
   const family = await tx.family.upsert({
     where: { email: p.email },
     update: {
-      parentName: p.parentName,
+      // Prazno ime (još nije upisano) ne briše ime koje obitelj već ima.
+      parentName: p.parentName || undefined,
       phone: p.phone || undefined,
       ...(privole ? { marketingConsent: privole.marketing, gdprConsentAt: privole.gdpr ? new Date() : undefined } : {}),
     },
@@ -583,7 +585,7 @@ export async function otkaziRezervaciju(code: string, refund = true): Promise<Ot
       primatelj: r.email,
       naslov: `Otkazivanje rezervacije ${r.code}`,
       tijelo: [
-        `Poštovani/a ${r.parentName},`,
+        pozdrav(r.parentName),
         ``,
         `vaša rezervacija ${r.code} je otkazana.`,
         vraceno > 0 ? `Povrat sredstava od ${formatEur(vraceno)} bit će vidljiv na vašoj kartici u nekoliko radnih dana.` : ``,

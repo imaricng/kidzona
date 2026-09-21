@@ -1,3 +1,4 @@
+import { imeProslave, nedostajuciPodaci } from "@/lib/nepotpuno";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
@@ -76,8 +77,16 @@ export default async function RezervacijePage({ searchParams }: { searchParams: 
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">{formatDatum(r.date)}<span className="text-ink-400"> · {r.slotStart}</span></td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-ink-800">{r.theme?.emoji} {r.childName ?? "—"}</span>
-                  <span className="block text-xs text-ink-400">{r.parentName}</span>
+                  <span className="font-medium text-ink-800">{r.theme?.emoji} {imeProslave(r)}</span>
+                  <span className="block text-xs text-ink-400">
+                    {r.childName ? r.parentName : ""}
+                    {/* Nepotpuna ručno unesena rezervacija — da se ne zaboravi dopuniti. */}
+                    {nedostajuciPodaci(r).length > 0 && (
+                      <span className="ml-1 font-semibold text-berry-600" title={`Nedostaje: ${nedostajuciPodaci(r).join(", ")}`}>
+                        · nepotpuno
+                      </span>
+                    )}
+                  </span>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">{r.secondRoom ? `${r.room.name} +1` : r.room.name}</td>
                 <td className="px-4 py-3">{r.package.name}</td>

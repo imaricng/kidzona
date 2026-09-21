@@ -2,6 +2,7 @@
  * Tekstualni predlošci automatskih poruka (na hrvatskom).
  * Drže se odvojeno od logike slanja radi lakše izmjene.
  */
+import { pozdrav } from "@/lib/nepotpuno";
 import { formatDatumDugi, formatEur } from "@/lib/format";
 import { hr, brojDjece } from "@/i18n/hr";
 
@@ -33,7 +34,7 @@ export function predlozakZaprimljenogUpita(r: RezervacijaPodaci): { naslov: stri
   return {
     naslov: `Zaprimili smo vaš upit ${r.code} — ${hr.brand.naziv}`,
     tijelo: [
-      `Poštovani/a ${r.parentName},`,
+      pozdrav(r.parentName),
       ``,
       `hvala na upitu! Zaprimili smo sljedeće podatke:`,
       ``,
@@ -87,7 +88,7 @@ export function predlozakOdbijenogUpita(r: RezervacijaPodaci, razlog?: string): 
   return {
     naslov: `Vaš upit ${r.code} — ${hr.brand.naziv}`,
     tijelo: [
-      `Poštovani/a ${r.parentName},`,
+      pozdrav(r.parentName),
       ``,
       `hvala na upitu za proslavu (${formatDatumDugi(r.date)}, ${r.slotStart}).`,
       `Nažalost, upit u ovom obliku ne možemo prihvatiti.`,
@@ -106,7 +107,7 @@ export function predlozakPotvrde(r: RezervacijaPodaci): { naslov: string; tijelo
   return {
     naslov: `Potvrda rezervacije ${r.code} — ${hr.brand.naziv}`,
     tijelo: [
-      `Poštovani/a ${r.parentName},`,
+      pozdrav(r.parentName),
       ``,
       `vaša je rezervacija potvrđena! 🎉`,
       ``,
@@ -134,7 +135,7 @@ export function predlozakPodsjetnika(r: RezervacijaPodaci): { naslov: string; ti
   return {
     naslov: `Podsjetnik: proslava je sutra (${r.code})`,
     tijelo: [
-      `Poštovani/a ${r.parentName},`,
+      pozdrav(r.parentName),
       ``,
       `podsjećamo vas da je vaša proslava SUTRA:`,
       `Datum: ${formatDatumDugi(r.date)}, ${r.slotStart} – ${r.slotEnd}`,
@@ -165,7 +166,7 @@ export function predlozakZahvale(r: RezervacijaPodaci, recenzijaUrl: string): { 
   return {
     naslov: `Hvala što ste slavili s nama! 💛`,
     tijelo: [
-      `Poštovani/a ${r.parentName},`,
+      pozdrav(r.parentName),
       ``,
       `hvala što ste slavili u Kidzoni Nova Gradiška! Nadamo se da su se djeca odlično zabavila.`,
       ``,
@@ -185,7 +186,7 @@ export function predlozakRodjendanGodina(
   return {
     naslov: `Bliži se rođendan! 🎂 ${childName} uskoro slavi`,
     tijelo: [
-      `Poštovani/a ${parentName},`,
+      pozdrav(parentName),
       ``,
       `prošla je godina otkad ste slavili s nama — ${childName} uskoro puni ${novaDob}. 🎉`,
       ``,

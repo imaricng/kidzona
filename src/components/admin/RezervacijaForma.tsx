@@ -171,11 +171,14 @@ function Polja({
 
       <div>
         <h3 className="font-semibold text-ink-800">Roditelj i slavljenik</h3>
+        <p className="mt-1 text-xs text-ink-500">
+          Upišite što znate — ostalo se može dopuniti naknadno. Dok podaci nedostaju, rezervacija je označena kao nepotpuna.
+        </p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Polje label="Ime i prezime roditelja *">
-            <input name="parentName" required defaultValue={v.parentName} className="input !py-2" />
+          <Polje label="Ime i prezime roditelja">
+            <input name="parentName" defaultValue={v.parentName} className="input !py-2" />
           </Polje>
-          <Polje label="E-pošta" pomoc="Obvezna je e-pošta ili telefon">
+          <Polje label="E-pošta" pomoc="Bez e-pošte kupac ne dobiva potvrdu ni podsjetnik">
             <input name="email" type="email" defaultValue={v.email} className="input !py-2" />
           </Polje>
           <Polje label="Telefon">

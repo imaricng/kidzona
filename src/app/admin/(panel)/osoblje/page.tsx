@@ -1,3 +1,4 @@
+import { imeProslave } from "@/lib/nepotpuno";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
@@ -84,7 +85,7 @@ export default async function OsobljePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-semibold text-ink-800">{formatDatum(r.date)} · {r.slotStart}–{r.slotEnd} · {r.room.name}</p>
-                <p className="text-sm text-ink-500">{r.childName ?? r.parentName} · {r.numChildren} djece · <span className="font-mono text-xs">{r.code}</span></p>
+                <p className="text-sm text-ink-500">{imeProslave(r)} · {r.numChildren} djece · <span className="font-mono text-xs">{r.code}</span></p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {r.staff.length === 0 && <span className="text-xs text-ink-400">Nema dodijeljenog osoblja</span>}
                   {r.staff.map((s) => (

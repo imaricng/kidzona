@@ -1,3 +1,4 @@
+import { imeProslave } from "@/lib/nepotpuno";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -100,7 +101,7 @@ export default async function DashboardPage() {
                 <Link href={`/admin/rezervacije/${r.code}`} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <span className="min-w-0">
                     <span className="block font-medium text-ink-800">
-                      {r.childName ?? r.parentName} · {formatDatum(r.date)} u {r.slotStart}
+                      {imeProslave(r)} · {formatDatum(r.date)} u {r.slotStart}
                     </span>
                     <span className="block text-xs text-ink-500">
                       {r.room.name} · {r.package.name} · {brojDjece(r.numChildren)} · poslano {formatDatumVrijeme(r.createdAt)}
@@ -133,7 +134,7 @@ export default async function DashboardPage() {
                 <li key={r.id} className="flex items-center justify-between gap-2 rounded-2xl bg-brand-50 px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-ink-800">{r.slotStart} · {r.room.name}</p>
-                    <p className="truncate text-xs text-ink-500">{r.childName ?? r.parentName} · {r.package.name} · {brojDjece(r.numChildren)}</p>
+                    <p className="truncate text-xs text-ink-500">{imeProslave(r)} · {r.package.name} · {brojDjece(r.numChildren)}</p>
                   </div>
                   <StatusBadge status={r.status} />
                 </li>
@@ -157,7 +158,7 @@ export default async function DashboardPage() {
                   <Link href={`/admin/rezervacije/${r.code}`} className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-medium text-ink-800">
-                        {r.theme?.emoji} {r.childName ?? r.parentName} <span className="text-ink-400">({r.code})</span>
+                        {r.theme?.emoji} {imeProslave(r)} <span className="text-ink-400">({r.code})</span>
                       </p>
                       <p className="truncate text-xs text-ink-500">{formatDatum(r.date)} · {r.slotStart} · {r.room.name}</p>
                     </div>

@@ -49,6 +49,8 @@ export async function pokreniPodsjetnike(): Promise<RezultatPodsjetnika> {
     include: { room: true, secondRoom: true, package: true },
   });
   for (const r of sutrasnje) {
+    // Ručno unesena rezervacija može još biti bez e-pošte — tad nema kome poslati.
+    if (!r.email) continue;
     if (await vecPoslano(r.id, "podsjetnik")) continue;
     const p = predlozakPodsjetnika({
       code: r.code, parentName: r.parentName, childName: r.childName, date: r.date,
@@ -73,7 +75,10 @@ export async function pokreniPodsjetnike(): Promise<RezultatPodsjetnika> {
       { code: r.code, parentName: r.parentName, childName: r.childName, date: r.date, slotStart: r.slotStart, slotEnd: r.slotEnd, roomName: r.room.name, packageName: r.package.name, numChildren: r.numChildren, totalCents: r.totalCents, depositCents: r.depositCents },
       env.reviewUrl,
     );
-    await posaljiIZabiljezi({ tip: "zahvala", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
+    // Bez e-pošte se zahvala preskače, ali proslava se svejedno zaključuje.
+    if (r.email) {
+      await posaljiIZabiljezi({ tip: "zahvala", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
+    }
     // Označi proslavu završenom nakon zahvale
     await prisma.reservation.update({ where: { id: r.id }, data: { status: "zavrseno" } });
     // Dodijeli bodove lojalnosti obitelji (ako postoji)

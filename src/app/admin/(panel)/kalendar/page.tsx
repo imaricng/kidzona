@@ -1,3 +1,4 @@
+import { imeProslave } from "@/lib/nepotpuno";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
@@ -106,9 +107,9 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
                                   href={`/admin/rezervacije/${r.code}`}
                                   className="block truncate rounded-lg px-2 py-1.5 text-xs font-medium text-white"
                                   style={{ backgroundColor: s.color }}
-                                  title={`${r.code} · ${r.parentName}`}
+                                  title={`${r.code} · ${imeProslave(r)}`}
                                 >
-                                  {r.theme?.emoji} {r.childName ?? r.parentName} · {r.slotStart}–{r.slotEnd}
+                                  {r.theme?.emoji} {imeProslave(r)} · {r.slotStart}–{r.slotEnd}
                                 </Link>
                               ) : (
                                 <div className="rounded-lg bg-mint-50 px-2 py-1.5 text-center text-xs text-mint-600">slobodno</div>

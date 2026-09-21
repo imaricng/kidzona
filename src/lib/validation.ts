@@ -52,7 +52,9 @@ export const adminRezervacijaSchema = z
     temaZelja: z.string().trim().max(500, "Opis teme može imati najviše 500 znakova.").default(""),
     numChildren: z.coerce.number().int().min(1, "Unesite broj djece."),
     numAdults: z.coerce.number().int().min(0, "Broj odraslih ne može biti negativan.").default(0),
-    parentName: z.string().trim().min(2, "Unesite ime i prezime roditelja."),
+    // Osobni podaci smiju biti prazni: termin se zauzme odmah, a podaci se
+    // dopunjuju kad se doznaju (vidi `nepotpuno.ts`). Upisano mora biti ispravno.
+    parentName: z.string().trim().default(""),
     email: z
       .string()
       .trim()
@@ -71,8 +73,7 @@ export const adminRezervacijaSchema = z
       .trim()
       .default("")
       .refine((v) => v === "" || /^\d+([.,]\d{1,2})?$/.test(v), "Dogovorena cijena mora biti iznos u eurima, npr. 450 ili 450,50."),
-  })
-  .refine((d) => d.email !== "" || d.phone.length >= 6, { message: "Unesite e-poštu ili telefon roditelja.", path: ["email"] });
+  });
 
 export type AdminRezervacijaInput = z.infer<typeof adminRezervacijaSchema>;
 
