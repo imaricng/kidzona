@@ -1,6 +1,7 @@
 import { imeProslave } from "@/lib/nepotpuno";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hr, brojDjece } from "@/i18n/hr";
 import { formatEur, formatDatum, formatDatumVrijeme } from "@/lib/format";
@@ -20,11 +21,29 @@ const AKTIVNI = STATUSI_ZAUZIMAJU_TERMIN;
 async function pokreniAutomatiku() {
   "use server";
   await zahtijevajOsoblje();
-  await pokreniPodsjetnike();
+  const r = await pokreniPodsjetnike();
   revalidatePath("/admin/dashboard");
+  // Rezultat ide u adresu da ga stranica može prikazati — inače klik izgleda kao da ništa nije napravio.
+  redirect(`/admin/dashboard?automatika=${r.podsjetnici}-${r.zahvale}-${r.rodjendani}`);
 }
 
-export default async function DashboardPage() {
+/** „2-1-0" → čitljiv sažetak onoga što je automatika upravo poslala. */
+function sazetakAutomatike(kod: string | undefined): string | null {
+  const m = /^(\d+)-(\d+)-(\d+)$/.exec(kod ?? "");
+  if (!m) return null;
+  const [p, z, r] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (p + z + r === 0) return "Automatika je pokrenuta — danas nije bilo ničega za poslati.";
+  const dijelovi = [
+    p ? `${p} podsjetnik(a) za sutrašnje proslave` : null,
+    z ? `${z} zahvala za jučerašnje proslave` : null,
+    r ? `${r} rođendanskih ponuda` : null,
+  ].filter(Boolean);
+  return `Automatika je poslala: ${dijelovi.join(", ")}.`;
+}
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ automatika?: string }> }) {
+  const { automatika } = await searchParams;
+  const porukaAutomatike = sazetakAutomatike(automatika);
   const sada = new Date();
   const pocetakMjeseca = new Date(sada.getFullYear(), sada.getMonth(), 1);
   const danOd = new Date(sada); danOd.setHours(0, 0, 0, 0);
@@ -69,8 +88,10 @@ export default async function DashboardPage() {
   const ukupnoSlotova = brojSoba * terminaU30Dana;
   const popunjenost = ukupnoSlotova > 0 ? Math.round((za30dana / ukupnoSlotova) * 100) : 0;
 
-  // Broj poruka poslanih danas (vidljivost automatizacije)
-  const porukaDanas = await prisma.notificationLog.count({ where: { createdAt: { gte: danOd, lte: danDo } } });
+  // Današnje e-poruke (potvrde, obavijesti osoblju, podsjetnici…) — upisi u kalendar se ne broje.
+  const porukaDanas = await prisma.notificationLog.count({
+    where: { createdAt: { gte: danOd, lte: danDo }, channel: "email", status: "poslano" },
+  });
 
   return (
     <div>
@@ -78,13 +99,27 @@ export default async function DashboardPage() {
         <h1 className="font-display text-2xl font-extrabold text-ink-900">{hr.admin.nadzornaPloca}</h1>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/rezervacije/nova" className="btn-primary !py-2 !text-sm">✍️ Ručni unos</Link>
+          <Link href="/admin/poruke" className="btn-secondary !py-2 !text-sm" title="Pregled svega što je poslano kupcima i osoblju">
+            📨 Poslane poruke · danas {porukaDanas}
+          </Link>
           <form action={pokreniAutomatiku}>
-            <button type="submit" className="btn-secondary !py-2 !text-sm" title="Pošalji podsjetnike (dan prije), zahvale i rođendanske podsjetnike">
-              ⚙️ Pokreni automatiku · danas poslano: {porukaDanas}
+            <button
+              type="submit"
+              className="btn-secondary !py-2 !text-sm"
+              title="Odmah pošalji ono što inače ide svako jutro: podsjetnike za sutrašnje proslave, zahvale za jučerašnje i rođendanske ponude"
+            >
+              ⚙️ Pokreni automatiku
             </button>
           </form>
         </div>
       </div>
+
+      {porukaAutomatike && (
+        <p className="mt-4 rounded-2xl bg-mint-500/15 px-4 py-3 text-sm font-medium text-mint-600">
+          {porukaAutomatike}{" "}
+          <Link href="/admin/poruke" className="underline">Pogledaj poslane poruke</Link>
+        </p>
+      )}
 
       {/* Upiti koji čekaju odobrenje */}
       <section className={`card mt-6 ${brojUpita > 0 ? "ring-2 ring-sun-400" : ""}`}>

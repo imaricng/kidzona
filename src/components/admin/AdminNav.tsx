@@ -10,6 +10,7 @@ const STAVKE = [
   { href: "/admin/rezervacije", label: hr.admin.rezervacije, ikona: "🎟️" },
   { href: "/admin/rezervacije/nova", label: "Ručni unos", ikona: "✍️" },
   { href: "/admin/crm", label: hr.admin.crm, ikona: "👨‍👩‍👧" },
+  { href: "/admin/poruke", label: "Poslane poruke", ikona: "📨" },
   { href: "/admin/osoblje", label: hr.admin.osoblje, ikona: "🧑‍🏫" },
   { href: "/admin/paketi", label: hr.admin.paketi, ikona: "🎁" },
   { href: "/admin/prostor", label: "Igraonice", ikona: "🏠" },
