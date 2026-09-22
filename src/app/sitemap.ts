@@ -25,6 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...igraonice,
     { url: `${SITE_URL}/rezervacija`, lastModified: sada, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/pokloni`, lastModified: sada, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/pravila`, lastModified: sada, changeFrequency: "yearly", priority: 0.4 },
     { url: `${SITE_URL}/privatnost`, lastModified: sada, changeFrequency: "yearly", priority: 0.2 },
   ];
 }

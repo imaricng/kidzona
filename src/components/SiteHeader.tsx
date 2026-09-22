@@ -29,7 +29,7 @@ export async function SiteHeader() {
           <a href="/#teme" className="transition hover:text-berry-600">{t.nav.teme}</a>
           <a href="/#galerija" className="transition hover:text-berry-600">{t.nav.galerija}</a>
           <a href="/#zasto" className="transition hover:text-berry-600">{t.nav.zasto}</a>
-          <a href="/#faq" className="transition hover:text-berry-600">{t.nav.faq}</a>
+          <Link href="/pravila" className="transition hover:text-berry-600">{t.nav.pravila}</Link>
           <Link href="/pokloni" className="transition hover:text-berry-600">{t.pokloni.naslov}</Link>
           <a href="/#kontakt" className="transition hover:text-berry-600">{t.nav.kontakt}</a>
         </nav>
