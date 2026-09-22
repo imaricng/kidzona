@@ -1,5 +1,6 @@
 "use client";
 
+import { IzjavaRoditelja } from "@/components/IzjavaRoditelja";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -182,7 +183,7 @@ export function ChatWidget() {
               </label>
               <label className="mt-2 flex items-start gap-2 text-xs text-ink-700">
                 <input type="checkbox" checked={waiver} onChange={(e) => setWaiver(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand-500" />
-                <span>{hr.booking.waiverTekst}</span>
+                <span><IzjavaRoditelja /></span>
               </label>
               <label className="mt-2 flex items-start gap-2 text-xs text-ink-700">
                 <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand-500" />

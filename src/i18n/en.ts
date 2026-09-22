@@ -232,8 +232,9 @@ export const en = {
     marketingPrivola:
       "I'd like to receive reminders and offers (e.g. a reminder for next year's birthday). I can withdraw consent at any time.",
     waiverNaslov: "Parent / guardian statement",
-    waiverTekst:
-      "I confirm my child is medically fit to play in the room and I take responsibility for supervision per Kidzona's rules.",
+    waiverPrije: "I confirm my child is medically fit to play in the room, that I have read Kidzona's ",
+    waiverPoveznica: "house rules",
+    waiverPoslije: " and that I will be reachable by phone during the party.",
     waiverPrihvati: "I accept the statement",
     platiAkontaciju: "Pay deposit",
     platiPuni: "Pay full amount",

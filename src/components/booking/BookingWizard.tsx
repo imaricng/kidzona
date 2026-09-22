@@ -1,5 +1,6 @@
 "use client";
 
+import { IzjavaRoditelja } from "@/components/IzjavaRoditelja";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { hr, brojDjece } from "@/i18n/hr";
@@ -698,7 +699,7 @@ function KorakPodaci(p: {
 
       <div className="card space-y-3">
         <h3 className="font-semibold text-ink-800">{hr.booking.waiverNaslov}</h3>
-        <p className="text-sm text-ink-500">{hr.booking.waiverTekst}</p>
+        <p className="text-sm text-ink-500"><IzjavaRoditelja /></p>
         <label className="flex items-start gap-3 text-sm">
           <input type="checkbox" className="mt-1 h-4 w-4 accent-brand-500" checked={p.waiver} onChange={(e) => p.setWaiver(e.target.checked)} />
           <span>{hr.booking.waiverPrihvati} *</span>

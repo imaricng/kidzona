@@ -240,8 +240,11 @@ export const hr = {
     marketingPrivola:
       "Želim primati podsjetnike i ponude (npr. podsjetnik za sljedeći rođendan). Privolu mogu povući u bilo kojem trenutku.",
     waiverNaslov: "Izjava roditelja / skrbnika",
-    waiverTekst:
-      "Potvrđujem da je moje dijete zdravstveno sposobno za igru u igraonici te preuzimam odgovornost za nadzor u skladu s pravilima Kidzone.",
+    // Izjava je razlomljena da „pravilima ponašanja" bude poveznica; cijeli tekst
+    // (i onaj koji se sprema uz rezervaciju) sastavlja `IZJAVA_RODITELJA`.
+    waiverPrije: "Potvrđujem da je moje dijete zdravstveno sposobno za igru u igraonici, da sam upoznat/a s ",
+    waiverPoveznica: "pravilima ponašanja",
+    waiverPoslije: " Kidzone te da ću tijekom proslave biti dostupan/na na telefon.",
     waiverPrihvati: "Prihvaćam izjavu",
     platiAkontaciju: "Plati akontaciju",
     platiPuni: "Plati puni iznos",

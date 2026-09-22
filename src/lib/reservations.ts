@@ -7,6 +7,7 @@
  * Tok: kupac šalje UPIT (ne zauzima termin) → administrator ga odobrava (termin
  * se zauzima i kupcu ide potvrda), uređuje pa odobrava ili odbija.
  */
+import { IZJAVA_RODITELJA } from "@/lib/izjava";
 import { pozdrav } from "@/lib/nepotpuno";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -317,7 +318,8 @@ export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezan
           ? {
               create: {
                 signedByName: input.parentName,
-                content: "Roditelj/skrbnik potvrđuje zdravstvenu sposobnost djeteta i preuzima odgovornost nadzora prema pravilima Kidzone.",
+                // Doslovno tekst koji je roditelj vidio i prihvatio.
+                content: IZJAVA_RODITELJA,
               },
             }
           : undefined,
