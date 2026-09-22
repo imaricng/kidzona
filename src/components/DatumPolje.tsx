@@ -57,11 +57,161 @@ const ikonaKalendara = (
   </svg>
 );
 
+const MJESECI = ["siječanj", "veljača", "ožujak", "travanj", "svibanj", "lipanj", "srpanj", "kolovoz", "rujan", "listopad", "studeni", "prosinac"];
+const MJESECI_GENITIV = ["siječnja", "veljače", "ožujka", "travnja", "svibnja", "lipnja", "srpnja", "kolovoza", "rujna", "listopada", "studenoga", "prosinca"];
+const DANI = ["Pon", "Uto", "Sri", "Čet", "Pet", "Sub", "Ned"];
+const dvije = (n: number) => String(n).padStart(2, "0");
+const uIso = (g: number, m: number, d: number) => `${g}-${dvije(m + 1)}-${dvije(d)}`;
+function danasIso(): string {
+  const d = new Date();
+  return uIso(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
+ * Kalendar na hrvatskom (tjedan od ponedjeljka). Zamjenjuje izbornik
+ * preglednika, koji nazive mjeseci i dana piše jezikom preglednika. Mjesec i
+ * godina biraju se i iz padajućeg izbornika — za datum rođenja bi listanje
+ * mjesec po mjesec trajalo predugo.
+ */
+export function KalendarHr({
+  vrijednost,
+  min,
+  max,
+  odaberi,
+  zatvori,
+}: {
+  vrijednost: string;
+  min?: string;
+  max?: string;
+  odaberi: (iso: string) => void;
+  zatvori: () => void;
+}) {
+  const danas = danasIso();
+  const polaziste = vrijednost || (min && danas < min ? min : max && danas > max ? max : danas);
+  const [godina, setGodina] = useState(Number(polaziste.slice(0, 4)));
+  const [mjesec, setMjesec] = useState(Number(polaziste.slice(5, 7)) - 1);
+  const okvir = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    okvir.current?.focus();
+  }, []);
+
+  const tekucaGodina = new Date().getFullYear();
+  const godinaOd = Math.min(min ? Number(min.slice(0, 4)) : tekucaGodina - 20, godina);
+  const godinaDo = Math.max(max ? Number(max.slice(0, 4)) : tekucaGodina + 3, godina);
+  const godine = Array.from({ length: godinaDo - godinaOd + 1 }, (_, i) => godinaOd + i);
+
+  const pomak = (new Date(godina, mjesec, 1).getDay() + 6) % 7; // ponedjeljak = 0
+  const brojDana = new Date(godina, mjesec + 1, 0).getDate();
+  const celije: (number | null)[] = [...Array<null>(pomak).fill(null), ...Array.from({ length: brojDana }, (_, i) => i + 1)];
+
+  const zadnjiPrethodnog = new Date(godina, mjesec, 0);
+  const mozeNazad = !min || uIso(zadnjiPrethodnog.getFullYear(), zadnjiPrethodnog.getMonth(), zadnjiPrethodnog.getDate()) >= min;
+  const prviSljedeceg = new Date(godina, mjesec + 1, 1);
+  const mozeNaprijed = !max || uIso(prviSljedeceg.getFullYear(), prviSljedeceg.getMonth(), 1) <= max;
+
+  function pomakni(za: number) {
+    const d = new Date(godina, mjesec + za, 1);
+    setGodina(d.getFullYear());
+    setMjesec(d.getMonth());
+  }
+
+  const strelica =
+    "flex h-8 w-8 items-center justify-center rounded-full text-lg text-brand-700 transition hover:bg-brand-50 disabled:opacity-30 disabled:hover:bg-transparent";
+  const izbor = "rounded-lg border border-ink-200 bg-white px-1.5 py-1 text-sm font-semibold text-brand-900 focus:border-brand-400";
+
+  return (
+    <div
+      ref={okvir}
+      role="dialog"
+      aria-label="Odabir datuma"
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          zatvori();
+        }
+      }}
+      className="absolute left-0 top-full z-50 mt-2 w-72 rounded-2xl bg-white p-3 shadow-soft ring-1 ring-brand-100 focus:outline-none"
+    >
+      <div className="flex items-center justify-between gap-1">
+        <button type="button" onClick={() => pomakni(-1)} disabled={!mozeNazad} aria-label="Prethodni mjesec" className={strelica}>
+          ‹
+        </button>
+        <div className="flex gap-1">
+          <select aria-label="Mjesec" value={mjesec} onChange={(e) => setMjesec(Number(e.target.value))} className={izbor}>
+            {MJESECI.map((m, i) => (
+              <option key={m} value={i}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <select aria-label="Godina" value={godina} onChange={(e) => setGodina(Number(e.target.value))} className={izbor}>
+            {godine.map((g) => (
+              <option key={g} value={g}>
+                {g}.
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="button" onClick={() => pomakni(1)} disabled={!mozeNaprijed} aria-label="Sljedeći mjesec" className={strelica}>
+          ›
+        </button>
+      </div>
+
+      <div className="mt-2 grid grid-cols-7 gap-0.5 text-center">
+        {DANI.map((d) => (
+          <span key={d} className="py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+            {d}
+          </span>
+        ))}
+        {celije.map((dan, i) => {
+          if (dan === null) return <span key={`p${i}`} />;
+          const iso = uIso(godina, mjesec, dan);
+          const nedostupno = (!!min && iso < min) || (!!max && iso > max);
+          const odabrano = iso === vrijednost;
+          const jeDanas = iso === danas;
+          return (
+            <button
+              key={iso}
+              type="button"
+              disabled={nedostupno}
+              onClick={() => odaberi(iso)}
+              aria-label={`${dan}. ${MJESECI_GENITIV[mjesec]} ${godina}.`}
+              aria-pressed={odabrano}
+              className={`h-9 rounded-full text-sm transition ${
+                odabrano
+                  ? "bg-brand-500 font-bold text-white"
+                  : nedostupno
+                    ? "cursor-not-allowed text-ink-300"
+                    : `text-ink-800 hover:bg-brand-50 ${jeDanas ? "font-bold ring-1 ring-brand-300" : ""}`
+              }`}
+            >
+              {dan}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function DatumPolje(props: ZajednickiProps & { min?: string; max?: string }) {
   const { name, min, max, required, className = "input", id } = props;
   const { vrijednost, tekst, setTekst, postavi } = useTekstIVrijednost(props, isoUHr, hrUIso);
   const vidljivo = useRef<HTMLInputElement>(null);
-  const birac = useRef<HTMLInputElement>(null);
+  const omotac = useRef<HTMLDivElement>(null);
+  const [otvoren, setOtvoren] = useState(false);
+
+  // Klik izvan polja i kalendara zatvara kalendar.
+  useEffect(() => {
+    if (!otvoren) return;
+    function klik(e: MouseEvent) {
+      if (!omotac.current?.contains(e.target as Node)) setOtvoren(false);
+    }
+    document.addEventListener("mousedown", klik);
+    return () => document.removeEventListener("mousedown", klik);
+  }, [otvoren]);
 
   function poruka(iso: string | null, t: string): string {
     if (!t.trim()) return required ? "Unesite datum." : "";
@@ -79,18 +229,8 @@ export function DatumPolje(props: ZajednickiProps & { min?: string; max?: string
     postavi(iso && !greska ? iso : "");
   }
 
-  function otvoriKalendar() {
-    const el = birac.current;
-    if (!el) return;
-    try {
-      el.showPicker();
-    } catch {
-      el.focus(); // stariji preglednici bez showPicker()
-    }
-  }
-
   return (
-    <div className="relative">
+    <div ref={omotac} className="relative">
       <input
         ref={vidljivo}
         id={id}
@@ -110,28 +250,30 @@ export function DatumPolje(props: ZajednickiProps & { min?: string; max?: string
       />
       <button
         type="button"
-        onClick={otvoriKalendar}
+        onClick={() => setOtvoren((o) => !o)}
         aria-label="Odaberi datum u kalendaru"
+        aria-expanded={otvoren}
         className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-400 transition hover:text-brand-600"
       >
         {ikonaKalendara}
       </button>
-      {/* Izvorni kalendar preglednika — nevidljiv, služi samo za odabir klikom. */}
-      <input
-        ref={birac}
-        type="date"
-        tabIndex={-1}
-        aria-hidden
-        min={min}
-        max={max}
-        value={vrijednost}
-        onChange={(e) => {
-          setTekst(isoUHr(e.target.value));
-          vidljivo.current?.setCustomValidity("");
-          postavi(e.target.value);
-        }}
-        className="pointer-events-none absolute bottom-0 left-0 h-0 w-full opacity-0"
-      />
+      {otvoren && (
+        <KalendarHr
+          vrijednost={vrijednost}
+          min={min}
+          max={max}
+          zatvori={() => {
+            setOtvoren(false);
+            vidljivo.current?.focus();
+          }}
+          odaberi={(iso) => {
+            setTekst(isoUHr(iso));
+            vidljivo.current?.setCustomValidity("");
+            postavi(iso);
+            setOtvoren(false);
+          }}
+        />
+      )}
       {name && <input type="hidden" name={name} value={vrijednost} />}
     </div>
   );

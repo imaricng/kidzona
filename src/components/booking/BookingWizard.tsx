@@ -82,7 +82,14 @@ export function BookingWizard({
   const [packageId, setPackageId] = useState<string>(pocetniPaket?.id ?? "");
 
   // Korak 3 — djeca, dodaci, tema
-  const [numChildren, setNumChildren] = useState<number>(pocetniBrojDjece ?? 8);
+  const [numChildren, setNumChildren] = useState<number>(pocetniBrojDjece ?? pocetniPaket?.maxChildren ?? 8);
+  // Dok roditelj sam ne promijeni broj djece, prati broj uključen u odabrani paket.
+  // Broj iz poveznice (npr. „ponovi rezervaciju" u portalu) smatra se zadanim od roditelja.
+  const [rucnoDjece, setRucnoDjece] = useState(pocetniBrojDjece !== undefined);
+  function postaviBrojDjece(n: number) {
+    setRucnoDjece(true);
+    setNumChildren(n);
+  }
   const [dodaci, setDodaci] = useState<Record<string, number>>({});
   const [themeId, setThemeId] = useState<string | null>(null);
   // Tema izvan ponude: roditelj je opisuje riječima, a opis ide u napomene upita.
@@ -146,11 +153,12 @@ export function BookingWizard({
     if (paket && roomId && paket.roomId !== null && paket.roomId !== roomId) setPackageId("");
   }, [roomId, paket]);
 
-  // Broj djece: najmanje koliko traži paket, najviše koliko prima igraonica
+  // Broj djece: zadano koliko je uključeno u paket (osim ako ga je roditelj već
+  // sam namjestio), uvijek unutar granica paketa i igraonice.
   useEffect(() => {
     if (!paket) return;
-    setNumChildren((n) => Math.min(maxDjece, Math.max(paket.minChildren, n)));
-  }, [paket, maxDjece]);
+    setNumChildren((n) => Math.min(maxDjece, Math.max(paket.minChildren, rucnoDjece ? n : paket.maxChildren)));
+  }, [paket, maxDjece, rucnoDjece]);
 
   // Okvirna cijena (mjerodavnu računa poslužitelj)
   const izracun = useMemo(() => {
@@ -280,7 +288,7 @@ export function BookingWizard({
               paket={paket}
               maxDjece={maxDjece}
               numChildren={numChildren}
-              setNumChildren={setNumChildren}
+              setNumChildren={postaviBrojDjece}
               addons={katalog.addons}
               dodaci={dodaci}
               setDodaci={setDodaci}
