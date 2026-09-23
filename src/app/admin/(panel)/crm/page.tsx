@@ -6,6 +6,8 @@ import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakRodjendanGodina } from "@/lib/notifications/templates";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { DatumPolje } from "@/components/DatumPolje";
+import { lokalniISO } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.crm };
@@ -47,6 +49,21 @@ async function obrisiObitelj(familyId: string) {
   revalidatePath("/admin/crm");
 }
 
+/** Ručni unos djeteta (npr. blizanci ili dvoje djece na istoj proslavi). */
+async function dodajDijete(familyId: string, formData: FormData) {
+  "use server";
+  await zahtijevajOsoblje();
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const birthDate = String(formData.get("birthDate") ?? "").trim();
+  const allergies = String(formData.get("allergies") ?? "").trim();
+  // Obrazac već traži oba podatka; ovdje su za slučaj da zahtjev stigne mimo njega.
+  if (firstName.length < 2 || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return;
+  await prisma.child.create({
+    data: { familyId, firstName, birthDate: new Date(birthDate), allergies: allergies || null },
+  });
+  revalidatePath("/admin/crm");
+}
+
 /** Pojedino dijete (npr. pogrešno upisano) — obitelj ostaje. */
 async function obrisiDijete(childId: string) {
   "use server";
@@ -57,6 +74,7 @@ async function obrisiDijete(childId: string) {
 
 export default async function CrmPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
+  const danas = lokalniISO(new Date()); // dijete ne može biti rođeno u budućnosti
 
   const obitelji = await prisma.family.findMany({
     include: {
@@ -172,6 +190,30 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                     ))}
                   </div>
                 )}
+
+                <details className="mt-3">
+                  <summary className="w-fit cursor-pointer text-xs font-semibold text-brand-600 hover:underline">
+                    + Dodaj dijete
+                  </summary>
+                  <form action={dodajDijete.bind(null, o.id)} className="mt-2 flex flex-wrap items-end gap-2">
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium text-ink-500">Ime *</span>
+                      <input name="firstName" required minLength={2} placeholder="npr. Lucija" className="input !py-2 w-36" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium text-ink-500">Datum rođenja *</span>
+                      <DatumPolje name="birthDate" required max={danas} className="input !py-2 w-44" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium text-ink-500">Alergije (neobvezno)</span>
+                      <input name="allergies" placeholder="npr. kikiriki" className="input !py-2 w-40" />
+                    </label>
+                    <button type="submit" className="btn-primary !py-2 !text-sm">Dodaj</button>
+                  </form>
+                  <p className="mt-1 text-xs text-ink-400">
+                    Dijete ulazi u bazu rođendana — podsjetnik za sljedeću godinu šalje se samo obiteljima s privolom za marketing.
+                  </p>
+                </details>
 
                 {zadnja && (
                   <p className="mt-2 text-xs text-ink-400">{hr.admin.zadnjaProslava}: {formatDatum(zadnja.date)} ({zadnja.code})</p>
