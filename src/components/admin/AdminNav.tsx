@@ -19,10 +19,10 @@ const STAVKE = [
   { href: "/admin/pos", label: hr.admin.pos, ikona: "🛒" },
 ];
 
-export function AdminNav({ mobilni = false }: { mobilni?: boolean }) {
+export function AdminNav() {
   const pathname = usePathname();
   return (
-    <nav className={mobilni ? "flex gap-1 overflow-x-auto pt-2" : "flex flex-col gap-1"}>
+    <nav className="flex flex-col gap-1">
       {STAVKE.map((s) => {
         const aktivno = pathname === s.href;
         return (

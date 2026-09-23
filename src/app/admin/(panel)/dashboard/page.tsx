@@ -97,7 +97,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-extrabold text-ink-900">{hr.admin.nadzornaPloca}</h1>
-        <div className="flex flex-wrap gap-2">
+        {/* Na mobitelu skriveno — iste su radnje u izborniku, a traka ostaje čista. */}
+        <div className="hidden flex-wrap gap-2 sm:flex">
           <Link href="/admin/rezervacije/nova" className="btn-primary !py-2 !text-sm">✍️ Ručni unos</Link>
           <Link href="/admin/poruke" className="btn-secondary !py-2 !text-sm" title="Pregled svega što je poslano kupcima i osoblju">
             📨 Poslane poruke · danas {porukaDanas}

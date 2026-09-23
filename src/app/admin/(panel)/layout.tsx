@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSession, odjava } from "@/lib/auth";
 import { hr } from "@/i18n/hr";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { MobilniIzbornik } from "@/components/admin/MobilniIzbornik";
 import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
@@ -40,17 +41,19 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         </aside>
 
         <div className="min-w-0 flex-1">
-          {/* Mobilna nav traka */}
+          {/* Mobilna traka: izbornik lijevo, logo na sredini, odjava desno */}
           <div className="sticky top-0 z-30 flex items-center justify-between border-b border-black/5 bg-white px-4 py-3 md:hidden">
-            <Link href="/admin/dashboard" className="font-display font-extrabold text-brand-600"><Logo size="sm" /></Link>
+            <MobilniIzbornik />
+            <Link
+              href="/admin/dashboard"
+              aria-label={hr.admin.nadzornaPloca}
+              className="absolute left-1/2 -translate-x-1/2 font-display font-extrabold text-brand-600"
+            >
+              <Logo size="sm" />
+            </Link>
             <form action={odjavaAction}>
               <button type="submit" className="text-sm text-ink-500">{hr.admin.odjava}</button>
             </form>
-          </div>
-          <div className="md:hidden">
-            <div className="border-b border-black/5 bg-white px-2 pb-2">
-              <AdminNav mobilni />
-            </div>
           </div>
 
           <main className="p-4 sm:p-6 lg:p-8">{children}</main>
