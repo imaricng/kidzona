@@ -64,6 +64,9 @@ export const env = {
   emailFrom: str(process.env.EMAIL_FROM, "info@kidzona.hr"),
   // Primatelj obavijesti osoblju o novim rezervacijama.
   staffEmail: str(process.env.STAFF_EMAIL, "kidzonang@gmail.com"),
+  // Poruka osoblju s popisom za pripremu nakon potvrde rezervacije.
+  // Isključena: podaci su u administraciji i u kalendaru.
+  emailPriprema: bool(process.env.EMAIL_PRIPREMA, false),
   // Adresa na koju stižu odgovori kupaca na automatske poruke.
   emailReplyTo: str(process.env.EMAIL_REPLY_TO, "kidzonang@gmail.com"),
   resendApiKey: str(process.env.RESEND_API_KEY),

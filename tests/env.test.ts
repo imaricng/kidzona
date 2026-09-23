@@ -25,6 +25,13 @@ describe("env", () => {
     expect(env.fiscalBusinessSpace).toBe("POSL1");
   });
 
+  it("poruka osoblju o pripremi zadano je isključena", async () => {
+    vi.stubEnv("EMAIL_PRIPREMA", "");
+    expect((await ucitajEnv()).emailPriprema).toBe(false);
+    vi.stubEnv("EMAIL_PRIPREMA", "true");
+    expect((await ucitajEnv()).emailPriprema).toBe(true);
+  });
+
   it("postavljene vrijednosti imaju prednost", async () => {
     vi.stubEnv("STAFF_EMAIL", "osoblje@primjer.hr");
     vi.stubEnv("DEPOSIT_PERCENT", "20");

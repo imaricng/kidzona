@@ -246,9 +246,14 @@ async function posaljiPotvrdu(r: RezervacijaSPovezanim, kupcu: boolean): Promise
     const p = predlozakPotvrde(podaci);
     await posaljiIZabiljezi({ tip: "potvrda", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
   }
-  const dodaciOpis = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
-  const o = predlozakOsoblje(podaci, dodaciOpis);
-  await posaljiIZabiljezi({ tip: "osoblje", kanal: "email", primatelj: env.staffEmail, naslov: o.naslov, tijelo: o.tijelo, reservationId: r.id });
+  // Poruka osoblju s popisom za pripremu („[OSOBLJE] Priprema proslave").
+  // Isključena je: isti podaci stoje u administraciji i u kalendaru, pa je u
+  // pretincu bila samo šum. Uključuje se s EMAIL_PRIPREMA="true".
+  if (env.emailPriprema) {
+    const dodaciOpis = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
+    const o = predlozakOsoblje(podaci, dodaciOpis);
+    await posaljiIZabiljezi({ tip: "osoblje", kanal: "email", primatelj: env.staffEmail, naslov: o.naslov, tijelo: o.tijelo, reservationId: r.id });
+  }
   await sinkronizirajKalendar(r);
 }
 
