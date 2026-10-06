@@ -14,8 +14,9 @@ import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { RezervacijaForma } from "@/components/admin/RezervacijaForma";
 import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
-import { otkaziRezervaciju, izdajRacun } from "@/lib/reservations";
+import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu } from "@/lib/reservations";
 import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
+import { pozivnicaUrl, whatsappBroj, whatsappPoruka } from "@/lib/pozivnica";
 import { odbijUpitAkcija, odobriUpitAkcija, spremiIzmjene } from "../akcije";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,19 @@ async function posaljiZahvalu(code: string) {
   revalidatePath(`/admin/rezervacije/${code}`);
 }
 
+/** Ručno (ponovno) slanje digitalne pozivnice roditelju e-poštom. */
+async function posaljiPozivnicuAkcija(code: string) {
+  "use server";
+  await zahtijevajOsoblje();
+  const r = await prisma.reservation.findUniqueOrThrow({
+    where: { code },
+    include: { room: true, secondRoom: true, package: true, theme: true, addOns: { include: { addOn: true } } },
+  });
+  const ishod = await posaljiPozivnicu(r, true);
+  revalidatePath(`/admin/rezervacije/${code}`);
+  if (!ishod.ok) redirect(`/admin/rezervacije/${code}?greska=${encodeURIComponent(ishod.poruka)}`);
+}
+
 async function otkaziUzPovrat(code: string) {
   "use server";
   await zahtijevajOsoblje();
@@ -125,6 +139,12 @@ export default async function RezervacijaDetalj({
   const potvrdjena = STATUSI_ZAUZIMAJU_TERMIN.includes(r.status);
   const mozeUredivati = r.status !== "otkazano" && r.status !== "odbijeno";
   const nedostaje = nedostajuciPodaci(r);
+  // Pozivnice: poveznica, WhatsApp broj roditelja i postoji li predložak za temu/igraonicu.
+  const vezaPozivnice = pozivnicaUrl(env.appUrl, r.qrToken);
+  const waBroj = whatsappBroj(r.phone);
+  const imaPredlozak = r.themeId
+    ? (await prisma.pozivnicaPredlozak.count({ where: { themeId: r.themeId, roomId: r.roomId } })) > 0
+    : false;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -236,6 +256,70 @@ export default async function RezervacijaDetalj({
         </section>
       </div>
 
+      {/* Pozivnice */}
+      {(r.pozivniceDigitalne || r.pozivniceFizicke) && (
+        <section className="card mt-6">
+          <h2 className="font-semibold text-ink-800">💌 Pozivnice</h2>
+          <p className="mt-1 text-sm text-ink-500">
+            {[r.pozivniceDigitalne ? "digitalne" : null, r.pozivniceFizicke ? "tiskane" : null].filter(Boolean).join(" + ")} — zatražio roditelj pri rezervaciji
+          </p>
+
+          {r.pozivniceFizicke && (
+            <p className="mt-3 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-brand-900">
+              🖐️ Tiskane pozivnice: dogovorite s roditeljem termin preuzimanja u igraonici.
+            </p>
+          )}
+
+          {r.pozivniceDigitalne && !potvrdjena && (
+            <p className="mt-3 rounded-2xl bg-ink-50 px-4 py-3 text-sm text-ink-600">
+              Digitalna pozivnica šalje se automatski kad odobrite rezervaciju (do tada termin nije siguran).
+            </p>
+          )}
+
+          {r.pozivniceDigitalne && potvrdjena && (
+            <>
+              <p className="mt-3 text-sm text-ink-600">
+                {r.pozivnicaPoslanaAt
+                  ? `✅ Poslana roditelju ${formatDatumVrijeme(r.pozivnicaPoslanaAt)}.`
+                  : "Pozivnica još nije poslana."}
+              </p>
+              {!imaPredlozak && (
+                <p className="mt-2 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {r.theme
+                    ? `Za temu „${r.theme.name}" nema predloška za ${r.room.name} — pozivnica se prikazuje bez slike. Predložak postavite u `
+                    : "Rezervacija nema odabranu temu, pa pozivnica ide bez slike. Teme i predlošci su u "}
+                  <Link href="/admin/paketi" className="font-semibold underline">Paketi, dodaci i teme</Link>.
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a href={vezaPozivnice} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                  👀 Otvori pozivnicu
+                </a>
+                {waBroj && (
+                  <a
+                    href={`https://wa.me/${waBroj}?text=${encodeURIComponent(whatsappPoruka(vezaPozivnice, r.childName))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary"
+                  >
+                    💬 Pošalji WhatsAppom
+                  </a>
+                )}
+                {r.email && (
+                  <Akcija
+                    action={posaljiPozivnicuAkcija.bind(null, code)}
+                    label={r.pozivnicaPoslanaAt ? "📨 Pošalji ponovno e-poštom" : "📨 Pošalji e-poštom"}
+                  />
+                )}
+              </div>
+              <p className="mt-2 text-xs text-ink-400">
+                Poveznica: <span className="break-all">{vezaPozivnice}</span>
+              </p>
+            </>
+          )}
+        </section>
+      )}
+
       {/* Radnje za potvrđenu rezervaciju */}
       {potvrdjena && (
         <section className="card mt-6">
@@ -294,6 +378,8 @@ export default async function RezervacijaDetalj({
                 roomId: r.roomId,
                 packageId: r.packageId,
                 themeId: r.themeId ?? "",
+                pozivniceDigitalne: r.pozivniceDigitalne ? "on" : "",
+                pozivniceFizicke: r.pozivniceFizicke ? "on" : "",
                 numChildren: String(r.numChildren),
                 numAdults: String(r.numAdults),
                 parentName: r.parentName,

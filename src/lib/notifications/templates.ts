@@ -197,3 +197,31 @@ export function predlozakRodjendanGodina(
     ].join("\n"),
   };
 }
+
+/**
+ * Digitalna pozivnica roditelju. Šalje se samo kad administrator potvrdi
+ * rezervaciju: pozivnica nosi datum i termin koji tada više ne mijenjamo.
+ */
+export function predlozakPozivnice(
+  r: RezervacijaPodaci,
+  poveznica: string,
+  tekstPoziva: string,
+): { naslov: string; tijelo: string } {
+  return {
+    naslov: `Pozivnica za rođendan ${r.childName ? `— ${r.childName} ` : ""}je gotova! 🎉`,
+    tijelo: [
+      pozdrav(r.parentName),
+      ``,
+      `pozivnica za proslavu je spremna. Otvorite je i pošaljite gostima:`,
+      poveznica,
+      ``,
+      `Na pozivnici stoji:`,
+      `„${tekstPoziva}”`,
+      ``,
+      `Poveznicu možete slobodno poslati WhatsAppom, e-poštom ili je ispisati.`,
+      `Ako želite promjenu teksta ili teme, javite nam se na ${KONTAKT}.`,
+      ``,
+      `Vidimo se ${formatDatumDugi(r.date)} u ${r.slotStart}! — ${hr.brand.naziv}`,
+    ].join("\n"),
+  };
+}

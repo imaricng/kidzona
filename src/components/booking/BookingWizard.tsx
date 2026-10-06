@@ -89,6 +89,9 @@ export function BookingWizard({
   // Tema izvan ponude: roditelj je opisuje riječima, a opis ide u napomene upita.
   const [vlastitaTema, setVlastitaTema] = useState(false);
   const [temaZelja, setTemaZelja] = useState("");
+  // Pozivnice (korak 3): digitalne se šalju nakon potvrde, tiskane se preuzimaju u igraonici.
+  const [pozivniceDigitalne, setPozivniceDigitalne] = useState(false);
+  const [pozivniceFizicke, setPozivniceFizicke] = useState(false);
 
   // Korak 4 — podaci (unaprijed popunjeno za prijavljenog roditelja)
   const [parentName, setParentName] = useState(pocetniKontakt?.parentName ?? "");
@@ -212,6 +215,8 @@ export function BookingWizard({
           packageId,
           themeId,
           temaZelja: vlastitaTema ? temaZelja.trim() : "",
+          pozivniceDigitalne,
+          pozivniceFizicke,
           numChildren,
           dodaci: Object.entries(dodaci).filter(([, q]) => q > 0).map(([id, quantity]) => ({ id, quantity })),
           parentName,
@@ -291,6 +296,10 @@ export function BookingWizard({
               setThemeId={setThemeId}
               vlastitaTema={vlastitaTema}
               setVlastitaTema={setVlastitaTema}
+              pozivniceDigitalne={pozivniceDigitalne}
+              setPozivniceDigitalne={setPozivniceDigitalne}
+              pozivniceFizicke={pozivniceFizicke}
+              setPozivniceFizicke={setPozivniceFizicke}
               temaZelja={temaZelja}
               setTemaZelja={setTemaZelja}
             />
@@ -533,12 +542,15 @@ function KorakSoba({
 function KorakDjeca({
   paket, maxDjece, numChildren, setNumChildren, addons, dodaci, setDodaci, themes, themeId, setThemeId,
   vlastitaTema, setVlastitaTema, temaZelja, setTemaZelja,
+  pozivniceDigitalne, setPozivniceDigitalne, pozivniceFizicke, setPozivniceFizicke,
 }: {
   paket: Paket; maxDjece: number; numChildren: number; setNumChildren: (n: number) => void;
   addons: Katalog["addons"]; dodaci: Record<string, number>; setDodaci: (d: Record<string, number>) => void;
   themes: Katalog["themes"]; themeId: string | null; setThemeId: (id: string | null) => void;
   vlastitaTema: boolean; setVlastitaTema: (v: boolean) => void;
   temaZelja: string; setTemaZelja: (v: string) => void;
+  pozivniceDigitalne: boolean; setPozivniceDigitalne: (v: boolean) => void;
+  pozivniceFizicke: boolean; setPozivniceFizicke: (v: boolean) => void;
 }) {
   const dodatnaDjeca = Math.max(0, numChildren - paket.maxChildren);
   function toggle(id: string) {
@@ -646,6 +658,49 @@ function KorakDjeca({
             />
             <p className="mt-1 text-xs text-ink-500">{hr.booking.vlastitaTemaNapomena}</p>
           </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3 className="font-semibold text-ink-800">{hr.booking.pozivniceNaslov}</h3>
+        <p className="mt-1 text-sm text-ink-500">{hr.booking.pozivniceOpis}</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label
+            className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 transition ${
+              pozivniceDigitalne ? "border-brand-500 bg-brand-50" : "border-ink-200 hover:border-brand-300"
+            }`}
+          >
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-brand-500"
+              checked={pozivniceDigitalne}
+              onChange={(e) => setPozivniceDigitalne(e.target.checked)}
+            />
+            <span className="flex-1">
+              <span className="block font-medium text-ink-800">📱 {hr.booking.pozivniceDigitalne}</span>
+              <span className="text-sm text-ink-500">{hr.booking.pozivniceDigitalneOpis}</span>
+            </span>
+          </label>
+          <label
+            className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 transition ${
+              pozivniceFizicke ? "border-brand-500 bg-brand-50" : "border-ink-200 hover:border-brand-300"
+            }`}
+          >
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-brand-500"
+              checked={pozivniceFizicke}
+              onChange={(e) => setPozivniceFizicke(e.target.checked)}
+            />
+            <span className="flex-1">
+              <span className="block font-medium text-ink-800">✉️ {hr.booking.pozivniceFizicke}</span>
+              <span className="text-sm text-ink-500">{hr.booking.pozivniceFizickeOpis}</span>
+            </span>
+          </label>
+        </div>
+        {/* Pozivnica se crta po temi, pa bez odabrane teme podsjećamo da je izabere. */}
+        {(pozivniceDigitalne || pozivniceFizicke) && !themeId && !vlastitaTema && (
+          <p className="mt-3 text-sm font-medium text-berry-600">{hr.booking.pozivniceTrebaTema}</p>
         )}
       </div>
     </div>

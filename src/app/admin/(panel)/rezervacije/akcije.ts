@@ -37,6 +37,8 @@ function uPodatke(d: AdminRezervacijaInput): PodaciRezervacije {
     roomId: d.roomId,
     packageId: d.packageId,
     themeId: d.themeId,
+    pozivniceDigitalne: d.pozivniceDigitalne,
+    pozivniceFizicke: d.pozivniceFizicke,
     numChildren: d.numChildren,
     numAdults: d.numAdults,
     parentName: d.parentName,

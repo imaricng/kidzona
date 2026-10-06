@@ -103,6 +103,7 @@ model Room {
   active       Boolean  @default(true)
 
   packages           Package[]
+  predlosci          PozivnicaPredlozak[]
   reservations       Reservation[] @relation("PrimaryRoom")
   secondaryFor       Reservation[] @relation("SecondRoom")
 }
@@ -174,6 +175,28 @@ model Theme {
   active      Boolean @default(true)
 
   reservations Reservation[]
+  predlosci    PozivnicaPredlozak[]
+}
+
+/**
+ * Predlozak pozivnice: slika koju administrator ucita za jednu temu i jednu
+ * igraonicu. Preko nje se ispisuju ime slavljenika, datum, vrijeme i broj za
+ * potvrdu dolaska. Slika se cuva u bazi (nekoliko stotina kB), pa nije
+ * potrebna zasebna pohrana datoteka.
+ */
+model PozivnicaPredlozak {
+  id        String   @id @default(cuid())
+  themeId   String
+  theme     Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  mime      String
+  podaci    Bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([themeId, roomId])
+  @@index([roomId])
 }
 
 // --- Rezervacije ------------------------------------------------------
@@ -196,6 +219,12 @@ model Reservation {
 
   themeId String?
   theme   Theme?  @relation(fields: [themeId], references: [id])
+
+  // Pozivnice: digitalne se salju roditelju kad administrator potvrdi rezervaciju,
+  // fizicke se preuzimaju u igraonici po dogovoru.
+  pozivniceDigitalne Boolean  @default(false)
+  pozivniceFizicke   Boolean  @default(false)
+  pozivnicaPoslanaAt DateTime?
 
   numChildren Int
   numAdults   Int @default(0) // broj odraslih gostiju (kapacitet/hrana)

@@ -21,6 +21,8 @@ export default async function RucniUnosPage() {
     roomId: sobe[0]?.id ?? "",
     packageId: "",
     themeId: "",
+    pozivniceDigitalne: "",
+    pozivniceFizicke: "",
     numChildren: "10",
     numAdults: "2",
     parentName: "",

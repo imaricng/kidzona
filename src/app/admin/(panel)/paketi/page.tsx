@@ -1,8 +1,10 @@
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
-import { formatEur } from "@/lib/format";
+import { formatDatum, formatEur } from "@/lib/format";
 import { jedinstvenSlug } from "@/lib/slug";
+import { predlozakUrl, provjeriPredlozak } from "@/lib/pozivnica";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
@@ -182,14 +184,49 @@ async function obrisiTemu(formData: FormData) {
   revalidatePath("/admin/paketi");
 }
 
+// --- Server actions: predlošci pozivnica ------------------------------
+/** Učitava sliku predloška pozivnice za temu i igraonicu (jedna slika po paru). */
+async function postaviPredlozak(formData: FormData) {
+  "use server";
+  const themeId = String(formData.get("themeId"));
+  const roomId = String(formData.get("roomId"));
+  const slika = formData.get("slika");
+  if (!(slika instanceof File)) redirect(sGreskom("Odaberite sliku predloška."));
+  const greska = provjeriPredlozak(slika.type, slika.size);
+  if (greska) redirect(sGreskom(greska));
+  const podaci = Buffer.from(await slika.arrayBuffer());
+  await prisma.pozivnicaPredlozak.upsert({
+    where: { themeId_roomId: { themeId, roomId } },
+    update: { mime: slika.type, podaci },
+    create: { themeId, roomId, mime: slika.type, podaci },
+  });
+  revalidatePath("/admin/paketi");
+}
+
+async function obrisiPredlozak(formData: FormData) {
+  "use server";
+  await prisma.pozivnicaPredlozak.deleteMany({
+    where: { themeId: String(formData.get("themeId")), roomId: String(formData.get("roomId")) },
+  });
+  revalidatePath("/admin/paketi");
+}
+
+/** Vraća se na stranicu s porukom o grešci (server action nema vlastito stanje). */
+function sGreskom(poruka: string): string {
+  return `/admin/paketi?pozivnicaGreska=${encodeURIComponent(poruka)}`;
+}
+
 // --- Stranica ---------------------------------------------------------
-export default async function AdminPaketiPage() {
-  const [paketi, dodaci, teme, sobe] = await Promise.all([
+export default async function AdminPaketiPage({ searchParams }: { searchParams: Promise<{ pozivnicaGreska?: string }> }) {
+  const { pozivnicaGreska } = await searchParams;
+  const [paketi, dodaci, teme, sobe, predlosci] = await Promise.all([
     prisma.package.findMany({ orderBy: [{ active: "desc" }, { sortOrder: "asc" }] }),
     prisma.addOn.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.theme.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.room.findMany({ orderBy: [{ active: "desc" }, { sortOrder: "asc" }] }),
+    prisma.pozivnicaPredlozak.findMany({ select: { themeId: true, roomId: true, updatedAt: true } }),
   ]);
+  const sobeZaPredloske = sobe.filter((s) => s.active);
   const nazivSobe = (id: string | null) => sobe.find((s) => s.id === id)?.name ?? "Sve igraonice";
 
   return (
@@ -308,9 +345,13 @@ export default async function AdminPaketiPage() {
         Teme roditelji biraju pri rezervaciji. Neaktivna tema nestaje s ponude, a postojeće rezervacije
         zadržavaju svoju. Tema vezana uz rezervaciju ne može se obrisati — bit će samo deaktivirana.
       </p>
+      {pozivnicaGreska && (
+        <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 ring-1 ring-red-200">{pozivnicaGreska}</p>
+      )}
       <div className="mt-3 space-y-2">
         {teme.map((t) => (
-          <form key={t.id} action={azurirajTemu} className={`card flex flex-wrap items-end gap-3 ${t.active ? "" : "opacity-60"}`}>
+          <div key={t.id} className={`card ${t.active ? "" : "opacity-60"}`}>
+          <form action={azurirajTemu} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="id" value={t.id} />
             <Polje label="Emotikon"><input name="emoji" defaultValue={t.emoji} className="input !py-2 w-16 text-center" /></Polje>
             <Polje label="Naziv"><input name="name" defaultValue={t.name} className="input !py-2" /></Polje>
@@ -321,6 +362,8 @@ export default async function AdminPaketiPage() {
             <button type="submit" className="btn-primary !py-2 !text-sm">{hr.zajednicko.spremi}</button>
             <ConfirmSubmit poruka={`Obrisati temu „${t.name}"?`} className="text-sm text-ink-400 hover:text-red-600 pb-2">🗑️</ConfirmSubmit>
           </form>
+          <PredlosciTeme tema={t} sobe={sobeZaPredloske} predlosci={predlosci} />
+          </div>
         ))}
       </div>
 
@@ -344,6 +387,79 @@ function OdabirSobe({ sobe, defaultValue }: { sobe: { id: string; name: string; 
         <option key={s.id} value={s.id}>{s.name}{s.active ? "" : " (neaktivna)"}</option>
       ))}
     </select>
+  );
+}
+
+/**
+ * Predlošci pozivnica za jednu temu — po jedna slika za svaku igraonicu
+ * (Kids Play i Kids Challenge). Tekst pozivnice (ime slavljenika, datum,
+ * termin i broj za potvrdu dolaska) ispisuje se preko slike, pa predložak
+ * vrijedi za sve proslave te teme.
+ */
+function PredlosciTeme({
+  tema,
+  sobe,
+  predlosci,
+}: {
+  tema: { id: string; name: string };
+  sobe: { id: string; name: string }[];
+  predlosci: { themeId: string; roomId: string; updatedAt: Date }[];
+}) {
+  return (
+    <div className="mt-4 border-t border-ink-100 pt-3">
+      <p className="text-xs font-medium text-ink-500">
+        Predlošci pozivnica <span className="font-normal text-ink-400">— po jedna slika za svaku igraonicu (PNG, JPG ili WebP, do 4 MB)</span>
+      </p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        {sobe.map((s) => {
+          const p = predlosci.find((x) => x.themeId === tema.id && x.roomId === s.id);
+          return (
+            <div key={s.id} className="rounded-2xl bg-ink-50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-ink-700">{s.name}</span>
+                {p ? (
+                  <span className="chip bg-mint-500/15 text-mint-600">predložak postavljen</span>
+                ) : (
+                  <span className="chip bg-sun-100 text-brand-900">nema predloška</span>
+                )}
+              </div>
+              {p && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`${predlozakUrl(tema.id, s.id)}?v=${p.updatedAt.getTime()}`}
+                  alt={`Predložak pozivnice — ${tema.name}, ${s.name}`}
+                  className="mt-2 h-28 w-full rounded-xl bg-white object-contain"
+                />
+              )}
+              <form action={postaviPredlozak} className="mt-2 space-y-2">
+                <input type="hidden" name="themeId" value={tema.id} />
+                <input type="hidden" name="roomId" value={s.id} />
+                <input
+                  type="file"
+                  name="slika"
+                  accept="image/png,image/jpeg,image/webp"
+                  required
+                  className="block w-full text-xs text-ink-600 file:mr-2 file:rounded-full file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-600"
+                />
+                <div className="flex items-center gap-3">
+                  <button type="submit" className="btn-secondary !py-1 !text-xs">{p ? "Zamijeni" : "Učitaj"}</button>
+                  {p && <span className="text-xs text-ink-400">{formatDatum(p.updatedAt)}</span>}
+                </div>
+              </form>
+              {p && (
+                <form action={obrisiPredlozak} className="mt-2">
+                  <input type="hidden" name="themeId" value={tema.id} />
+                  <input type="hidden" name="roomId" value={s.id} />
+                  <ConfirmSubmit poruka={`Obrisati predložak pozivnice za ${s.name}?`} className="text-xs text-ink-400 hover:text-red-600">
+                    Obriši predložak
+                  </ConfirmSubmit>
+                </form>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

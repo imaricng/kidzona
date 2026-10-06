@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { izracunajCijenu } from "@/lib/pricing";
 import { sastaviNapomene } from "@/lib/napomene";
+import { pozivnicaUrl, tekstPozivnice } from "@/lib/pozivnica";
 import { jeDozvoljenPocetak, krajTermina, lokalniISO, preklapaSe, type Termin } from "@/lib/slots";
 import { upisiProslavuUKalendar, ukloniProslavuIzKalendara } from "@/lib/kalendar";
 import { kodRezervacije, qrToken, brojRacuna } from "@/lib/codes";
@@ -29,6 +30,7 @@ import {
   predlozakOdbijenogUpita,
   predlozakOsoblje,
   predlozakPotvrde,
+  predlozakPozivnice,
   predlozakZaprimljenogUpita,
 } from "@/lib/notifications/templates";
 
@@ -60,6 +62,8 @@ export interface PodaciRezervacije {
   packageId: string;
   themeId?: string | null;
   temaZelja?: string; // tema izvan ponude, opisana riječima
+  pozivniceDigitalne?: boolean;
+  pozivniceFizicke?: boolean;
   numChildren: number;
   numAdults?: number;
   parentName: string;
@@ -254,7 +258,26 @@ async function posaljiPotvrdu(r: RezervacijaSPovezanim, kupcu: boolean): Promise
     const o = predlozakOsoblje(podaci, dodaciOpis);
     await posaljiIZabiljezi({ tip: "osoblje", kanal: "email", primatelj: env.staffEmail, naslov: o.naslov, tijelo: o.tijelo, reservationId: r.id });
   }
+  if (kupcu) await posaljiPozivnicu(r);
   await sinkronizirajKalendar(r);
+}
+
+/**
+ * Digitalna pozivnica roditelju. Šalje se tek kad je rezervacija potvrđena —
+ * prije toga termin nije siguran, a pozivnica nosi datum i vrijeme. Šalje se
+ * jednom (`pozivnicaPoslanaAt`); `ponovno` je za ručno slanje iz administracije.
+ */
+export async function posaljiPozivnicu(r: RezervacijaSPovezanim, ponovno = false): Promise<RezultatRadnje> {
+  if (!r.pozivniceDigitalne) return { ok: false, poruka: "Roditelj nije zatražio digitalne pozivnice." };
+  if (!STATUSI_ZAUZIMAJU_TERMIN.includes(r.status)) return { ok: false, poruka: "Pozivnica se šalje tek nakon potvrde rezervacije." };
+  if (!r.email) return { ok: false, poruka: "Rezervacija nema upisanu adresu e-pošte." };
+  if (r.pozivnicaPoslanaAt && !ponovno) return { ok: false, poruka: "Pozivnica je već poslana." };
+
+  const tekst = tekstPozivnice(r);
+  const p = predlozakPozivnice(podaciZaPoruku(r), pozivnicaUrl(env.appUrl, r.qrToken), tekst.poziv);
+  await posaljiIZabiljezi({ tip: "pozivnica", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
+  await prisma.reservation.update({ where: { id: r.id }, data: { pozivnicaPoslanaAt: new Date() } });
+  return { ok: true };
 }
 
 // --- Upit s weba ------------------------------------------------------
@@ -298,6 +321,8 @@ export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezan
         secondRoomId: input.secondRoomId ?? null,
         packageId: paket.id,
         themeId: input.themeId ?? null,
+        pozivniceDigitalne: input.pozivniceDigitalne ?? false,
+        pozivniceFizicke: input.pozivniceFizicke ?? false,
         numChildren: input.numChildren,
         numAdults: input.numAdults ?? 0,
         familyId,
@@ -409,6 +434,8 @@ export async function unesiRucno(
         roomId: soba.id,
         packageId: paket.id,
         themeId: input.themeId ?? null,
+        pozivniceDigitalne: input.pozivniceDigitalne ?? false,
+        pozivniceFizicke: input.pozivniceFizicke ?? false,
         numChildren: input.numChildren,
         numAdults: input.numAdults ?? 0,
         familyId,
@@ -471,6 +498,8 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
         secondRoomId,
         packageId: paket.id,
         themeId: input.themeId ?? null,
+        pozivniceDigitalne: input.pozivniceDigitalne ?? false,
+        pozivniceFizicke: input.pozivniceFizicke ?? false,
         numChildren: input.numChildren,
         numAdults: input.numAdults ?? 0,
         familyId,

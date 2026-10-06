@@ -18,6 +18,7 @@ const VRSTE: Record<string, string> = {
   osoblje: "Obavijest osoblju",
   podsjetnik: "Podsjetnik dan prije",
   zahvala: "Zahvala i molba za recenziju",
+  pozivnica: "Digitalna pozivnica roditelju",
   "rodjendan-godina": "Rođendanska ponuda za sljedeću godinu",
   kalendar: "Upis u Google kalendar",
 };

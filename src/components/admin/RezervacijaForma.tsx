@@ -151,6 +151,16 @@ function Polja({
               ))}
             </select>
           </Polje>
+          <Polje label="Pozivnice" pomoc="Digitalne se šalju roditelju nakon potvrde; tiskane se preuzimaju po dogovoru.">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="pozivniceDigitalne" defaultChecked={v.pozivniceDigitalne === "on"} className="h-4 w-4 accent-brand-500" /> digitalne
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="pozivniceFizicke" defaultChecked={v.pozivniceFizicke === "on"} className="h-4 w-4 accent-brand-500" /> tiskane
+              </label>
+            </div>
+          </Polje>
           <Polje label="Broj djece *" pomoc={soba ? `Najviše ${soba.maxChildren} u igraonici ${soba.name}` : undefined}>
             <input
               name="numChildren"

@@ -16,6 +16,9 @@ export const bookingSchema = z.object({
   themeId: z.string().min(1).nullable().optional(),
   numChildren: z.number().int().min(1).max(40),
   numAdults: z.number().int().min(0).max(60).default(0),
+  // Pozivnice (korak 3): digitalne se šalju nakon potvrde, tiskane se preuzimaju u igraonici.
+  pozivniceDigitalne: z.boolean().default(false),
+  pozivniceFizicke: z.boolean().default(false),
   dodaci: z
     .array(z.object({ id: z.string().min(1), quantity: z.number().int().min(0).max(50) }))
     .default([]),
@@ -50,6 +53,9 @@ export const adminRezervacijaSchema = z
       .transform((v) => v || null),
     // Tema izvan ponude: opis se zapisuje u napomene rezervacije.
     temaZelja: z.string().trim().max(500, "Opis teme može imati najviše 500 znakova.").default(""),
+    // Pozivnice (kvačice u obrascu; nepostavljeno = nije označeno).
+    pozivniceDigitalne: z.coerce.boolean().default(false),
+    pozivniceFizicke: z.coerce.boolean().default(false),
     numChildren: z.coerce.number().int().min(1, "Unesite broj djece."),
     numAdults: z.coerce.number().int().min(0, "Broj odraslih ne može biti negativan.").default(0),
     // Osobni podaci smiju biti prazni: termin se zauzme odmah, a podaci se
