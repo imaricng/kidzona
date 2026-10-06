@@ -1,12 +1,31 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { tekstPozivnice, predlozakUrl } from "@/lib/pozivnica";
+import { tekstPozivnice } from "@/lib/pozivnica";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { omjerOkvira, rasporedTeksta } from "@/lib/pozivnica-raspored";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 
 export const runtime = "nodejs";
+
+/**
+ * Fontovi za crtanje. Satori nema sistemske fontove, pa ih učitavamo sami
+ * (woff s hrvatskim znakovima) i čuvamo po instanci poslužitelja.
+ */
+let fontovi: { name: string; data: ArrayBuffer; weight: 400 | 800; style: "normal" }[] | null = null;
+
+async function dohvatiFontove() {
+  if (fontovi) return fontovi;
+  const [obicni, podebljani] = await Promise.all([
+    fetch(`${env.appUrl}/fonts/nunito-400.woff`).then((r) => r.arrayBuffer()),
+    fetch(`${env.appUrl}/fonts/nunito-800.woff`).then((r) => r.arrayBuffer()),
+  ]);
+  fontovi = [
+    { name: "Nunito", data: obicni, weight: 400, style: "normal" },
+    { name: "Nunito", data: podebljani, weight: 800, style: "normal" },
+  ];
+  return fontovi;
+}
 
 /** Širina nacrtane pozivnice; visina se računa iz omjera predloška. */
 const SIRINA = 1000;
@@ -29,10 +48,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   }
 
   const tekst = tekstPozivnice(r);
-  const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
+  const [predlozak, fonts] = await Promise.all([predlozakZaProslavu(r.themeId, r.roomId), dohvatiFontove()]);
+  // Sliku predloška učitavamo iz baze i ugrađujemo je u crtež: bez vanjskog
+  // zahtjeva crtanje ne ovisi o tome je li aplikacija dostupna sama sebi.
+  const slika = predlozak
+    ? await prisma.pozivnicaPredlozak.findFirst({
+        where: { themeId: predlozak.themeId, roomId: predlozak.roomId },
+        select: { mime: true, podaci: true },
+      })
+    : null;
+  const osnovniStil = { fontFamily: "Nunito" } as const;
 
   // Bez predloška crtamo jednostavnu pozivnicu u bojama teme.
-  if (!predlozak) {
+  if (!predlozak || !slika) {
     return new ImageResponse(
       (
         <div
@@ -47,6 +75,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
             color: "white",
             padding: 80,
             textAlign: "center",
+            ...osnovniStil,
           }}
         >
           <div style={{ fontSize: 96, fontWeight: 800 }}>{tekst.ime}</div>
@@ -54,7 +83,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
           <div style={{ fontSize: 44, marginTop: 12 }}>{tekst.dodji}</div>
         </div>
       ),
-      { width: SIRINA, height: Math.round(SIRINA * 1.414) },
+      { width: SIRINA, height: Math.round(SIRINA * 1.414), fonts },
     );
   }
 
@@ -84,12 +113,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     (
       <div style={{ display: "flex", position: "relative", width: "100%", height: "100%" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`${env.appUrl}${predlozakUrl(predlozak.themeId, predlozak.roomId)}`}
-          alt=""
-          width={SIRINA}
-          height={visina}
-        />
+        <img src={`data:${slika.mime};base64,${Buffer.from(slika.podaci).toString("base64")}`} alt="" width={SIRINA} height={visina} />
         <div
           style={{
             position: "absolute",
@@ -104,6 +128,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
             textAlign: "center",
             padding: Math.round(okvirSirinaPx * 0.03),
             color: predlozak.stil.svijetliTekst ? "white" : "#1d1840",
+            ...osnovniStil,
             backgroundColor: podloga,
             borderRadius: podloga ? Math.round(okvirSirinaPx * 0.04) : 0,
           }}
@@ -118,6 +143,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
         </div>
       </div>
     ),
-    { width: SIRINA, height: visina },
+    { width: SIRINA, height: visina, fonts },
   );
 }
