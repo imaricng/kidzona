@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
-import { env } from "@/lib/env";
 import { tekstPozivnice } from "@/lib/pozivnica";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { omjerOkvira, rasporedTeksta } from "@/lib/pozivnica-raspored";
@@ -14,12 +13,14 @@ export const runtime = "nodejs";
  */
 let fontovi: { name: string; data: ArrayBuffer; weight: 400 | 800; style: "normal" }[] | null = null;
 
-async function dohvatiFontove() {
+async function dohvatiFontove(osnova: string) {
   if (fontovi) return fontovi;
-  const [obicni, podebljani] = await Promise.all([
-    fetch(`${env.appUrl}/fonts/nunito-400.woff`).then((r) => r.arrayBuffer()),
-    fetch(`${env.appUrl}/fonts/nunito-800.woff`).then((r) => r.arrayBuffer()),
-  ]);
+  const ucitaj = async (naziv: string) => {
+    const o = await fetch(`${osnova}/fonts/${naziv}`);
+    if (!o.ok) throw new Error(`Font ${naziv} nije dostupan (${o.status}).`);
+    return o.arrayBuffer();
+  };
+  const [obicni, podebljani] = await Promise.all([ucitaj("nunito-400.woff"), ucitaj("nunito-800.woff")]);
   fontovi = [
     { name: "Nunito", data: obicni, weight: 400, style: "normal" },
     { name: "Nunito", data: podebljani, weight: 800, style: "normal" },
@@ -37,8 +38,17 @@ const SIRINA = 1000;
  * gost vidi samu pozivnicu umjesto golog linka. Crta se istim pravilima kao
  * stranica: okvir u postocima, veličine slova iz `pozivnica-raspored`.
  */
-export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+export async function GET(req: Request, { params }: { params: Promise<{ token: string }> }) {
+  try {
+    return await nacrtaj(req, await params);
+  } catch (e) {
+    // Crtanje slike je pomoćna mogućnost — stranica pozivnice radi i bez nje.
+    console.error("Crtanje pozivnice nije uspjelo:", e);
+    return new Response(`Pozivnicu nije moguće nacrtati: ${e instanceof Error ? e.message : String(e)}`, { status: 500 });
+  }
+}
+
+async function nacrtaj(req: Request, { token }: { token: string }) {
   const r = await prisma.reservation.findUnique({
     where: { qrToken: token },
     include: { room: true, theme: true },
@@ -48,7 +58,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   }
 
   const tekst = tekstPozivnice(r);
-  const [predlozak, fonts] = await Promise.all([predlozakZaProslavu(r.themeId, r.roomId), dohvatiFontove()]);
+  const osnova = new URL(req.url).origin;
+  const [predlozak, fonts] = await Promise.all([predlozakZaProslavu(r.themeId, r.roomId), dohvatiFontove(osnova)]);
   // Sliku predloška učitavamo iz baze i ugrađujemo je u crtež: bez vanjskog
   // zahtjeva crtanje ne ovisi o tome je li aplikacija dostupna sama sebi.
   const slika = predlozak
