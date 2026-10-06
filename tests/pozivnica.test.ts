@@ -59,7 +59,14 @@ describe("danUAkuzativu", () => {
   it("sklanja sve dane u tjednu", () => {
     const tjedan = ["2030-06-03", "2030-06-04", "2030-06-05", "2030-06-06", "2030-06-07", "2030-06-08", "2030-06-09"];
     const ocekivano = ["u ponedjeljak", "u utorak", "u srijedu", "u četvrtak", "u petak", "u subotu", "u nedjelju"];
-    expect(tjedan.map((d) => danUAkuzativu(new Date(`${d}T00:00:00`)))).toEqual(ocekivano);
+    // Ponoć po zagrebačkom vremenu — onako kako je datum zapisan u bazi.
+    expect(tjedan.map((d) => danUAkuzativu(new Date(`${d}T00:00:00+02:00`)))).toEqual(ocekivano);
+  });
+
+  it("dan čita po zagrebačkoj zoni, ne po zoni poslužitelja", () => {
+    // 2030-06-02 00:00 u Zagrebu = 2030-06-01 22:00 UTC; poslužitelj u UTC-u
+    // bi bez zone rekao "u subotu".
+    expect(danUAkuzativu(new Date("2030-06-01T22:00:00Z"))).toBe("u nedjelju");
   });
 });
 

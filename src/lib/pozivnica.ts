@@ -35,22 +35,27 @@ export interface TekstPozivnice {
   poziv: string;
 }
 
-const DANI_AKUZATIV = [
-  "u nedjelju",
-  "u ponedjeljak",
-  "u utorak",
-  "u srijedu",
-  "u četvrtak",
-  "u petak",
-  "u subotu",
-] as const;
+const AKUZATIV: Record<string, string> = {
+  ponedjeljak: "u ponedjeljak",
+  utorak: "u utorak",
+  srijeda: "u srijedu",
+  četvrtak: "u četvrtak",
+  petak: "u petak",
+  subota: "u subotu",
+  nedjelja: "u nedjelju",
+};
 
-/** Dan u tjednu u akuzativu („u subotu”) — pozivnica se obraća gostu. */
+/**
+ * Dan u tjednu u akuzativu („u subotu”) — pozivnica se obraća gostu.
+ *
+ * Dan se mora čitati po zagrebačkoj zoni: datum proslave zapisan je kao ponoć
+ * po lokalnom vremenu, pa bi ga poslužitelj u UTC-u inače svrstao u prethodni
+ * dan.
+ */
 export function danUAkuzativu(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  // Datum proslave je zapisan kao ponoć po lokalnom vremenu, pa je dan iz
-  // lokalnih metoda ispravan.
-  return DANI_AKUZATIV[d.getDay()];
+  const naziv = new Intl.DateTimeFormat("hr-HR", { weekday: "long", timeZone: "Europe/Zagreb" }).format(d);
+  return AKUZATIV[naziv.toLowerCase()] ?? `u ${naziv.toLowerCase()}`;
 }
 
 /** Ime slavljenika za pozivnicu (bez imena: neutralan oblik). */
