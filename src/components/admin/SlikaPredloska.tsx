@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { nadjiOkvir, ZADANI_OKVIR, type Okvir } from "@/lib/okvir-detekcija";
+import { analizirajStil, nadjiOkvir, ZADANI_OKVIR, ZADANI_STIL, type Okvir, type StilPredloska } from "@/lib/okvir-detekcija";
 
 /**
  * Odabir slike predloška pozivnice koji veliku fotografiju smanji u pregledniku
@@ -24,7 +24,9 @@ function mb(bajtova: number): string {
 }
 
 /** Smanjuje sliku na `NAJVECA_STRANICA` i pretvara je u JPEG; `null` ako ne uspije. */
-async function smanjiSliku(datoteka: File): Promise<{ slika: File; okvir: Okvir | null } | null> {
+async function smanjiSliku(
+  datoteka: File,
+): Promise<{ slika: File; okvir: Okvir | null; stil: StilPredloska; sirina: number; visina: number } | null> {
   if (typeof createImageBitmap !== "function") return null;
   const slika = await createImageBitmap(datoteka);
   const omjer = Math.min(1, NAJVECA_STRANICA / Math.max(slika.width, slika.height));
@@ -42,14 +44,15 @@ async function smanjiSliku(datoteka: File): Promise<{ slika: File; okvir: Okvir 
   ctx.drawImage(slika, 0, 0, sirina, visina);
   slika.close();
 
-  // Bijelo polje za tekst mjerimo iz iste slike koju šaljemo.
+  // Polje za tekst i njegov izgled mjerimo iz iste slike koju šaljemo.
   const piksel = ctx.getImageData(0, 0, sirina, visina);
   const okvir = nadjiOkvir(piksel.data, sirina, visina, 4);
+  const stil = analizirajStil(piksel.data, sirina, visina, okvir ?? ZADANI_OKVIR, 4);
 
   const blob = await new Promise<Blob | null>((r) => platno.toBlob(r, "image/jpeg", 0.85));
   if (!blob) return null;
   const naziv = datoteka.name.replace(/\.[^.]+$/, "") || "predlozak";
-  return { slika: new File([blob], `${naziv}.jpg`, { type: "image/jpeg" }), okvir };
+  return { slika: new File([blob], `${naziv}.jpg`, { type: "image/jpeg" }), okvir, stil, sirina, visina };
 }
 
 export function SlikaPredloska({ name = "slika" }: { name?: string }) {
@@ -57,6 +60,8 @@ export function SlikaPredloska({ name = "slika" }: { name?: string }) {
   const [greska, setGreska] = useState<string | null>(null);
   const [uTijeku, setUTijeku] = useState(false);
   const [okvir, setOkvir] = useState<Okvir | null>(null);
+  const [stil, setStil] = useState<StilPredloska>(ZADANI_STIL);
+  const [dimenzije, setDimenzije] = useState({ sirina: 1000, visina: 1414 });
 
   async function promjena(e: React.ChangeEvent<HTMLInputElement>) {
     const polje = e.currentTarget;
@@ -76,6 +81,8 @@ export function SlikaPredloska({ name = "slika" }: { name?: string }) {
       const obradena = await smanjiSliku(izvorna);
       if (obradena) {
         setOkvir(obradena.okvir);
+        setStil(obradena.stil);
+        setDimenzije({ sirina: obradena.sirina, visina: obradena.visina });
         if (obradena.slika.size < izvorna.size) {
           // Zamjena odabrane datoteke — obrazac zatim šalje smanjenu sliku.
           const prijenos = new DataTransfer();
@@ -111,8 +118,18 @@ export function SlikaPredloska({ name = "slika" }: { name?: string }) {
       <input type="hidden" name="okvirLijevo" value={(okvir ?? ZADANI_OKVIR).lijevo} />
       <input type="hidden" name="okvirSirina" value={(okvir ?? ZADANI_OKVIR).sirina} />
       <input type="hidden" name="okvirVisina" value={(okvir ?? ZADANI_OKVIR).visina} />
+      <input type="hidden" name="tekstSvijetli" value={stil.tekstSvijetli ? "on" : ""} />
+      <input type="hidden" name="podloga" value={stil.podloga} />
+      <input type="hidden" name="podlogaProzirnost" value={stil.podlogaProzirnost} />
+      <input type="hidden" name="slikaSirina" value={dimenzije.sirina} />
+      <input type="hidden" name="slikaVisina" value={dimenzije.visina} />
       {uTijeku && <p className="mt-1 text-xs text-ink-400">Obrađujem sliku…</p>}
-      {okvir && <p className="mt-1 text-xs text-ink-400">Bijelo polje za tekst pronađeno automatski — po želji ga dotjerajte klizačima.</p>}
+      {okvir && (
+        <p className="mt-1 text-xs text-ink-400">
+          Polje za tekst i izgled ({stil.tekstSvijetli ? "svijetli tekst" : "tamni tekst"}
+          {stil.podloga === "nema" ? ", bez podloge" : `, ${stil.podloga} podloga`}) pročitani su iz slike — možete ih dotjerati nakon spremanja.
+        </p>
+      )}
       {poruka && <p className="mt-1 text-xs text-mint-600">{poruka}</p>}
       {greska && <p className="mt-1 text-xs font-medium text-red-600">{greska}</p>}
     </div>

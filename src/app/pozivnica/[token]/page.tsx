@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { env } from "@/lib/env";
 import { hr } from "@/i18n/hr";
 import { formatDatumDugi } from "@/lib/format";
 import { tekstPozivnice, predlozakUrl } from "@/lib/pozivnica";
@@ -10,7 +12,21 @@ import { PodijeliPozivnicu } from "@/components/PodijeliPozivnicu";
 import { PozivnicaSlika } from "@/components/PozivnicaSlika";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Pozivnica na rođendan" };
+
+/**
+ * Pretpregled poveznice (WhatsApp, Facebook, Viber) pokazuje nacrtanu
+ * pozivnicu, pa gost odmah vidi o čemu je riječ.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const slika = `${env.appUrl}/pozivnica/${token}/slika`;
+  return {
+    title: "Pozivnica na rođendan",
+    openGraph: { title: "Pozivnica na rođendan 🎉", images: [slika], type: "website" },
+    twitter: { card: "summary_large_image", images: [slika] },
+    robots: { index: false, follow: false },
+  };
+}
 
 /**
  * Pozivnica za dijeljenje. Poveznica sadrži tajni token rezervacije, pa je
@@ -41,7 +57,9 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
               alt={`Pozivnica — ${r.theme?.name ?? "proslava"}`}
               tekst={tekst}
               okvir={predlozak.okvir}
-              svijetliTekst={predlozak.svijetliTekst}
+              stil={predlozak.stil}
+              slikaSirina={predlozak.slikaSirina}
+              slikaVisina={predlozak.slikaVisina}
             />
           ) : (
             // Bez predloška tekst nosi sam zaglavlje pozivnice.
@@ -77,6 +95,9 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
         <div className="mt-6 flex flex-wrap justify-center gap-3 print:hidden">
           <PrintButton />
           <PodijeliPozivnicu />
+          <a href={`/pozivnica/${token}/slika`} download="pozivnica.png" className="btn-secondary">
+            ⬇️ Spremi kao sliku
+          </a>
         </div>
       </div>
     </div>

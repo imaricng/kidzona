@@ -206,8 +206,16 @@ model PozivnicaPredlozak {
   okvirLijevo  Float @default(10)
   okvirSirina  Float @default(80)
   okvirVisina  Float @default(32)
-  // Svijetli tekst za tamne predloške (bijelo polje → tamni tekst).
-  tekstSvijetli Boolean @default(false)
+  // Izgled teksta na predlošku.
+  tekstSvijetli Boolean @default(false) // bijeli tekst (tamne slike)
+  podloga           String @default("nema") // "nema" | "svijetla" | "tamna"
+  podlogaProzirnost Int    @default(85) // 0-100, koliko podloga prekriva sliku
+  velicinaSkala     Float  @default(1) // ručno povećanje/smanjenje slova
+  font              String @default("display") // "display" | "sans"
+  poravnanje        String @default("sredina") // "gore" | "sredina" | "dolje"
+  // Dimenzije slike — potrebne za uklapanje teksta i crtanje PNG pozivnice.
+  slikaSirina Int @default(1000)
+  slikaVisina Int @default(1414)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -8,6 +8,8 @@ import {
   whatsappBroj,
   whatsappPoruka,
 } from "@/lib/pozivnica";
+import { analizirajStil } from "@/lib/okvir-detekcija";
+import { omjerOkvira, rasporedTeksta } from "@/lib/pozivnica-raspored";
 
 describe("tekstPozivnice", () => {
   // 1. 6. 2030. je subota.
@@ -106,5 +108,77 @@ describe("provjeriPredlozak", () => {
     expect(predlozakUrl(null, "r2")).toBe("/api/pozivnice/predlozak/bez-teme/r2");
     expect(temaIzAdrese("bez-teme")).toBeNull();
     expect(temaIzAdrese("t1")).toBe("t1");
+  });
+});
+
+describe("rasporedTeksta", () => {
+  const retci = {
+    ime: "Mia Horvat",
+    slavi: "slavi 5. rođendan i zove te da se pridružiš.",
+    dodji: "Dođi u subotu, 01. 06. 2030. od 17:00 do 19:00 sati.",
+  };
+
+  it("dugo ime dobiva manja slova od kratkog", () => {
+    const kratko = rasporedTeksta({ ...retci, ime: "Mia" }, 0.5);
+    const dugo = rasporedTeksta({ ...retci, ime: "Ana-Marija Kovačević-Babić" }, 0.5);
+    expect(dugo.ime).toBeLessThan(kratko.ime);
+  });
+
+  it("tekst stane u širinu okvira (uz dopušteno prelamanje)", () => {
+    const r = rasporedTeksta({ ...retci, ime: "Ana-Marija Kovačević-Babić" }, 0.5);
+    // Ime smije u dva retka: procijenjena širina ne smije preći dvostruku širinu okvira.
+    expect("Ana-Marija Kovačević-Babić".length * 0.52 * r.ime).toBeLessThanOrEqual(2 * 94 + 0.01);
+    expect(retci.dodji.length * 0.52 * r.dodji).toBeLessThanOrEqual(3 * 94 + 0.01);
+  });
+
+  it("nizak okvir stisne sve retke", () => {
+    const visok = rasporedTeksta(retci, 0.6);
+    const nizak = rasporedTeksta(retci, 0.15);
+    expect(nizak.ime).toBeLessThan(visok.ime);
+    expect(nizak.dodji).toBeLessThan(visok.dodji);
+  });
+
+  it("skala iz administracije mijenja veličinu, ali ne razbija uklapanje", () => {
+    const zadano = rasporedTeksta(retci, 0.5, 1);
+    const vece = rasporedTeksta(retci, 0.5, 1.4);
+    expect(vece.ime).toBeGreaterThanOrEqual(zadano.ime);
+  });
+
+  it("omjer okvira računa se iz postotaka i dimenzija slike", () => {
+    // Pola širine i pola visine slike 1000x1000 -> kvadratni okvir.
+    expect(omjerOkvira({ sirina: 50, visina: 50 }, 1000, 1000)).toBeCloseTo(1);
+    expect(omjerOkvira({ sirina: 80, visina: 20 }, 1000, 1400)).toBeCloseTo((0.2 * 1400) / (0.8 * 1000));
+  });
+});
+
+describe("analizirajStil", () => {
+  function povrsina(boja: (x: number, y: number) => [number, number, number], n = 40) {
+    const d = new Uint8ClampedArray(n * n * 4);
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        const i = (y * n + x) * 4;
+        const [r, g, b] = boja(x, y);
+        d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255;
+      }
+    }
+    return { d, n };
+  }
+  const cijela = { top: 0, lijevo: 0, sirina: 100, visina: 100 };
+
+  it("mirno bijelo polje daje tamni tekst bez podloge", () => {
+    const { d, n } = povrsina(() => [250, 250, 250]);
+    expect(analizirajStil(d, n, n, cijela, 4)).toEqual({ tekstSvijetli: false, podloga: "nema", podlogaProzirnost: 85 });
+  });
+
+  it("mirna tamna slika daje svijetli tekst bez podloge", () => {
+    const { d, n } = povrsina(() => [25, 25, 40]);
+    expect(analizirajStil(d, n, n, cijela, 4)).toEqual({ tekstSvijetli: true, podloga: "nema", podlogaProzirnost: 85 });
+  });
+
+  it("šarena svijetla površina dobiva svijetlu podlogu", () => {
+    const { d, n } = povrsina((x, y) => ((x + y) % 2 === 0 ? [250, 250, 250] : [120, 60, 200]));
+    const stil = analizirajStil(d, n, n, cijela, 4);
+    expect(stil.podloga).toBe("svijetla");
+    expect(stil.podlogaProzirnost).toBeGreaterThan(50);
   });
 });

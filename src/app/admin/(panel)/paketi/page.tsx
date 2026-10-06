@@ -205,7 +205,15 @@ async function postaviPredlozak(formData: FormData) {
   // zapis brišemo prije upisa novoga.
   await prisma.pozivnicaPredlozak.deleteMany({ where: { themeId, roomId } });
   await prisma.pozivnicaPredlozak.create({
-    data: { themeId, roomId, mime: slika.type, podaci, ...okvirIzForme(formData) },
+    data: {
+      themeId,
+      roomId,
+      mime: slika.type,
+      podaci,
+      slikaSirina: Math.max(1, Math.round(Number(formData.get("slikaSirina")) || 1000)),
+      slikaVisina: Math.max(1, Math.round(Number(formData.get("slikaVisina")) || 1414)),
+      ...okvirIzForme(formData),
+    },
   });
   revalidatePath("/admin/paketi");
 }
@@ -216,12 +224,22 @@ function okvirIzForme(formData: FormData) {
     const n = Number(formData.get(kljuc));
     return Number.isFinite(n) && n > 0 ? Math.min(100, n) : zadano;
   };
+  const izbor = (kljuc: string, dopusteno: string[], zadano: string) => {
+    const v = String(formData.get(kljuc) ?? "");
+    return dopusteno.includes(v) ? v : zadano;
+  };
+  const skala = Number(formData.get("velicinaSkala"));
   return {
     okvirTop: postotak("okvirTop", ZADANI_OKVIR.top),
     okvirLijevo: postotak("okvirLijevo", ZADANI_OKVIR.lijevo),
     okvirSirina: postotak("okvirSirina", ZADANI_OKVIR.sirina),
     okvirVisina: postotak("okvirVisina", ZADANI_OKVIR.visina),
     tekstSvijetli: formData.get("tekstSvijetli") === "on",
+    podloga: izbor("podloga", ["nema", "svijetla", "tamna"], "nema"),
+    podlogaProzirnost: Math.round(postotak("podlogaProzirnost", 85)),
+    velicinaSkala: Number.isFinite(skala) && skala >= 0.5 && skala <= 2 ? skala : 1,
+    font: izbor("font", ["display", "sans"], "display"),
+    poravnanje: izbor("poravnanje", ["gore", "sredina", "dolje"], "sredina"),
   };
 }
 
@@ -257,7 +275,9 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
     prisma.theme.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.room.findMany({ orderBy: [{ active: "desc" }, { sortOrder: "asc" }] }),
     prisma.pozivnicaPredlozak.findMany({
-      select: { themeId: true, roomId: true, updatedAt: true, okvirTop: true, okvirLijevo: true, okvirSirina: true, okvirVisina: true, tekstSvijetli: true },
+      select: { themeId: true, roomId: true, updatedAt: true, okvirTop: true, okvirLijevo: true, okvirSirina: true, okvirVisina: true, tekstSvijetli: true,
+        podloga: true, podlogaProzirnost: true, velicinaSkala: true, font: true, poravnanje: true,
+        slikaSirina: true, slikaVisina: true },
     }),
   ]);
   const sobeZaPredloske = sobe.filter((s) => s.active);
@@ -459,7 +479,9 @@ function PredlosciTeme({
   /** `null` = generički predlošci (proslava bez teme ili tema bez svog predloška). */
   tema: { id: string | null; name: string };
   sobe: { id: string; name: string }[];
-  predlosci: { themeId: string | null; roomId: string; updatedAt: Date; okvirTop: number; okvirLijevo: number; okvirSirina: number; okvirVisina: number; tekstSvijetli: boolean }[];
+  predlosci: { themeId: string | null; roomId: string; updatedAt: Date; okvirTop: number; okvirLijevo: number; okvirSirina: number; okvirVisina: number; tekstSvijetli: boolean;
+    podloga: string; podlogaProzirnost: number; velicinaSkala: number; font: string; poravnanje: string;
+    slikaSirina: number; slikaVisina: number }[];
   naslov?: string;
 }) {
   const vrijednostTeme = tema.id ?? BEZ_TEME;
@@ -487,8 +509,17 @@ function PredlosciTeme({
                   themeId={vrijednostTeme}
                   roomId={s.id}
                   src={`${predlozakUrl(tema.id, s.id)}?v=${p.updatedAt.getTime()}`}
-                  pocetni={{ top: p.okvirTop, lijevo: p.okvirLijevo, sirina: p.okvirSirina, visina: p.okvirVisina }}
-                  pocetniSvijetli={p.tekstSvijetli}
+                  pocetniOkvir={{ top: p.okvirTop, lijevo: p.okvirLijevo, sirina: p.okvirSirina, visina: p.okvirVisina }}
+                  pocetniStil={{
+                    svijetliTekst: p.tekstSvijetli,
+                    podloga: (p.podloga === "svijetla" || p.podloga === "tamna" ? p.podloga : "nema") as "nema" | "svijetla" | "tamna",
+                    podlogaProzirnost: p.podlogaProzirnost,
+                    velicinaSkala: p.velicinaSkala,
+                    font: p.font,
+                    poravnanje: p.poravnanje,
+                  }}
+                  slikaSirina={p.slikaSirina}
+                  slikaVisina={p.slikaVisina}
                 />
               )}
               <form action={postaviPredlozak} className="mt-2 space-y-2">
