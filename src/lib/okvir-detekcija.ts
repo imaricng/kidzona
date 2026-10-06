@@ -97,11 +97,23 @@ export function nadjiOkvir(
   kanali = 4,
 ): Okvir | null {
   if (sirina < 8 || visina < 8) return null;
-  const naj = najveciPravokutnik(maska(podaci, sirina, visina, kanali), sirina, visina);
+  // Prvo svijetlo polje (najčešći slučaj), a ako ga nema — najveća mirna
+  // ploha bilo koje boje (tamni predlošci imaju tamnu plohu za tekst).
+  return (
+    izMaske(maska(podaci, sirina, visina, kanali), sirina, visina) ??
+    // Mirna ploha mora biti polje na slici, a ne cijela ravna pozadina.
+    izMaske(maskaMirnih(podaci, sirina, visina, kanali), sirina, visina, 0.85)
+  );
+}
+
+/** Okvir iz maske, ako je nađeni pravokutnik dovoljno velik za tri retka. */
+function izMaske(m: Uint8Array, sirina: number, visina: number, najveciUdio = 1): Okvir | null {
+  const naj = najveciPravokutnik(m, sirina, visina);
   const udioSirine = naj.w / sirina;
   const udioVisine = naj.h / visina;
-  // Polje mora biti dovoljno veliko da u njega stanu tri retka teksta.
-  if (udioSirine < 0.25 || udioVisine < 0.08 || udioSirine * udioVisine < 0.04) return null;
+  // Previsoko uzak pojas nije upotrebljiv: tri retka u njemu ispadnu sitna.
+  if (udioSirine < 0.25 || udioVisine < 0.12 || udioSirine * udioVisine < 0.05) return null;
+  if (udioSirine * udioVisine > najveciUdio) return null;
 
   const zaokruzi = (v: number) => Math.round(v * 10) / 10;
   return {
@@ -110,6 +122,35 @@ export function nadjiOkvir(
     sirina: zaokruzi(udioSirine * 100),
     visina: zaokruzi(udioVisine * 100),
   };
+}
+
+/**
+ * Maska mirnih ploha: piksel ulazi ako se njegova okolina po svjetlini jedva
+ * mijenja. Tako se pronađe ploha za tekst i kad nije bijela (npr. tamni
+ * pravokutnik na šarenom predlošku), a crteži i uzorci ispadaju.
+ */
+function maskaMirnih(podaci: Uint8ClampedArray | Uint8Array, sirina: number, visina: number, kanali: number): Uint8Array {
+  const svjetlina = new Float32Array(sirina * visina);
+  for (let i = 0; i < sirina * visina; i++) {
+    const p = i * kanali;
+    svjetlina[i] = 0.299 * podaci[p] + 0.587 * podaci[p + 1] + 0.114 * podaci[p + 2];
+  }
+  const m = new Uint8Array(sirina * visina);
+  for (let y = 1; y < visina - 1; y++) {
+    for (let x = 1; x < sirina - 1; x++) {
+      let najmanje = 255;
+      let najvise = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const v = svjetlina[(y + dy) * sirina + (x + dx)];
+          if (v < najmanje) najmanje = v;
+          if (v > najvise) najvise = v;
+        }
+      }
+      m[y * sirina + x] = najvise - najmanje < 14 ? 1 : 0;
+    }
+  }
+  return m;
 }
 
 /**
