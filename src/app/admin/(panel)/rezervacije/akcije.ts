@@ -45,6 +45,8 @@ function uPodatke(d: AdminRezervacijaInput): PodaciRezervacije {
     email: d.email,
     phone: d.phone || undefined,
     childName: d.childName || undefined,
+    childLastName: d.childLastName || null,
+    childTurning: d.childTurning ? Number(d.childTurning) : null,
     childBirthDate: d.childBirthDate || null,
     napomene: d.napomene || undefined,
     dogovorenaCijenaCents: d.dogovorenaCijena ? Math.round(Number(d.dogovorenaCijena.replace(",", ".")) * 100) : null,

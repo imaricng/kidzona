@@ -29,6 +29,8 @@ export default async function RucniUnosPage() {
     email: "",
     phone: "",
     childName: "",
+    childLastName: "",
+    childTurning: "",
     childBirthDate: "",
     napomene: "",
     dogovorenaCijena: "",

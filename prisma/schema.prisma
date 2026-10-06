@@ -201,6 +201,11 @@ model PozivnicaPredlozak {
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   mime      String
   podaci    Bytes
+  // Položaj bijelog okvira za tekst na predlošku, u postocima slike.
+  okvirTop     Float @default(34)
+  okvirLijevo  Float @default(10)
+  okvirSirina  Float @default(80)
+  okvirVisina  Float @default(32)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -245,6 +250,8 @@ model Reservation {
   email           String
   phone           String?
   childName       String?
+  childLastName   String?   // prezime slavljenika (za pozivnicu)
+  childTurning    Int?      // koju godinu puni; prazno = računa se iz datuma rođenja
   childBirthDate  DateTime?
 
   status String @default("upit")

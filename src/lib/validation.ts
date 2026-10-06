@@ -68,6 +68,13 @@ export const adminRezervacijaSchema = z
       .refine((v) => v === "" || z.string().email().safeParse(v).success, "Neispravna adresa e-pošte."),
     phone: z.string().trim().default(""),
     childName: z.string().trim().default(""),
+    // Prezime i broj godina koriste se na pozivnici (oboje neobvezno).
+    childLastName: z.string().trim().default(""),
+    childTurning: z
+      .string()
+      .trim()
+      .default("")
+      .refine((v) => v === "" || /^\d{1,2}$/.test(v), "Broj godina mora biti cijeli broj, npr. 5."),
     childBirthDate: z
       .string()
       .default("")

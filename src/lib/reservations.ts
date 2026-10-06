@@ -70,6 +70,8 @@ export interface PodaciRezervacije {
   email: string; // kod ručnog unosa može biti prazno (dogovor telefonom)
   phone?: string;
   childName?: string;
+  childLastName?: string | null; // prezime slavljenika (pozivnica)
+  childTurning?: number | null; // koju godinu puni (pozivnica)
   childBirthDate?: string | null; // "YYYY-MM-DD"
   napomene?: string;
   dogovorenaCijenaCents?: number | null; // samo za pakete s cijenom po dogovoru (administracija)
@@ -340,6 +342,8 @@ export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezan
         email: input.email,
         phone: input.phone,
         childName: input.childName,
+        childLastName: input.childLastName || null,
+        childTurning: input.childTurning ?? null,
         childBirthDate: input.childBirthDate ? new Date(input.childBirthDate) : null,
         status: "upit",
         ...cijenaRezervacije(paket, izracun),
@@ -453,6 +457,8 @@ export async function unesiRucno(
         email: input.email,
         phone: input.phone || null,
         childName: input.childName || null,
+        childLastName: input.childLastName || null,
+        childTurning: input.childTurning ?? null,
         childBirthDate: input.childBirthDate ? new Date(input.childBirthDate) : null,
         status: input.status,
         ...cijenaRezervacije(paket, izracun, input.dogovorenaCijenaCents),
@@ -517,6 +523,8 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
         email: input.email,
         phone: input.phone || null,
         childName: input.childName || null,
+        childLastName: input.childLastName || null,
+        childTurning: input.childTurning ?? null,
         childBirthDate: input.childBirthDate ? new Date(input.childBirthDate) : null,
         notes: input.napomene || null,
         ...cijenaRezervacije(paket, izracun, input.dogovorenaCijenaCents),

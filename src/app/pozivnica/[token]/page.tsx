@@ -7,6 +7,7 @@ import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { PrintButton } from "@/components/PrintButton";
 import { PodijeliPozivnicu } from "@/components/PodijeliPozivnicu";
+import { PozivnicaSlika } from "@/components/PozivnicaSlika";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Pozivnica na rođendan" };
@@ -35,25 +36,26 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
       <div className="mx-auto max-w-xl px-4">
         <article className="overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-ink-100">
           {predlozak ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <PozivnicaSlika
               src={predlozakUrl(predlozak.themeId, predlozak.roomId)}
               alt={`Pozivnica — ${r.theme?.name ?? "proslava"}`}
-              className="w-full"
+              tekst={tekst}
+              okvir={predlozak.okvir}
             />
           ) : (
+            // Bez predloška tekst nosi sam zaglavlje pozivnice.
             <div className={`bg-gradient-to-br ${gradijent} px-6 py-10 text-center text-white`}>
               <div className="text-5xl" aria-hidden>{r.theme?.emoji ?? "🎉"}</div>
-              <p className="mt-2 font-display text-2xl font-extrabold">Pozivnica na rođendan</p>
-              {r.theme && <p className="mt-1 text-sm opacity-90">{r.theme.name}</p>}
+              <p className="mt-3 font-display text-2xl font-extrabold">{tekst.ime}</p>
+              <p className="mt-2">{tekst.slavi}</p>
+              <p className="mt-1">{tekst.dodji}</p>
             </div>
           )}
 
           <div className="px-6 py-7 text-center">
-            <p className="font-display text-xl font-extrabold leading-relaxed text-ink-900">{tekst.poziv}</p>
-            {tekst.potvrda && <p className="mt-4 text-ink-700">{tekst.potvrda}</p>}
+            {tekst.potvrda && <p className="text-ink-700">{tekst.potvrda}</p>}
 
-            <dl className="mt-6 grid gap-2 rounded-2xl bg-brand-50 px-4 py-4 text-sm text-ink-700">
+            <dl className="mt-5 grid gap-2 rounded-2xl bg-brand-50 px-4 py-4 text-sm text-ink-700">
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-500">Datum</dt>
                 <dd className="font-semibold">{formatDatumDugi(r.date)}</dd>

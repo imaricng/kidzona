@@ -8,10 +8,14 @@
  * Digitalna pozivnica šalje se roditelju samo kad administrator potvrdi
  * rezervaciju (prije potvrde termin još nije siguran).
  */
-import { formatDatumDugi } from "@/lib/format";
+import { dobGodine, formatDatum } from "@/lib/format";
 
 export interface PodaciPozivnice {
   childName: string | null;
+  childLastName?: string | null;
+  /** Koju godinu slavljenik puni; prazno = računa se iz datuma rođenja. */
+  childTurning?: number | null;
+  childBirthDate?: Date | string | null;
   date: Date | string;
   slotStart: string;
   slotEnd: string;
@@ -19,10 +23,34 @@ export interface PodaciPozivnice {
 }
 
 export interface TekstPozivnice {
-  /** Glavni poziv ispisan na pozivnici. */
-  poziv: string;
+  /** 1. redak — ime i prezime slavljenika (istaknuto). */
+  ime: string;
+  /** 2. redak — koji rođendan slavi. */
+  slavi: string;
+  /** 3. redak — kad se proslava održava. */
+  dodji: string;
   /** Molba za potvrdu dolaska; `null` kad broj telefona nije upisan. */
   potvrda: string | null;
+  /** Sva tri retka u jednom nizu (e-pošta, sažeci). */
+  poziv: string;
+}
+
+const DANI_AKUZATIV = [
+  "u nedjelju",
+  "u ponedjeljak",
+  "u utorak",
+  "u srijedu",
+  "u četvrtak",
+  "u petak",
+  "u subotu",
+] as const;
+
+/** Dan u tjednu u akuzativu („u subotu”) — pozivnica se obraća gostu. */
+export function danUAkuzativu(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  // Datum proslave je zapisan kao ponoć po lokalnom vremenu, pa je dan iz
+  // lokalnih metoda ispravan.
+  return DANI_AKUZATIV[d.getDay()];
 }
 
 /** Ime slavljenika za pozivnicu (bez imena: neutralan oblik). */
@@ -31,18 +59,38 @@ function imeSlavljenika(childName: string | null): string {
 }
 
 /**
- * Tekst pozivnice po dogovoru:
- * „Ja „Mia” te pozivam na svoj rođendan koji će se održati dana … od … do … sati.”
+ * Koju godinu slavljenik puni na dan proslave: upisana vrijednost ima prednost,
+ * inače se računa iz datuma rođenja. `null` kad se ne zna.
+ */
+export function godineNaProslavi(p: PodaciPozivnice): number | null {
+  if (p.childTurning && p.childTurning > 0) return p.childTurning;
+  if (!p.childBirthDate) return null;
+  const datum = typeof p.date === "string" ? new Date(p.date) : p.date;
+  const godine = dobGodine(p.childBirthDate, datum);
+  return godine > 0 && godine < 30 ? godine : null;
+}
+
+/**
+ * Tekst pozivnice u tri retka:
+ *   Mia Horvat
+ *   slavi 5. rođendan i zove te da se pridružiš.
+ *   Dođi u subotu, 01. 06. 2030. od 17:00 do 19:00 sati.
  */
 export function tekstPozivnice(p: PodaciPozivnice): TekstPozivnice {
-  const poziv =
-    `Ja „${imeSlavljenika(p.childName)}” te pozivam na svoj rođendan ` +
-    `koji će se održati dana ${formatDatumDugi(p.date)} ` +
-    `od ${p.slotStart} do ${p.slotEnd} sati.`;
+  const prezime = p.childLastName?.trim();
+  const ime = [imeSlavljenika(p.childName), prezime].filter(Boolean).join(" ");
+  const godine = godineNaProslavi(p);
+  const slavi = godine
+    ? `slavi ${godine}. rođendan i zove te da se pridružiš.`
+    : `slavi rođendan i zove te da se pridružiš.`;
+  const dodji = `Dođi ${danUAkuzativu(p.date)}, ${formatDatum(p.date)} od ${p.slotStart} do ${p.slotEnd} sati.`;
   const telefon = p.phone?.trim();
   return {
-    poziv,
+    ime,
+    slavi,
+    dodji,
     potvrda: telefon ? `Dolazak potvrdi na broj ${telefon}.` : null,
+    poziv: `${ime} ${slavi} ${dodji}`,
   };
 }
 

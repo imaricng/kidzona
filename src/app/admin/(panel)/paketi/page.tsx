@@ -9,6 +9,7 @@ import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
 import { SlikaPredloska } from "@/components/admin/SlikaPredloska";
+import { OkvirPredloska } from "@/components/admin/OkvirPredloska";
 import { DatumPolje } from "@/components/DatumPolje";
 
 export const dynamic = "force-dynamic";
@@ -206,6 +207,25 @@ async function postaviPredlozak(formData: FormData) {
   revalidatePath("/admin/paketi");
 }
 
+/** Sprema položaj bijelog okvira (u postocima) za jedan predložak. */
+async function spremiOkvir(formData: FormData) {
+  "use server";
+  const postotak = (kljuc: string, zadano: number) => {
+    const n = Number(formData.get(kljuc));
+    return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : zadano;
+  };
+  await prisma.pozivnicaPredlozak.updateMany({
+    where: { themeId: temaIzAdrese(String(formData.get("themeId") || BEZ_TEME)), roomId: String(formData.get("roomId")) },
+    data: {
+      okvirTop: postotak("okvirTop", 34),
+      okvirLijevo: postotak("okvirLijevo", 10),
+      okvirSirina: postotak("okvirSirina", 80),
+      okvirVisina: postotak("okvirVisina", 32),
+    },
+  });
+  revalidatePath("/admin/paketi");
+}
+
 async function obrisiPredlozak(formData: FormData) {
   "use server";
   await prisma.pozivnicaPredlozak.deleteMany({
@@ -227,7 +247,9 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
     prisma.addOn.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.theme.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.room.findMany({ orderBy: [{ active: "desc" }, { sortOrder: "asc" }] }),
-    prisma.pozivnicaPredlozak.findMany({ select: { themeId: true, roomId: true, updatedAt: true } }),
+    prisma.pozivnicaPredlozak.findMany({
+      select: { themeId: true, roomId: true, updatedAt: true, okvirTop: true, okvirLijevo: true, okvirSirina: true, okvirVisina: true },
+    }),
   ]);
   const sobeZaPredloske = sobe.filter((s) => s.active);
   const nazivSobe = (id: string | null) => sobe.find((s) => s.id === id)?.name ?? "Sve igraonice";
@@ -428,7 +450,7 @@ function PredlosciTeme({
   /** `null` = generički predlošci (proslava bez teme ili tema bez svog predloška). */
   tema: { id: string | null; name: string };
   sobe: { id: string; name: string }[];
-  predlosci: { themeId: string | null; roomId: string; updatedAt: Date }[];
+  predlosci: { themeId: string | null; roomId: string; updatedAt: Date; okvirTop: number; okvirLijevo: number; okvirSirina: number; okvirVisina: number }[];
   naslov?: string;
 }) {
   const vrijednostTeme = tema.id ?? BEZ_TEME;
@@ -451,11 +473,12 @@ function PredlosciTeme({
                 )}
               </div>
               {p && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <OkvirPredloska
+                  akcija={spremiOkvir}
+                  themeId={vrijednostTeme}
+                  roomId={s.id}
                   src={`${predlozakUrl(tema.id, s.id)}?v=${p.updatedAt.getTime()}`}
-                  alt={`Predložak pozivnice — ${tema.name}, ${s.name}`}
-                  className="mt-2 h-28 w-full rounded-xl bg-white object-contain"
+                  pocetni={{ top: p.okvirTop, lijevo: p.okvirLijevo, sirina: p.okvirSirina, visina: p.okvirVisina }}
                 />
               )}
               <form action={postaviPredlozak} className="mt-2 space-y-2">

@@ -204,6 +204,12 @@ function Polja({
           <Polje label="Ime slavljenika">
             <input name="childName" defaultValue={v.childName} className="input !py-2" />
           </Polje>
+          <Polje label="Prezime slavljenika" pomoc="Ispisuje se na pozivnici; prazno = samo ime">
+            <input name="childLastName" defaultValue={v.childLastName} className="input !py-2" />
+          </Polje>
+          <Polje label="Puni godina" pomoc="Prazno = računa se iz datuma rođenja">
+            <input name="childTurning" type="number" min={1} max={20} defaultValue={v.childTurning} className="input !py-2" />
+          </Polje>
           <Polje label="Datum rođenja slavljenika">
             <DatumPolje name="childBirthDate" defaultValue={v.childBirthDate} className="input !py-2" />
           </Polje>

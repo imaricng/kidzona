@@ -389,6 +389,8 @@ export default async function RezervacijaDetalj({
                 email: r.email,
                 phone: r.phone ?? "",
                 childName: r.childName ?? "",
+                childLastName: r.childLastName ?? "",
+                childTurning: r.childTurning ? String(r.childTurning) : "",
                 childBirthDate: r.childBirthDate ? r.childBirthDate.toISOString().slice(0, 10) : "",
                 napomene: r.notes ?? "",
                 dogovorenaCijena: r.package.cijenaPoDogovoru && r.totalCents > 0 ? (r.totalCents / 100).toFixed(2) : "",
