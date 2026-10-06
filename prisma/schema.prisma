@@ -103,6 +103,7 @@ model Room {
   active       Boolean  @default(true)
 
   packages           Package[]
+  teme               Theme[]
   predlosci          PozivnicaPredlozak[]
   reservations       Reservation[] @relation("PrimaryRoom")
   secondaryFor       Reservation[] @relation("SecondRoom")
@@ -174,8 +175,14 @@ model Theme {
   sortOrder   Int     @default(0)
   active      Boolean @default(true)
 
+  // Igraonica u kojoj se tema nudi; prazno = tema vrijedi za sve igraonice.
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id])
+
   reservations Reservation[]
   predlosci    PozivnicaPredlozak[]
+
+  @@index([roomId])
 }
 
 /**

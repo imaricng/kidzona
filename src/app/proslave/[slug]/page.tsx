@@ -30,7 +30,9 @@ async function dohvatiIgraonicu(slug: string) {
   ]);
   const soba = sobe.find((s) => slugIgraonice(s.name) === slug);
   if (!soba) return null;
-  return { soba, ostale: sobe.filter((s) => s.id !== soba.id), opciPaketi, teme };
+  // Tema vezana uz drugu igraonicu ne spada na ovu stranicu.
+  const temeSobe = teme.filter((t) => t.roomId === null || t.roomId === soba.id);
+  return { soba, ostale: sobe.filter((s) => s.id !== soba.id), opciPaketi, teme: temeSobe };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

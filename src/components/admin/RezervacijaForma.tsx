@@ -30,6 +30,7 @@ export interface TemaOpcija {
   id: string;
   name: string;
   emoji: string;
+  roomId: string | null; // tema se nudi samo u toj igraonici (prazno = sve)
 }
 
 interface Props {
@@ -89,8 +90,12 @@ function Polja({
   const [packageId, setPackageId] = useState(v.packageId ?? "");
   const [slotStart, setSlotStart] = useState(v.slotStart ?? "17:00");
   const [numChildren, setNumChildren] = useState(v.numChildren ?? "10");
+  const [themeId, setThemeId] = useState(v.themeId ?? "");
 
   const paketiSobe = paketi.filter((p) => p.roomId === null || p.roomId === roomId);
+  // Teme se nude po igraonicama; ako je rezervacija ranije dobila temu druge
+  // igraonice, ostavljamo je u popisu da se ne izgubi nehotice.
+  const temeSobe = teme.filter((t) => t.roomId === null || t.roomId === roomId || t.id === themeId);
   const paket = paketiSobe.find((p) => p.id === packageId);
   const soba = sobe.find((s) => s.id === roomId);
   const djece = Number(numChildren) || 0;
@@ -109,6 +114,8 @@ function Polja({
     setRoomId(nova);
     const odabrani = paketi.find((p) => p.id === packageId);
     if (odabrani && odabrani.roomId !== null && odabrani.roomId !== nova) setPackageId("");
+    const tema = teme.find((t) => t.id === themeId);
+    if (tema && tema.roomId !== null && tema.roomId !== nova) setThemeId("");
   }
 
   return (
@@ -144,9 +151,9 @@ function Polja({
             </select>
           </Polje>
           <Polje label="Tema">
-            <select name="themeId" defaultValue={v.themeId ?? ""} className="input !py-2">
+            <select name="themeId" value={themeId} onChange={(e) => setThemeId(e.target.value)} className="input !py-2">
               <option value="">Bez teme</option>
-              {teme.map((t) => (
+              {temeSobe.map((t) => (
                 <option key={t.id} value={t.id}>{t.emoji} {t.name}</option>
               ))}
             </select>

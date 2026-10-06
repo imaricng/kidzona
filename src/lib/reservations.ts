@@ -127,6 +127,16 @@ async function provjeriPodatke(p: PodaciRezervacije, poRasporedu: boolean) {
   if (poRasporedu && !jeDozvoljenPocetak(p.dateISO, p.slotStart)) {
     throw new NeispravnaRezervacijaError("Odabrani dan i početak nisu u rasporedu proslava.");
   }
+  // Tema se može nuditi samo u jednoj igraonici (npr. Frozen u Kids Playu).
+  // Vrijedi za upite s weba i iz chata; u administraciji se iznimka smije
+  // upisati svjesno (npr. dogovor s roditeljem).
+  if (poRasporedu && p.themeId) {
+    const tema = await prisma.theme.findUnique({ where: { id: p.themeId }, select: { name: true, active: true, roomId: true } });
+    if (!tema || !tema.active) throw new NeispravnaRezervacijaError("Odabrana tema nije dostupna.");
+    if (tema.roomId && tema.roomId !== soba.id) {
+      throw new NeispravnaRezervacijaError(`Tema „${tema.name}” dostupna je samo u drugoj igraonici.`);
+    }
+  }
   if (p.numChildren < paket.minChildren || p.numChildren > soba.maxChildren) {
     throw new NeispravnaRezervacijaError(`Broj djece za ${soba.name} mora biti između ${paket.minChildren} i ${soba.maxChildren}.`);
   }

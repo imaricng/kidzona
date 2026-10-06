@@ -60,7 +60,8 @@ export async function dohvatiPonudu() {
       cijena: formatEur(d.priceCents),
       poDjetetu: d.unit === "per_child",
     })),
-    teme: teme.map((t) => ({ id: t.id, naziv: t.name })),
+    // Tema bez igraonice vrijedi u svima; inače samo u toj jednoj.
+    teme: teme.map((t) => ({ id: t.id, naziv: t.name, igraonicaId: t.roomId })),
     neradniDani: zatvaranja.map((z) => ({ od: z.startDate, do: z.endDate, razlog: z.reason })),
     napomena: "Slavljenik se ne broji u broj djece — uvijek je gratis.",
   };

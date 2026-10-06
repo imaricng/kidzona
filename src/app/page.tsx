@@ -75,7 +75,7 @@ export default async function HomePage() {
     }),
     // Paketi bez igraonice vrijede za sve igraonice.
     prisma.package.findMany({ where: { active: true, roomId: null }, orderBy: { sortOrder: "asc" } }),
-    prisma.theme.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.theme.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
     prisma.closedPeriod.findMany({ where: { endDate: { gte: lokalniISO(new Date()) } }, orderBy: { startDate: "asc" } }),
   ]);
 
@@ -278,6 +278,11 @@ export default async function HomePage() {
                   </div>
                   <h3 className="relative mt-4 font-display text-xl font-bold">{t.name}</h3>
                   <p className="relative mt-1 text-sm text-white/95">{t.description}</p>
+                  {t.room && (
+                    <p className="relative mt-2 inline-block rounded-full bg-white/25 px-3 py-1 text-xs font-semibold">
+                      samo {t.room.name}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

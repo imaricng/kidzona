@@ -78,7 +78,7 @@ export default async function RezervacijaPage({
       category: a.category ?? "",
       description: a.description ?? "",
     })),
-    themes: themes.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji, gradient: t.gradient })),
+    themes: themes.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji, gradient: t.gradient, roomId: t.roomId })),
     depositPercent: env.depositPercent,
     onlinePayments: env.onlinePayments,
     zatvaranja: zatvaranja.map((z) => ({ od: z.startDate, do: z.endDate, razlog: z.reason })),

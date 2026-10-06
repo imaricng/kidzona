@@ -19,7 +19,7 @@ export interface Katalog {
     cijenaPoDogovoru: boolean;
   }[];
   addons: { id: string; name: string; priceCents: number; unit: "per_child" | "flat"; category: string; description: string }[];
-  themes: { id: string; name: string; emoji: string; gradient: string }[];
+  themes: { id: string; name: string; emoji: string; gradient: string; roomId: string | null }[];
   depositPercent: number;
   onlinePayments: boolean;
   zatvaranja: Zatvaranje[]; // neradni dani (od danas nadalje)
@@ -149,6 +149,15 @@ export function BookingWizard({
   useEffect(() => {
     if (paket && roomId && paket.roomId !== null && paket.roomId !== roomId) setPackageId("");
   }, [roomId, paket]);
+
+  // Teme se nude po igraonicama (npr. Frozen samo u Kids Playu).
+  const temeSobe = useMemo(
+    () => katalog.themes.filter((t) => t.roomId === null || t.roomId === roomId),
+    [katalog.themes, roomId],
+  );
+  useEffect(() => {
+    if (themeId && !temeSobe.some((t) => t.id === themeId)) setThemeId(null);
+  }, [temeSobe, themeId]);
 
   // Broj djece: zadano koliko je uključeno u paket (osim ako ga je roditelj već
   // sam namjestio), uvijek unutar granica paketa i igraonice.
@@ -291,7 +300,7 @@ export function BookingWizard({
               addons={katalog.addons}
               dodaci={dodaci}
               setDodaci={setDodaci}
-              themes={katalog.themes}
+              themes={temeSobe}
               themeId={themeId}
               setThemeId={setThemeId}
               vlastitaTema={vlastitaTema}

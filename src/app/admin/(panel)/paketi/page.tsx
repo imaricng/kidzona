@@ -146,6 +146,7 @@ async function azurirajTemu(formData: FormData) {
       emoji: String(formData.get("emoji") || "🎉"),
       gradient: String(formData.get("gradient") || "from-brand-400 to-berry-400"),
       description: String(formData.get("description") || ""),
+      roomId: sobaIzForme(formData),
       active: formData.get("active") === "on",
     },
   });
@@ -166,6 +167,7 @@ async function kreirajTemu(formData: FormData) {
       emoji: String(formData.get("emoji") || "🎉"),
       gradient: String(formData.get("gradient") || "from-brand-400 to-berry-400"),
       description: String(formData.get("description") || ""),
+      roomId: sobaIzForme(formData),
       sortOrder: (zadnja?.sortOrder ?? 0) + 1,
     },
   });
@@ -342,8 +344,9 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
       {/* TEME */}
       <h2 className="mt-10 font-semibold text-ink-800">{hr.admin.teme}</h2>
       <p className="mt-1 text-sm text-ink-500">
-        Teme roditelji biraju pri rezervaciji. Neaktivna tema nestaje s ponude, a postojeće rezervacije
-        zadržavaju svoju. Tema vezana uz rezervaciju ne može se obrisati — bit će samo deaktivirana.
+        Teme roditelji biraju pri rezervaciji. <strong>Igraonica</strong> određuje gdje se tema nudi — odaberite jednu
+        (npr. Frozen samo u Kids Playu) ili ostavite „Sve igraonice”. Neaktivna tema nestaje s ponude, a postojeće
+        rezervacije zadržavaju svoju. Tema vezana uz rezervaciju ne može se obrisati — bit će samo deaktivirana.
       </p>
       {pozivnicaGreska && (
         <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 ring-1 ring-red-200">{pozivnicaGreska}</p>
@@ -370,12 +373,17 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
             <Polje label="Naziv"><input name="name" defaultValue={t.name} className="input !py-2" /></Polje>
             <Polje label="Opis"><input name="description" defaultValue={t.description ?? ""} className="input !py-2" /></Polje>
             <Polje label="Boje"><OdabirGradijenta defaultValue={t.gradient} /></Polje>
+            <Polje label="Igraonica"><OdabirSobe sobe={sobe} defaultValue={t.roomId ?? ""} /></Polje>
             <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="active" defaultChecked={t.active} className="h-4 w-4 accent-brand-500" /> Aktivno</label>
             <span className={`chip bg-gradient-to-br ${t.gradient} text-white`}>{t.emoji} {t.name}</span>
             <button type="submit" className="btn-primary !py-2 !text-sm">{hr.zajednicko.spremi}</button>
             <ConfirmSubmit poruka={`Obrisati temu „${t.name}"?`} className="text-sm text-ink-400 hover:text-red-600 pb-2">🗑️</ConfirmSubmit>
           </form>
-          <PredlosciTeme tema={{ id: t.id, name: t.name }} sobe={sobeZaPredloske} predlosci={predlosci} />
+          <PredlosciTeme
+            tema={{ id: t.id, name: t.name }}
+            sobe={t.roomId ? sobeZaPredloske.filter((s) => s.id === t.roomId) : sobeZaPredloske}
+            predlosci={predlosci}
+          />
           </div>
         ))}
       </div>
@@ -386,6 +394,7 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
         <Polje label="Naziv"><input name="name" className="input !py-2" placeholder="npr. Pirati" /></Polje>
         <Polje label="Opis"><input name="description" className="input !py-2" placeholder="Potraga za blagom." /></Polje>
         <Polje label="Boje"><OdabirGradijenta defaultValue="from-brand-400 to-berry-400" /></Polje>
+        <Polje label="Igraonica"><OdabirSobe sobe={sobe} defaultValue="" /></Polje>
         <button type="submit" className="btn-secondary !py-2">Dodaj temu</button>
       </form>
     </div>

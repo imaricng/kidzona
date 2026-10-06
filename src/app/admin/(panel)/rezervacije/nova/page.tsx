@@ -59,7 +59,7 @@ export default async function RucniUnosPage() {
             minChildren: p.minChildren,
             maxChildren: p.maxChildren,
           }))}
-          teme={teme.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji }))}
+          teme={teme.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji, roomId: t.roomId }))}
           pocetno={pocetno}
           rucniUnos
         />
