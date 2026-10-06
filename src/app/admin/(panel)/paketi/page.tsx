@@ -8,6 +8,7 @@ import { BEZ_TEME, predlozakUrl, provjeriPredlozak, temaIzAdrese } from "@/lib/p
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
+import { SlikaPredloska } from "@/components/admin/SlikaPredloska";
 import { DatumPolje } from "@/components/DatumPolje";
 
 export const dynamic = "force-dynamic";
@@ -434,7 +435,7 @@ function PredlosciTeme({
   return (
     <div className="mt-4 border-t border-ink-100 pt-3">
       <p className="text-xs font-medium text-ink-500">
-        {naslov} <span className="font-normal text-ink-400">— po jedna slika za svaku igraonicu (PNG, JPG ili WebP, do 4 MB)</span>
+        {naslov} <span className="font-normal text-ink-400">— po jedna slika za svaku igraonicu (PNG, JPG ili WebP; velike slike smanjujemo automatski)</span>
       </p>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         {sobe.map((s) => {
@@ -460,13 +461,7 @@ function PredlosciTeme({
               <form action={postaviPredlozak} className="mt-2 space-y-2">
                 <input type="hidden" name="themeId" value={vrijednostTeme} />
                 <input type="hidden" name="roomId" value={s.id} />
-                <input
-                  type="file"
-                  name="slika"
-                  accept="image/png,image/jpeg,image/webp"
-                  required
-                  className="block w-full text-xs text-ink-600 file:mr-2 file:rounded-full file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-600"
-                />
+                <SlikaPredloska />
                 <div className="flex items-center gap-3">
                   <button type="submit" className="btn-secondary !py-1 !text-xs">{p ? "Zamijeni" : "Učitaj"}</button>
                   {p && <span className="text-xs text-ink-400">{formatDatum(p.updatedAt)}</span>}
