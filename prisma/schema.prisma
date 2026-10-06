@@ -186,8 +186,10 @@ model Theme {
  */
 model PozivnicaPredlozak {
   id        String   @id @default(cuid())
-  themeId   String
-  theme     Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  // Bez teme (null) = generički predložak igraonice; koristi se kad proslava
+  // nema temu ili tema nema svoj predložak.
+  themeId   String?
+  theme     Theme?   @relation(fields: [themeId], references: [id], onDelete: Cascade)
   roomId    String
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   mime      String

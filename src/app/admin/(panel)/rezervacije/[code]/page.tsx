@@ -17,6 +17,7 @@ import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/temp
 import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu } from "@/lib/reservations";
 import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
 import { pozivnicaUrl, whatsappBroj, whatsappPoruka } from "@/lib/pozivnica";
+import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { odbijUpitAkcija, odobriUpitAkcija, spremiIzmjene } from "../akcije";
 
 export const dynamic = "force-dynamic";
@@ -142,9 +143,7 @@ export default async function RezervacijaDetalj({
   // Pozivnice: poveznica, WhatsApp broj roditelja i postoji li predložak za temu/igraonicu.
   const vezaPozivnice = pozivnicaUrl(env.appUrl, r.qrToken);
   const waBroj = whatsappBroj(r.phone);
-  const imaPredlozak = r.themeId
-    ? (await prisma.pozivnicaPredlozak.count({ where: { themeId: r.themeId, roomId: r.roomId } })) > 0
-    : false;
+  const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -283,12 +282,16 @@ export default async function RezervacijaDetalj({
                   ? `✅ Poslana roditelju ${formatDatumVrijeme(r.pozivnicaPoslanaAt)}.`
                   : "Pozivnica još nije poslana."}
               </p>
-              {!imaPredlozak && (
+              {!predlozak && (
                 <p className="mt-2 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {r.theme
-                    ? `Za temu „${r.theme.name}" nema predloška za ${r.room.name} — pozivnica se prikazuje bez slike. Predložak postavite u `
-                    : "Rezervacija nema odabranu temu, pa pozivnica ide bez slike. Teme i predlošci su u "}
-                  <Link href="/admin/paketi" className="font-semibold underline">Paketi, dodaci i teme</Link>.
+                  Nema predloška za {r.room.name}
+                  {r.theme ? ` (ni za temu „${r.theme.name}" ni općeg)` : " (ni općeg)"} — pozivnica se prikazuje bez slike.
+                  Predložak postavite u <Link href="/admin/paketi" className="font-semibold underline">Paketi, dodaci i teme</Link>.
+                </p>
+              )}
+              {predlozak && !predlozak.themeId && r.theme && (
+                <p className="mt-2 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-brand-900">
+                  Tema „{r.theme.name}" nema svoj predložak za {r.room.name}, pa pozivnica koristi opći predložak.
                 </p>
               )}
               <div className="mt-3 flex flex-wrap gap-2">

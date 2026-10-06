@@ -74,9 +74,17 @@ export function whatsappPoruka(poveznica: string, childName: string | null): str
   );
 }
 
-/** Adresa slike predloška za temu i igraonicu. */
-export function predlozakUrl(themeId: string, roomId: string): string {
-  return `/api/pozivnice/predlozak/${themeId}/${roomId}`;
+/** Oznaka generičkog predloška (bez teme) u adresi slike. */
+export const BEZ_TEME = "bez-teme";
+
+/** Adresa slike predloška; `null` tema znači generički predložak igraonice. */
+export function predlozakUrl(themeId: string | null, roomId: string): string {
+  return `/api/pozivnice/predlozak/${themeId ?? BEZ_TEME}/${roomId}`;
+}
+
+/** Tema iz adrese slike (`bez-teme` → generički predložak). */
+export function temaIzAdrese(segment: string): string | null {
+  return segment === BEZ_TEME ? null : segment;
 }
 
 /** Dopuštene vrste slika za predložak. */

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { formatDatum, formatEur } from "@/lib/format";
 import { jedinstvenSlug } from "@/lib/slug";
-import { predlozakUrl, provjeriPredlozak } from "@/lib/pozivnica";
+import { BEZ_TEME, predlozakUrl, provjeriPredlozak, temaIzAdrese } from "@/lib/pozivnica";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
@@ -188,25 +188,25 @@ async function obrisiTemu(formData: FormData) {
 /** Učitava sliku predloška pozivnice za temu i igraonicu (jedna slika po paru). */
 async function postaviPredlozak(formData: FormData) {
   "use server";
-  const themeId = String(formData.get("themeId"));
+  // Prazna tema = generički predložak igraonice (proslava bez teme).
+  const themeId = temaIzAdrese(String(formData.get("themeId") || BEZ_TEME));
   const roomId = String(formData.get("roomId"));
   const slika = formData.get("slika");
   if (!(slika instanceof File)) redirect(sGreskom("Odaberite sliku predloška."));
   const greska = provjeriPredlozak(slika.type, slika.size);
   if (greska) redirect(sGreskom(greska));
   const podaci = Buffer.from(await slika.arrayBuffer());
-  await prisma.pozivnicaPredlozak.upsert({
-    where: { themeId_roomId: { themeId, roomId } },
-    update: { mime: slika.type, podaci },
-    create: { themeId, roomId, mime: slika.type, podaci },
-  });
+  // Baza ne jamči jedinstvenost para kad tema nije postavljena (NULL), pa stari
+  // zapis brišemo prije upisa novoga.
+  await prisma.pozivnicaPredlozak.deleteMany({ where: { themeId, roomId } });
+  await prisma.pozivnicaPredlozak.create({ data: { themeId, roomId, mime: slika.type, podaci } });
   revalidatePath("/admin/paketi");
 }
 
 async function obrisiPredlozak(formData: FormData) {
   "use server";
   await prisma.pozivnicaPredlozak.deleteMany({
-    where: { themeId: String(formData.get("themeId")), roomId: String(formData.get("roomId")) },
+    where: { themeId: temaIzAdrese(String(formData.get("themeId") || BEZ_TEME)), roomId: String(formData.get("roomId")) },
   });
   revalidatePath("/admin/paketi");
 }
@@ -348,6 +348,19 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
       {pozivnicaGreska && (
         <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 ring-1 ring-red-200">{pozivnicaGreska}</p>
       )}
+      <div className="card mt-3">
+        <h3 className="font-semibold text-ink-800">🎈 Bez teme — opće pozivnice</h3>
+        <p className="mt-1 text-sm text-ink-500">
+          Predlošci koji se koriste kad proslava nema odabranu temu — i kao zamjena kad tema nema svoj predložak.
+        </p>
+        <PredlosciTeme
+          tema={{ id: null, name: "Bez teme" }}
+          sobe={sobeZaPredloske}
+          predlosci={predlosci}
+          naslov="Opći predlošci pozivnica"
+        />
+      </div>
+
       <div className="mt-3 space-y-2">
         {teme.map((t) => (
           <div key={t.id} className={`card ${t.active ? "" : "opacity-60"}`}>
@@ -362,7 +375,7 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
             <button type="submit" className="btn-primary !py-2 !text-sm">{hr.zajednicko.spremi}</button>
             <ConfirmSubmit poruka={`Obrisati temu „${t.name}"?`} className="text-sm text-ink-400 hover:text-red-600 pb-2">🗑️</ConfirmSubmit>
           </form>
-          <PredlosciTeme tema={t} sobe={sobeZaPredloske} predlosci={predlosci} />
+          <PredlosciTeme tema={{ id: t.id, name: t.name }} sobe={sobeZaPredloske} predlosci={predlosci} />
           </div>
         ))}
       </div>
@@ -400,15 +413,19 @@ function PredlosciTeme({
   tema,
   sobe,
   predlosci,
+  naslov = "Predlošci pozivnica",
 }: {
-  tema: { id: string; name: string };
+  /** `null` = generički predlošci (proslava bez teme ili tema bez svog predloška). */
+  tema: { id: string | null; name: string };
   sobe: { id: string; name: string }[];
-  predlosci: { themeId: string; roomId: string; updatedAt: Date }[];
+  predlosci: { themeId: string | null; roomId: string; updatedAt: Date }[];
+  naslov?: string;
 }) {
+  const vrijednostTeme = tema.id ?? BEZ_TEME;
   return (
     <div className="mt-4 border-t border-ink-100 pt-3">
       <p className="text-xs font-medium text-ink-500">
-        Predlošci pozivnica <span className="font-normal text-ink-400">— po jedna slika za svaku igraonicu (PNG, JPG ili WebP, do 4 MB)</span>
+        {naslov} <span className="font-normal text-ink-400">— po jedna slika za svaku igraonicu (PNG, JPG ili WebP, do 4 MB)</span>
       </p>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         {sobe.map((s) => {
@@ -432,7 +449,7 @@ function PredlosciTeme({
                 />
               )}
               <form action={postaviPredlozak} className="mt-2 space-y-2">
-                <input type="hidden" name="themeId" value={tema.id} />
+                <input type="hidden" name="themeId" value={vrijednostTeme} />
                 <input type="hidden" name="roomId" value={s.id} />
                 <input
                   type="file"
@@ -448,7 +465,7 @@ function PredlosciTeme({
               </form>
               {p && (
                 <form action={obrisiPredlozak} className="mt-2">
-                  <input type="hidden" name="themeId" value={tema.id} />
+                  <input type="hidden" name="themeId" value={vrijednostTeme} />
                   <input type="hidden" name="roomId" value={s.id} />
                   <ConfirmSubmit poruka={`Obrisati predložak pozivnice za ${s.name}?`} className="text-xs text-ink-400 hover:text-red-600">
                     Obriši predložak

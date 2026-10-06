@@ -220,7 +220,7 @@ export const en = {
     pozivniceDigitalneOpis: "We send them by email and WhatsApp once we confirm the booking, so you can forward them to your guests.",
     pozivniceFizicke: "Printed invitations",
     pozivniceFizickeOpis: "Pickup time needs to be arranged at the play room.",
-    pozivniceTrebaTema: "Choose a theme above so the invitations match it.",
+    pozivniceTrebaTema: "Without a theme we send invitations in our general design — you can pick a theme above.",
     sazetak: "Booking summary",
     ukupno: "Total",
     akontacija: "Deposit (paid now)",

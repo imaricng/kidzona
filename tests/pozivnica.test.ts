@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { predlozakUrl, provjeriPredlozak, tekstPozivnice, whatsappBroj, whatsappPoruka } from "@/lib/pozivnica";
+import { predlozakUrl, provjeriPredlozak, tekstPozivnice, temaIzAdrese, whatsappBroj, whatsappPoruka } from "@/lib/pozivnica";
 
 describe("tekstPozivnice", () => {
   const osnova = { date: new Date("2026-11-14T00:00:00"), slotStart: "17:00", slotEnd: "19:00" };
@@ -57,5 +57,10 @@ describe("provjeriPredlozak", () => {
   });
   it("adresa predloška vodi na par tema + igraonica", () => {
     expect(predlozakUrl("t1", "r2")).toBe("/api/pozivnice/predlozak/t1/r2");
+  });
+  it("proslava bez teme ima generički predložak igraonice", () => {
+    expect(predlozakUrl(null, "r2")).toBe("/api/pozivnice/predlozak/bez-teme/r2");
+    expect(temaIzAdrese("bez-teme")).toBeNull();
+    expect(temaIzAdrese("t1")).toBe("t1");
   });
 });

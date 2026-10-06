@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { formatDatumDugi } from "@/lib/format";
 import { tekstPozivnice, predlozakUrl } from "@/lib/pozivnica";
+import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { PrintButton } from "@/components/PrintButton";
 import { PodijeliPozivnicu } from "@/components/PodijeliPozivnicu";
@@ -25,19 +26,18 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
   if (!r || !STATUSI_ZAUZIMAJU_TERMIN.includes(r.status)) notFound();
 
   const tekst = tekstPozivnice(r);
-  const imaPredlozak = r.themeId
-    ? (await prisma.pozivnicaPredlozak.count({ where: { themeId: r.themeId, roomId: r.roomId } })) > 0
-    : false;
+  // Predložak teme, a ako ga nema — opći predložak igraonice.
+  const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
   const gradijent = r.theme?.gradient ?? "from-brand-400 to-berry-400";
 
   return (
     <div className="min-h-screen bg-paper py-10">
       <div className="mx-auto max-w-xl px-4">
         <article className="overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-ink-100">
-          {imaPredlozak && r.themeId ? (
+          {predlozak ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={predlozakUrl(r.themeId, r.roomId)}
+              src={predlozakUrl(predlozak.themeId, predlozak.roomId)}
               alt={`Pozivnica — ${r.theme?.name ?? "proslava"}`}
               className="w-full"
             />

@@ -226,7 +226,7 @@ export const hr = {
     pozivniceDigitalneOpis: "Šaljemo ih e-poštom i na WhatsApp kad potvrdimo rezervaciju, pa ih proslijedite gostima.",
     pozivniceFizicke: "Tiskane pozivnice",
     pozivniceFizickeOpis: "Potrebno je dogovoriti termin preuzimanja u igraonici.",
-    pozivniceTrebaTema: "Odaberite temu iznad da pozivnice budu u skladu s njom.",
+    pozivniceTrebaTema: "Bez odabrane teme pozivnice šaljemo u našem općem dizajnu — temu možete odabrati iznad.",
     sazetak: "Sažetak rezervacije",
     ukupno: "Ukupno",
     akontacija: "Akontacija (plaća se sada)",
