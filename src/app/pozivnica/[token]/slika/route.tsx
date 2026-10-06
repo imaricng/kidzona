@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { tekstPozivnice } from "@/lib/pozivnica";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
@@ -8,15 +9,18 @@ import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 export const runtime = "nodejs";
 
 /**
- * Crtanje se dovrši prije odgovora: ImageResponse inače crta usput, pa greška
+ * Crtež se dovrši prije odgovora: ImageResponse inače crta usput, pa greška
  * stigne tek kad je odgovor već krenuo i završi kao prazna stranica greške.
  */
-async function uPng(slika: ImageResponse): Promise<Response> {
-  const bajtovi = await slika.arrayBuffer();
-  return new Response(bajtovi, {
+async function uSliku(crtez: ImageResponse): Promise<Response> {
+  const png = Buffer.from(await crtez.arrayBuffer());
+  // PNG crteža je nekoliko megabajta; WhatsApp i Facebook tako velik
+  // pretpregled ne prikazuju, pa šaljemo JPEG.
+  const jpeg = await sharp(png).jpeg({ quality: 82, progressive: true }).toBuffer();
+  return new Response(new Uint8Array(jpeg), {
     headers: {
-      "Content-Type": "image/png",
-      "Content-Length": String(bajtovi.byteLength),
+      "Content-Type": "image/jpeg",
+      "Content-Length": String(jpeg.byteLength),
       "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
     },
   });
@@ -87,7 +91,7 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
 
   // Bez predloška crtamo jednostavnu pozivnicu u bojama teme.
   if (!predlozak || !slika) {
-    return uPng(
+    return uSliku(
       new ImageResponse(
       (
         <div
@@ -136,7 +140,7 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
   const poravnanje =
     predlozak.stil.poravnanje === "gore" ? "flex-start" : predlozak.stil.poravnanje === "dolje" ? "flex-end" : "center";
 
-  return uPng(
+  return uSliku(
     new ImageResponse(
     (
       <div style={{ display: "flex", position: "relative", width: "100%", height: "100%" }}>

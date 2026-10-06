@@ -95,7 +95,7 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
         <div className="mt-6 flex flex-wrap justify-center gap-3 print:hidden">
           <PrintButton />
           <PodijeliPozivnicu />
-          <a href={`/pozivnica/${token}/slika`} download="pozivnica.png" className="btn-secondary">
+          <a href={`/pozivnica/${token}/slika`} download="pozivnica.jpg" className="btn-secondary">
             ⬇️ Spremi kao sliku
           </a>
         </div>
