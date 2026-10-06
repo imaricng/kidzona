@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { nadjiOkvir, ZADANI_OKVIR, type Okvir } from "@/lib/okvir-detekcija";
 
 /**
  * Odabir slike predloška pozivnice koji veliku fotografiju smanji u pregledniku
@@ -23,7 +24,7 @@ function mb(bajtova: number): string {
 }
 
 /** Smanjuje sliku na `NAJVECA_STRANICA` i pretvara je u JPEG; `null` ako ne uspije. */
-async function smanjiSliku(datoteka: File): Promise<File | null> {
+async function smanjiSliku(datoteka: File): Promise<{ slika: File; okvir: Okvir | null } | null> {
   if (typeof createImageBitmap !== "function") return null;
   const slika = await createImageBitmap(datoteka);
   const omjer = Math.min(1, NAJVECA_STRANICA / Math.max(slika.width, slika.height));
@@ -41,16 +42,21 @@ async function smanjiSliku(datoteka: File): Promise<File | null> {
   ctx.drawImage(slika, 0, 0, sirina, visina);
   slika.close();
 
+  // Bijelo polje za tekst mjerimo iz iste slike koju šaljemo.
+  const piksel = ctx.getImageData(0, 0, sirina, visina);
+  const okvir = nadjiOkvir(piksel.data, sirina, visina, 4);
+
   const blob = await new Promise<Blob | null>((r) => platno.toBlob(r, "image/jpeg", 0.85));
   if (!blob) return null;
   const naziv = datoteka.name.replace(/\.[^.]+$/, "") || "predlozak";
-  return new File([blob], `${naziv}.jpg`, { type: "image/jpeg" });
+  return { slika: new File([blob], `${naziv}.jpg`, { type: "image/jpeg" }), okvir };
 }
 
 export function SlikaPredloska({ name = "slika" }: { name?: string }) {
   const [poruka, setPoruka] = useState<string | null>(null);
   const [greska, setGreska] = useState<string | null>(null);
   const [uTijeku, setUTijeku] = useState(false);
+  const [okvir, setOkvir] = useState<Okvir | null>(null);
 
   async function promjena(e: React.ChangeEvent<HTMLInputElement>) {
     const polje = e.currentTarget;
@@ -64,23 +70,25 @@ export function SlikaPredloska({ name = "slika" }: { name?: string }) {
     }
 
     let konacna = izvorna;
-    if (izvorna.size > BEZ_DIRANJA) {
-      setUTijeku(true);
-      try {
-        const smanjena = await smanjiSliku(izvorna);
-        if (smanjena && smanjena.size < izvorna.size) {
+    setUTijeku(true);
+    setOkvir(null);
+    try {
+      const obradena = await smanjiSliku(izvorna);
+      if (obradena) {
+        setOkvir(obradena.okvir);
+        if (obradena.slika.size < izvorna.size) {
           // Zamjena odabrane datoteke — obrazac zatim šalje smanjenu sliku.
           const prijenos = new DataTransfer();
-          prijenos.items.add(smanjena);
+          prijenos.items.add(obradena.slika);
           polje.files = prijenos.files;
-          konacna = smanjena;
-          setPoruka(`Slika je smanjena s ${mb(izvorna.size)} na ${mb(smanjena.size)}.`);
+          konacna = obradena.slika;
+          setPoruka(`Slika je smanjena s ${mb(izvorna.size)} na ${mb(obradena.slika.size)}.`);
         }
-      } catch {
-        // Preglednik nije uspio otvoriti sliku — šaljemo izvornu i javljamo ako je prevelika.
-      } finally {
-        setUTijeku(false);
       }
+    } catch {
+      // Preglednik nije uspio otvoriti sliku — šaljemo izvornu i javljamo ako je prevelika.
+    } finally {
+      setUTijeku(false);
     }
 
     if (konacna.size > NAJVECA) {
@@ -98,7 +106,13 @@ export function SlikaPredloska({ name = "slika" }: { name?: string }) {
         onChange={promjena}
         className="block w-full text-xs text-ink-600 file:mr-2 file:rounded-full file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-600"
       />
-      {uTijeku && <p className="mt-1 text-xs text-ink-400">Smanjujem sliku…</p>}
+      {/* Izmjereni položaj bijelog polja putuje uz sliku; bez mjerenja ide zadani okvir. */}
+      <input type="hidden" name="okvirTop" value={(okvir ?? ZADANI_OKVIR).top} />
+      <input type="hidden" name="okvirLijevo" value={(okvir ?? ZADANI_OKVIR).lijevo} />
+      <input type="hidden" name="okvirSirina" value={(okvir ?? ZADANI_OKVIR).sirina} />
+      <input type="hidden" name="okvirVisina" value={(okvir ?? ZADANI_OKVIR).visina} />
+      {uTijeku && <p className="mt-1 text-xs text-ink-400">Obrađujem sliku…</p>}
+      {okvir && <p className="mt-1 text-xs text-ink-400">Bijelo polje za tekst pronađeno automatski — po želji ga dotjerajte klizačima.</p>}
       {poruka && <p className="mt-1 text-xs text-mint-600">{poruka}</p>}
       {greska && <p className="mt-1 text-xs font-medium text-red-600">{greska}</p>}
     </div>

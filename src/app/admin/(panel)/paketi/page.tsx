@@ -5,6 +5,7 @@ import { hr } from "@/i18n/hr";
 import { formatDatum, formatEur } from "@/lib/format";
 import { jedinstvenSlug } from "@/lib/slug";
 import { BEZ_TEME, predlozakUrl, provjeriPredlozak, temaIzAdrese } from "@/lib/pozivnica";
+import { ZADANI_OKVIR } from "@/lib/okvir-detekcija";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { CijenaPaketa } from "@/components/admin/CijenaPaketa";
 import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
@@ -203,25 +204,33 @@ async function postaviPredlozak(formData: FormData) {
   // Baza ne jamči jedinstvenost para kad tema nije postavljena (NULL), pa stari
   // zapis brišemo prije upisa novoga.
   await prisma.pozivnicaPredlozak.deleteMany({ where: { themeId, roomId } });
-  await prisma.pozivnicaPredlozak.create({ data: { themeId, roomId, mime: slika.type, podaci } });
+  await prisma.pozivnicaPredlozak.create({
+    data: { themeId, roomId, mime: slika.type, podaci, ...okvirIzForme(formData) },
+  });
   revalidatePath("/admin/paketi");
+}
+
+/** Okvir za tekst iz obrasca (postoci), sa zadanim vrijednostima kao zaštitom. */
+function okvirIzForme(formData: FormData) {
+  const postotak = (kljuc: string, zadano: number) => {
+    const n = Number(formData.get(kljuc));
+    return Number.isFinite(n) && n > 0 ? Math.min(100, n) : zadano;
+  };
+  return {
+    okvirTop: postotak("okvirTop", ZADANI_OKVIR.top),
+    okvirLijevo: postotak("okvirLijevo", ZADANI_OKVIR.lijevo),
+    okvirSirina: postotak("okvirSirina", ZADANI_OKVIR.sirina),
+    okvirVisina: postotak("okvirVisina", ZADANI_OKVIR.visina),
+    tekstSvijetli: formData.get("tekstSvijetli") === "on",
+  };
 }
 
 /** Sprema položaj bijelog okvira (u postocima) za jedan predložak. */
 async function spremiOkvir(formData: FormData) {
   "use server";
-  const postotak = (kljuc: string, zadano: number) => {
-    const n = Number(formData.get(kljuc));
-    return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : zadano;
-  };
   await prisma.pozivnicaPredlozak.updateMany({
     where: { themeId: temaIzAdrese(String(formData.get("themeId") || BEZ_TEME)), roomId: String(formData.get("roomId")) },
-    data: {
-      okvirTop: postotak("okvirTop", 34),
-      okvirLijevo: postotak("okvirLijevo", 10),
-      okvirSirina: postotak("okvirSirina", 80),
-      okvirVisina: postotak("okvirVisina", 32),
-    },
+    data: okvirIzForme(formData),
   });
   revalidatePath("/admin/paketi");
 }
@@ -248,7 +257,7 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
     prisma.theme.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.room.findMany({ orderBy: [{ active: "desc" }, { sortOrder: "asc" }] }),
     prisma.pozivnicaPredlozak.findMany({
-      select: { themeId: true, roomId: true, updatedAt: true, okvirTop: true, okvirLijevo: true, okvirSirina: true, okvirVisina: true },
+      select: { themeId: true, roomId: true, updatedAt: true, okvirTop: true, okvirLijevo: true, okvirSirina: true, okvirVisina: true, tekstSvijetli: true },
     }),
   ]);
   const sobeZaPredloske = sobe.filter((s) => s.active);
@@ -450,7 +459,7 @@ function PredlosciTeme({
   /** `null` = generički predlošci (proslava bez teme ili tema bez svog predloška). */
   tema: { id: string | null; name: string };
   sobe: { id: string; name: string }[];
-  predlosci: { themeId: string | null; roomId: string; updatedAt: Date; okvirTop: number; okvirLijevo: number; okvirSirina: number; okvirVisina: number }[];
+  predlosci: { themeId: string | null; roomId: string; updatedAt: Date; okvirTop: number; okvirLijevo: number; okvirSirina: number; okvirVisina: number; tekstSvijetli: boolean }[];
   naslov?: string;
 }) {
   const vrijednostTeme = tema.id ?? BEZ_TEME;
@@ -479,6 +488,7 @@ function PredlosciTeme({
                   roomId={s.id}
                   src={`${predlozakUrl(tema.id, s.id)}?v=${p.updatedAt.getTime()}`}
                   pocetni={{ top: p.okvirTop, lijevo: p.okvirLijevo, sirina: p.okvirSirina, visina: p.okvirVisina }}
+                  pocetniSvijetli={p.tekstSvijetli}
                 />
               )}
               <form action={postaviPredlozak} className="mt-2 space-y-2">

@@ -13,6 +13,8 @@ export interface OdabraniPredlozak {
   roomId: string;
   /** Bijeli okvir za tekst na slici, u postocima. */
   okvir: { top: number; lijevo: number; sirina: number; visina: number };
+  /** Svijetli tekst (tamni predlošci). */
+  svijetliTekst: boolean;
 }
 
 const POLJA = {
@@ -22,15 +24,25 @@ const POLJA = {
   okvirLijevo: true,
   okvirSirina: true,
   okvirVisina: true,
+  tekstSvijetli: true,
 } as const;
 
-type Zapis = { themeId: string | null; roomId: string; okvirTop: number; okvirLijevo: number; okvirSirina: number; okvirVisina: number };
+type Zapis = {
+  themeId: string | null;
+  roomId: string;
+  okvirTop: number;
+  okvirLijevo: number;
+  okvirSirina: number;
+  okvirVisina: number;
+  tekstSvijetli: boolean;
+};
 
 function uPredlozak(z: Zapis): OdabraniPredlozak {
   return {
     themeId: z.themeId,
     roomId: z.roomId,
     okvir: { top: z.okvirTop, lijevo: z.okvirLijevo, sirina: z.okvirSirina, visina: z.okvirVisina },
+    svijetliTekst: z.tekstSvijetli,
   };
 }
 

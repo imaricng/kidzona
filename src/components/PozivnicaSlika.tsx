@@ -35,18 +35,23 @@ export function PozivnicaSlika({
   alt,
   tekst,
   okvir,
+  svijetliTekst = false,
 }: {
   src: string;
   alt: string;
   tekst: TekstNaPozivnici;
   okvir: OkvirPozivnice;
+  /** Bijeli tekst sa sjenom — za tamne predloške bez bijelog polja. */
+  svijetliTekst?: boolean;
 }) {
   return (
     <div className="relative">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={alt} className="block w-full" />
       <div
-        className="absolute flex flex-col items-center justify-center overflow-hidden text-center text-ink-900"
+        className={`absolute flex flex-col items-center justify-center overflow-hidden text-center ${
+          svijetliTekst ? "text-white" : "text-ink-900"
+        }`}
         style={{
           top: `${okvir.top}%`,
           left: `${okvir.lijevo}%`,
@@ -57,6 +62,7 @@ export function PozivnicaSlika({
           // Zamjenska veličina za preglednike bez `cqw` jedinica.
           fontSize: "clamp(10px, 2.4vw, 20px)",
           overflowWrap: "anywhere",
+          textShadow: svijetliTekst ? "0 1px 3px rgba(0,0,0,0.55)" : undefined,
         }}
       >
         <p

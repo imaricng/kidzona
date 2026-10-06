@@ -41,6 +41,7 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
               alt={`Pozivnica — ${r.theme?.name ?? "proslava"}`}
               tekst={tekst}
               okvir={predlozak.okvir}
+              svijetliTekst={predlozak.svijetliTekst}
             />
           ) : (
             // Bez predloška tekst nosi sam zaglavlje pozivnice.

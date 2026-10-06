@@ -25,14 +25,17 @@ export function OkvirPredloska({
   roomId,
   src,
   pocetni,
+  pocetniSvijetli,
 }: {
   akcija: (formData: FormData) => void | Promise<void>;
   themeId: string;
   roomId: string;
   src: string;
   pocetni: { top: number; lijevo: number; sirina: number; visina: number };
+  pocetniSvijetli: boolean;
 }) {
   const [okvir, setOkvir] = useState(pocetni);
+  const [svijetli, setSvijetli] = useState(pocetniSvijetli);
   const [dugoIme, setDugoIme] = useState(false);
 
   function postavi(kljuc: keyof typeof okvir, v: number) {
@@ -51,13 +54,26 @@ export function OkvirPredloska({
           alt="Pregled pozivnice"
           tekst={dugoIme ? { ...PRIMJER, ime: DUGO_IME } : PRIMJER}
           okvir={okvir}
+          svijetliTekst={svijetli}
         />
       </div>
 
-      <label className="mt-2 flex items-center gap-2 text-xs text-ink-500">
-        <input type="checkbox" checked={dugoIme} onChange={(e) => setDugoIme(e.target.checked)} className="h-3 w-3 accent-brand-500" />
-        provjeri s dugim imenom
-      </label>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <label className="flex items-center gap-2 text-xs text-ink-500">
+          <input type="checkbox" checked={dugoIme} onChange={(e) => setDugoIme(e.target.checked)} className="h-3 w-3 accent-brand-500" />
+          provjeri s dugim imenom
+        </label>
+        <label className="flex items-center gap-2 text-xs text-ink-500">
+          <input
+            type="checkbox"
+            name="tekstSvijetli"
+            checked={svijetli}
+            onChange={(e) => setSvijetli(e.target.checked)}
+            className="h-3 w-3 accent-brand-500"
+          />
+          svijetli tekst (za tamne predloške)
+        </label>
+      </div>
 
       <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
         <Klizac label="Gore" vrijednost={okvir.top} postavi={(v) => postavi("top", v)} name="okvirTop" />

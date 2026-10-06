@@ -206,6 +206,8 @@ model PozivnicaPredlozak {
   okvirLijevo  Float @default(10)
   okvirSirina  Float @default(80)
   okvirVisina  Float @default(32)
+  // Svijetli tekst za tamne predloške (bijelo polje → tamni tekst).
+  tekstSvijetli Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
