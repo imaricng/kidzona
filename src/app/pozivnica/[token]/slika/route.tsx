@@ -157,8 +157,8 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
             padding: Math.round(okvirSirinaPx * 0.03),
             color: predlozak.stil.svijetliTekst ? "white" : "#1d1840",
             ...osnovniStil,
-            backgroundColor: podloga,
-            borderRadius: podloga ? Math.round(okvirSirinaPx * 0.04) : 0,
+            // Prazne vrijednosti se izostavljaju: crtanje ne podnosi `undefined`.
+            ...(podloga ? { backgroundColor: podloga, borderRadius: Math.round(okvirSirinaPx * 0.04) } : {}),
           }}
         >
           <div style={{ fontSize: px(raspored.ime), fontWeight: 800, lineHeight: 1.1 }}>{tekst.ime}</div>
