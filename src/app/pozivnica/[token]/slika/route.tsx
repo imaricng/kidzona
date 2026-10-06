@@ -8,6 +8,21 @@ import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 export const runtime = "nodejs";
 
 /**
+ * Crtanje se dovrši prije odgovora: ImageResponse inače crta usput, pa greška
+ * stigne tek kad je odgovor već krenuo i završi kao prazna stranica greške.
+ */
+async function uPng(slika: ImageResponse): Promise<Response> {
+  const bajtovi = await slika.arrayBuffer();
+  return new Response(bajtovi, {
+    headers: {
+      "Content-Type": "image/png",
+      "Content-Length": String(bajtovi.byteLength),
+      "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+    },
+  });
+}
+
+/**
  * Fontovi za crtanje. Satori nema sistemske fontove, pa ih učitavamo sami
  * (woff s hrvatskim znakovima) i čuvamo po instanci poslužitelja.
  */
@@ -72,7 +87,8 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
 
   // Bez predloška crtamo jednostavnu pozivnicu u bojama teme.
   if (!predlozak || !slika) {
-    return new ImageResponse(
+    return uPng(
+      new ImageResponse(
       (
         <div
           style={{
@@ -95,7 +111,7 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
         </div>
       ),
       { width: SIRINA, height: Math.round(SIRINA * 1.414), fonts },
-    );
+    ));
   }
 
   const visina = Math.round((SIRINA * predlozak.slikaVisina) / predlozak.slikaSirina);
@@ -120,7 +136,8 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
   const poravnanje =
     predlozak.stil.poravnanje === "gore" ? "flex-start" : predlozak.stil.poravnanje === "dolje" ? "flex-end" : "center";
 
-  return new ImageResponse(
+  return uPng(
+    new ImageResponse(
     (
       <div style={{ display: "flex", position: "relative", width: "100%", height: "100%" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -155,5 +172,5 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
       </div>
     ),
     { width: SIRINA, height: visina, fonts },
-  );
+  ));
 }
