@@ -16,7 +16,15 @@ import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
 import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu } from "@/lib/reservations";
 import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
-import { pozivnicaUrl, whatsappBroj, whatsappPoruka } from "@/lib/pozivnica";
+import { pozivnicaUrl } from "@/lib/pozivnica";
+import {
+  porukaPodsjetnika,
+  porukaPotvrde,
+  porukaPozivnice,
+  porukaUpita,
+  porukaZahvale,
+  whatsappVeza,
+} from "@/lib/whatsapp";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { odbijUpitAkcija, odobriUpitAkcija, spremiIzmjene } from "../akcije";
 
@@ -142,7 +150,23 @@ export default async function RezervacijaDetalj({
   const nedostaje = nedostajuciPodaci(r);
   // Pozivnice: poveznica, WhatsApp broj roditelja i postoji li predložak za temu/igraonicu.
   const vezaPozivnice = pozivnicaUrl(env.appUrl, r.qrToken);
-  const waBroj = whatsappBroj(r.phone);
+  // WhatsApp poruke se ne šalju s poslužitelja — pripremamo tekst, osoblje klikne i pošalje.
+  const zaPoruku = {
+    parentName: r.parentName,
+    childName: r.childName,
+    code: r.code,
+    date: r.date,
+    slotStart: r.slotStart,
+    slotEnd: r.slotEnd,
+    roomName: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
+  };
+  const wa = {
+    upit: whatsappVeza(r.phone, porukaUpita(zaPoruku)),
+    potvrda: whatsappVeza(r.phone, porukaPotvrde(zaPoruku, `${env.appUrl}/potvrda/${r.code}?k=${r.qrToken}`)),
+    podsjetnik: whatsappVeza(r.phone, porukaPodsjetnika(zaPoruku)),
+    zahvala: whatsappVeza(r.phone, porukaZahvale(zaPoruku, env.reviewUrl)),
+    pozivnica: whatsappVeza(r.phone, porukaPozivnice(vezaPozivnice, r.childName)),
+  };
   const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
 
   return (
@@ -183,6 +207,11 @@ export default async function RezervacijaDetalj({
             Poslan {formatDatumVrijeme(r.createdAt)}. Upit još ne zauzima termin. Po potrebi ga najprije uredite (niže),
             zatim odobrite ili odbijte — kupac dobiva obavijest e-poštom.
           </p>
+          {wa.upit && (
+            <p className="mt-3">
+              <WhatsAppGumb href={wa.upit} naziv="Javi se roditelju na WhatsApp" />
+            </p>
+          )}
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <form action={odobriUpitAkcija} className="flex flex-col rounded-2xl bg-mint-500/10 p-4">
               <input type="hidden" name="code" value={r.code} />
@@ -298,16 +327,7 @@ export default async function RezervacijaDetalj({
                 <a href={vezaPozivnice} target="_blank" rel="noopener noreferrer" className="btn-secondary">
                   👀 Otvori pozivnicu
                 </a>
-                {waBroj && (
-                  <a
-                    href={`https://wa.me/${waBroj}?text=${encodeURIComponent(whatsappPoruka(vezaPozivnice, r.childName))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary"
-                  >
-                    💬 Pošalji WhatsAppom
-                  </a>
-                )}
+                {wa.pozivnica && <WhatsAppGumb href={wa.pozivnica} naziv="Pošalji WhatsAppom" />}
                 {r.email && (
                   <Akcija
                     action={posaljiPozivnicuAkcija.bind(null, code)}
@@ -332,6 +352,9 @@ export default async function RezervacijaDetalj({
             <Akcija action={promijeniStatus.bind(null, code, "zavrseno")} label="Označi završeno" />
             {r.email && <Akcija action={posaljiPodsjetnik.bind(null, code)} label="📨 Pošalji podsjetnik" />}
             {r.email && <Akcija action={posaljiZahvalu.bind(null, code)} label="💛 Pošalji zahvalu i molbu za recenziju" />}
+            {wa.potvrda && <WhatsAppGumb href={wa.potvrda} naziv="Potvrda na WhatsApp" />}
+            {wa.podsjetnik && <WhatsAppGumb href={wa.podsjetnik} naziv="Podsjetnik na WhatsApp" />}
+            {wa.zahvala && <WhatsAppGumb href={wa.zahvala} naziv="Zahvala na WhatsApp" />}
             {racun && <a href={`/admin/racun/${racun.id}`} target="_blank" className="btn-secondary">🧾 Ispis računa (PDF)</a>}
             <form action={otkaziUzPovrat.bind(null, code)}>
               <ConfirmSubmit poruka={`Otkazati ${code} uz povrat uplaćenog iznosa?`} className="btn-secondary !text-red-600">
@@ -440,5 +463,17 @@ function Red({ n, v }: { n: string; v: string }) {
       <dt className="text-ink-400">{n}</dt>
       <dd className="whitespace-pre-line text-right font-medium text-ink-800">{v}</dd>
     </div>
+  );
+}
+
+/**
+ * Gumb koji otvara WhatsApp s pripremljenom porukom. Poruku šalje osoblje
+ * jednim klikom — aplikacija je ne šalje sama (vidi `lib/whatsapp.ts`).
+ */
+function WhatsAppGumb({ href, naziv }: { href: string; naziv: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+      💬 {naziv}
+    </a>
   );
 }

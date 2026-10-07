@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  danUAkuzativu,
-  potvrdaDolaska,
-  predlozakUrl,
-  provjeriPredlozak,
-  temaIzAdrese,
-  whatsappBroj,
-  whatsappPoruka,
-} from "@/lib/pozivnica";
+import { danUAkuzativu, potvrdaDolaska, predlozakUrl, provjeriPredlozak, temaIzAdrese } from "@/lib/pozivnica";
 import { popuniTekst, PRIMJER_VRIJEDNOSTI, retciPozivnice } from "@/lib/pozivnica-tekst";
 import { analizirajStil } from "@/lib/okvir-detekcija";
 import { omjerOkvira, rasporedTeksta } from "@/lib/pozivnica-raspored";
@@ -77,25 +69,6 @@ describe("danUAkuzativu", () => {
     // 2030-06-02 00:00 u Zagrebu = 2030-06-01 22:00 UTC; poslužitelj u UTC-u
     // bi bez zone rekao "u subotu".
     expect(danUAkuzativu(new Date("2030-06-01T22:00:00Z"))).toBe("u nedjelju");
-  });
-});
-
-describe("whatsappBroj", () => {
-  it("domaći broj dobiva hrvatski pozivni", () => {
-    expect(whatsappBroj("095 537 8559")).toBe("385955378559");
-  });
-  it("prihvaća +385 i 00385", () => {
-    expect(whatsappBroj("+385 95 537 8559")).toBe("385955378559");
-    expect(whatsappBroj("00385955378559")).toBe("385955378559");
-  });
-  it("prekratak ili prazan broj nije upotrebljiv", () => {
-    expect(whatsappBroj("123")).toBeNull();
-    expect(whatsappBroj(null)).toBeNull();
-    expect(whatsappBroj("")).toBeNull();
-  });
-  it("poruka nosi poveznicu na pozivnicu", () => {
-    expect(whatsappPoruka("https://x.hr/pozivnica/abc", "Mia")).toContain("https://x.hr/pozivnica/abc");
-    expect(whatsappPoruka("https://x.hr/pozivnica/abc", "Mia")).toContain("(Mia)");
   });
 });
 

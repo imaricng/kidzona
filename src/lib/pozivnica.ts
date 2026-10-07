@@ -75,29 +75,6 @@ export function potvrdaDolaska(phone: string | null | undefined): string | null 
   return telefon ? `Dolazak potvrdi na broj ${telefon}.` : null;
 }
 
-/**
- * Broj telefona u obliku koji traži `wa.me` (samo cifre, s pozivnim brojem).
- * Domaći broj bez pozivnog dobiva hrvatski (385). Vraća `null` kad broj nema
- * dovoljno cifara da bi bio upotrebljiv.
- */
-export function whatsappBroj(phone: string | null | undefined): string | null {
-  if (!phone) return null;
-  let d = phone.replace(/[^\d+]/g, "");
-  if (d.startsWith("+")) d = d.slice(1);
-  else if (d.startsWith("00")) d = d.slice(2);
-  else if (d.startsWith("0")) d = `385${d.slice(1)}`;
-  return d.length >= 11 ? d : null;
-}
-
-/** Poruka koju administrator šalje roditelju WhatsAppom (poveznica na pozivnicu). */
-export function whatsappPoruka(poveznica: string, childName: string | null): string {
-  const ime = childName?.trim();
-  return (
-    `Pozdrav! Pozivnica za rođendan${ime ? ` (${ime})` : ""} je gotova 🎉 ` +
-    `Otvorite je i proslijedite gostima: ${poveznica}`
-  );
-}
-
 /** Oznaka generičkog predloška (bez teme) u adresi slike. */
 export const BEZ_TEME = "bez-teme";
 
