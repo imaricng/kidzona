@@ -12,6 +12,8 @@ import { zahtijevajOsoblje } from "@/lib/admin-sesija";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { RezervacijaForma } from "@/components/admin/RezervacijaForma";
+import { PosaljiPozivnicuWhatsapp } from "@/components/admin/PosaljiPozivnicuWhatsapp";
+import { oznaciWhatsappPozivnicu } from "../../pozivnice/akcije";
 import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
 import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu } from "@/lib/reservations";
@@ -30,11 +32,12 @@ import { odbijUpitAkcija, odobriUpitAkcija, spremiIzmjene } from "../akcije";
 
 export const dynamic = "force-dynamic";
 
-const KANALI: Record<string, string> = { email: "e-pošta", sms: "SMS", kalendar: "kalendar" };
+const KANALI: Record<string, string> = { email: "e-pošta", sms: "SMS", whatsapp: "WhatsApp", kalendar: "kalendar" };
 const STATUSI_PORUKA: Record<string, string> = {
   poslano: "poslano",
   greska: "NIJE USPJELO",
   logirano: "samo zapisano (slanje nije uključeno)",
+  rucno: "poslalo osoblje",
 };
 
 const PORUKE: Record<string, string> = {
@@ -308,11 +311,18 @@ export default async function RezervacijaDetalj({
 
           {potvrdjena && (
             <>
-              <p className="mt-3 text-sm text-ink-600">
-                {r.pozivnicaPoslanaAt
-                  ? `✅ Poslana roditelju ${formatDatumVrijeme(r.pozivnicaPoslanaAt)}.`
-                  : "Pozivnica još nije poslana."}
-              </p>
+              <ul className="mt-3 space-y-1 text-sm text-ink-600">
+                <li>
+                  {r.pozivnicaWhatsappAt
+                    ? `✅ WhatsApp: poslana ${formatDatumVrijeme(r.pozivnicaWhatsappAt)}.`
+                    : "💬 WhatsApp: još nije poslana."}
+                </li>
+                <li>
+                  {r.pozivnicaPoslanaAt
+                    ? `✅ E-pošta: poslana ${formatDatumVrijeme(r.pozivnicaPoslanaAt)}.`
+                    : "📨 E-pošta: još nije poslana."}
+                </li>
+              </ul>
               {!predlozak && (
                 <p className="mt-2 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
                   Nema predloška za {r.room.name}
@@ -329,7 +339,13 @@ export default async function RezervacijaDetalj({
                 <a href={vezaPozivnice} target="_blank" rel="noopener noreferrer" className="btn-secondary">
                   👀 Otvori pozivnicu
                 </a>
-                {wa.pozivnica && <WhatsAppGumb href={wa.pozivnica} naziv="Pošalji WhatsAppom" />}
+                <PosaljiPozivnicuWhatsapp
+                  slikaUrl={`/pozivnica/${r.qrToken}/slika`}
+                  waVeza={wa.pozivnica}
+                  poruka={porukaPozivnice(vezaPozivnice, r.childName)}
+                  nazivDatoteke={`pozivnica-${r.childName?.trim().replace(/\s+/g, "-").toLowerCase() || r.code}.jpg`}
+                  oznaci={oznaciWhatsappPozivnicu.bind(null, r.code)}
+                />
                 {r.email && (
                   <Akcija
                     action={posaljiPozivnicuAkcija.bind(null, code)}

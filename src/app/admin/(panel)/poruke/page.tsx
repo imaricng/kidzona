@@ -25,6 +25,7 @@ const VRSTE: Record<string, string> = {
 
 const STATUSI: Record<string, { tekst: string; klase: string }> = {
   poslano: { tekst: "poslano", klase: "bg-mint-500/15 text-mint-600" },
+  rucno: { tekst: "poslalo osoblje", klase: "bg-mint-500/15 text-mint-600" },
   greska: { tekst: "nije uspjelo", klase: "bg-red-50 text-red-700" },
   logirano: { tekst: "samo zapisano", klase: "bg-ink-100 text-ink-500" },
 };

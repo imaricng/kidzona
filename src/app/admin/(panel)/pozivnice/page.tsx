@@ -12,6 +12,8 @@ import { pozivnicaUrl } from "@/lib/pozivnica";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { porukaPozivnice, whatsappVeza } from "@/lib/whatsapp";
 import { posaljiPozivnicu } from "@/lib/reservations";
+import { PosaljiPozivnicuWhatsapp } from "@/components/admin/PosaljiPozivnicuWhatsapp";
+import { oznaciWhatsappPozivnicu } from "./akcije";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Pozivnice" };
@@ -52,6 +54,7 @@ export default async function AdminPozivnicePage({
         imaPredlozak: !!predlozak,
         tematski: !!predlozak?.themeId,
         veza,
+        poruka: porukaPozivnice(veza, r.childName),
         wa: whatsappVeza(r.phone, porukaPozivnice(veza, r.childName)),
       };
     }),
@@ -80,7 +83,7 @@ export default async function AdminPozivnicePage({
         <p className="mt-6 text-sm text-ink-500">Nema nadolazećih potvrđenih proslava.</p>
       ) : (
         <div className="mt-6 space-y-3">
-          {redovi.map(({ r, imaPredlozak, tematski, veza, wa }) => (
+          {redovi.map(({ r, imaPredlozak, tematski, veza, poruka: tekstPoruke, wa }) => (
             <div key={r.id} className="card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -99,13 +102,18 @@ export default async function AdminPozivnicePage({
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {r.pozivnicaPoslanaAt ? (
-                    <span className="chip bg-mint-500/15 text-mint-600">poslano {formatDatumVrijeme(r.pozivnicaPoslanaAt)}</span>
-                  ) : r.pozivniceDigitalne ? (
-                    <span className="chip bg-sun-100 text-brand-900">traženo, nije poslano</span>
-                  ) : (
-                    <span className="chip bg-ink-100 text-ink-500">nije traženo</span>
+                  {r.pozivnicaWhatsappAt && (
+                    <span className="chip bg-mint-500/15 text-mint-600">💬 {formatDatumVrijeme(r.pozivnicaWhatsappAt)}</span>
                   )}
+                  {r.pozivnicaPoslanaAt && (
+                    <span className="chip bg-mint-500/15 text-mint-600">📨 {formatDatumVrijeme(r.pozivnicaPoslanaAt)}</span>
+                  )}
+                  {!r.pozivnicaWhatsappAt && !r.pozivnicaPoslanaAt &&
+                    (r.pozivniceDigitalne ? (
+                      <span className="chip bg-sun-100 text-brand-900">traženo, nije poslano</span>
+                    ) : (
+                      <span className="chip bg-ink-100 text-ink-500">nije traženo</span>
+                    ))}
                   {r.pozivniceFizicke && <span className="chip bg-brand-50 text-brand-600">tiskane</span>}
                   {!imaPredlozak && <span className="chip bg-red-50 text-red-700">nema predloška</span>}
                   {imaPredlozak && !tematski && r.theme && (
@@ -118,11 +126,14 @@ export default async function AdminPozivnicePage({
                 <a href={veza} target="_blank" rel="noopener noreferrer" className="btn-secondary !py-1 !text-xs">
                   👀 Otvori
                 </a>
-                {wa && (
-                  <a href={wa} target="_blank" rel="noopener noreferrer" className="btn-secondary !py-1 !text-xs">
-                    💬 WhatsApp
-                  </a>
-                )}
+                <PosaljiPozivnicuWhatsapp
+                  slikaUrl={`/pozivnica/${r.qrToken}/slika`}
+                  waVeza={wa}
+                  poruka={tekstPoruke}
+                  nazivDatoteke={`pozivnica-${r.childName?.trim().replace(/\s+/g, "-").toLowerCase() || r.code}.jpg`}
+                  oznaci={oznaciWhatsappPozivnicu.bind(null, r.code)}
+                  malen
+                />
                 {r.email && (
                   <form action={posaljiAkcija}>
                     <input type="hidden" name="code" value={r.code} />

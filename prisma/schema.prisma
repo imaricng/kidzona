@@ -250,7 +250,8 @@ model Reservation {
   // fizicke se preuzimaju u igraonici po dogovoru.
   pozivniceDigitalne Boolean  @default(false)
   pozivniceFizicke   Boolean  @default(false)
-  pozivnicaPoslanaAt DateTime?
+  pozivnicaPoslanaAt DateTime? // poslana e-poštom (automatski ili ručno)
+  pozivnicaWhatsappAt DateTime? // osoblje ju je poslalo WhatsAppom
 
   numChildren Int
   numAdults   Int @default(0) // broj odraslih gostiju (kapacitet/hrana)
