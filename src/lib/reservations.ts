@@ -278,20 +278,27 @@ async function posaljiPotvrdu(r: RezervacijaSPovezanim, kupcu: boolean): Promise
 
 /**
  * Digitalna pozivnica roditelju. Šalje se tek kad je rezervacija potvrđena —
- * prije toga termin nije siguran, a pozivnica nosi datum i vrijeme. Šalje se
- * jednom (`pozivnicaPoslanaAt`); `ponovno` je za ručno slanje iz administracije.
+ * prije toga termin nije siguran, a pozivnica nosi datum i vrijeme.
+ *
+ * Automatski (`rucno = false`) ide samo kad je roditelj zatražio digitalne
+ * pozivnice i samo jednom (`pozivnicaPoslanaAt`). Ručno iz administracije šalje
+ * se svakoj potvrđenoj rezervaciji — i onima dogovorenima prije nego što smo
+ * pozivnice uveli; tada se na rezervaciji i uključi oznaka digitalnih pozivnica.
  */
-export async function posaljiPozivnicu(r: RezervacijaSPovezanim, ponovno = false): Promise<RezultatRadnje> {
-  if (!r.pozivniceDigitalne) return { ok: false, poruka: "Roditelj nije zatražio digitalne pozivnice." };
+export async function posaljiPozivnicu(r: RezervacijaSPovezanim, rucno = false): Promise<RezultatRadnje> {
+  if (!rucno && !r.pozivniceDigitalne) return { ok: false, poruka: "Roditelj nije zatražio digitalne pozivnice." };
   if (!STATUSI_ZAUZIMAJU_TERMIN.includes(r.status)) return { ok: false, poruka: "Pozivnica se šalje tek nakon potvrde rezervacije." };
   if (!r.email) return { ok: false, poruka: "Rezervacija nema upisanu adresu e-pošte." };
-  if (r.pozivnicaPoslanaAt && !ponovno) return { ok: false, poruka: "Pozivnica je već poslana." };
+  if (r.pozivnicaPoslanaAt && !rucno) return { ok: false, poruka: "Pozivnica je već poslana." };
 
   const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
   const retci = retciPozivnice({ ...r, igraonica: r.room.name }, predlozak?.tekstPredlozak);
   const p = predlozakPozivnice(podaciZaPoruku(r), pozivnicaUrl(env.appUrl, r.qrToken), retci.join(" "));
   await posaljiIZabiljezi({ tip: "pozivnica", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
-  await prisma.reservation.update({ where: { id: r.id }, data: { pozivnicaPoslanaAt: new Date() } });
+  await prisma.reservation.update({
+    where: { id: r.id },
+    data: { pozivnicaPoslanaAt: new Date(), pozivniceDigitalne: true },
+  });
   return { ok: true };
 }
 

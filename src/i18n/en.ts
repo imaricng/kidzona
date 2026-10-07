@@ -151,6 +151,8 @@ export const en = {
     telefon: "+385 95 537 8559",
     email: "kidzonang@gmail.com",
     whatsapp: "385955378559",
+    // Broj s WhatsApp Business računom — s njega osoblje šalje poruke roditeljima.
+    whatsappPoslovni: "091 538 7202",
     facebook: "https://www.facebook.com/profile.php?id=61594003481150",
     instagram: "https://www.instagram.com/partykidzonang/",
     pratite: "Follow us",

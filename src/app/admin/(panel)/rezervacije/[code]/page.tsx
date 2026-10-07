@@ -284,12 +284,14 @@ export default async function RezervacijaDetalj({
         </section>
       </div>
 
-      {/* Pozivnice */}
-      {(r.pozivniceDigitalne || r.pozivniceFizicke) && (
+      {/* Pozivnice — i za rezervacije dogovorene prije nego smo ih uveli */}
+      {(potvrdjena || r.pozivniceDigitalne || r.pozivniceFizicke) && (
         <section className="card mt-6">
           <h2 className="font-semibold text-ink-800">💌 Pozivnice</h2>
           <p className="mt-1 text-sm text-ink-500">
-            {[r.pozivniceDigitalne ? "digitalne" : null, r.pozivniceFizicke ? "tiskane" : null].filter(Boolean).join(" + ")} — zatražio roditelj pri rezervaciji
+            {r.pozivniceDigitalne || r.pozivniceFizicke
+              ? `${[r.pozivniceDigitalne ? "digitalne" : null, r.pozivniceFizicke ? "tiskane" : null].filter(Boolean).join(" + ")} — zatražio roditelj pri rezervaciji`
+              : "Roditelj nije tražio pozivnice, ali je možete poslati — pozivnica prati temu proslave."}
           </p>
 
           {r.pozivniceFizicke && (
@@ -304,7 +306,7 @@ export default async function RezervacijaDetalj({
             </p>
           )}
 
-          {r.pozivniceDigitalne && potvrdjena && (
+          {potvrdjena && (
             <>
               <p className="mt-3 text-sm text-ink-600">
                 {r.pozivnicaPoslanaAt
@@ -337,6 +339,9 @@ export default async function RezervacijaDetalj({
               </div>
               <p className="mt-2 text-xs text-ink-400">
                 Poveznica: <span className="break-all">{vezaPozivnice}</span>
+              </p>
+              <p className="mt-1 text-xs text-ink-400">
+                WhatsApp šalje račun na kojem ste prijavljeni — za poslovni broj {hr.kontakt.whatsappPoslovni} otvorite WhatsApp Business.
               </p>
             </>
           )}
