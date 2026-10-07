@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { hr } from "@/i18n/hr";
 import { formatDatumDugi } from "@/lib/format";
-import { tekstPozivnice, predlozakUrl } from "@/lib/pozivnica";
+import { potvrdaDolaska, predlozakUrl } from "@/lib/pozivnica";
+import { retciPozivnice } from "@/lib/pozivnica-tekst";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { PrintButton } from "@/components/PrintButton";
@@ -42,9 +43,10 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
   // Pozivnica postoji samo za potvrđenu proslavu (upit još nema siguran termin).
   if (!r || !STATUSI_ZAUZIMAJU_TERMIN.includes(r.status)) notFound();
 
-  const tekst = tekstPozivnice(r);
   // Predložak teme, a ako ga nema — opći predložak igraonice.
   const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
+  const retci = retciPozivnice({ ...r, igraonica: r.room.name }, predlozak?.tekstPredlozak);
+  const potvrda = potvrdaDolaska(r.phone);
   const gradijent = r.theme?.gradient ?? "from-brand-400 to-berry-400";
 
   return (
@@ -55,7 +57,7 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
             <PozivnicaSlika
               src={predlozakUrl(predlozak.themeId, predlozak.roomId)}
               alt={`Pozivnica — ${r.theme?.name ?? "proslava"}`}
-              tekst={tekst}
+              retci={retci}
               okvir={predlozak.okvir}
               stil={predlozak.stil}
               slikaSirina={predlozak.slikaSirina}
@@ -65,14 +67,16 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
             // Bez predloška tekst nosi sam zaglavlje pozivnice.
             <div className={`bg-gradient-to-br ${gradijent} px-6 py-10 text-center text-white`}>
               <div className="text-5xl" aria-hidden>{r.theme?.emoji ?? "🎉"}</div>
-              <p className="mt-3 font-display text-2xl font-extrabold">{tekst.ime}</p>
-              <p className="mt-2">{tekst.slavi}</p>
-              <p className="mt-1">{tekst.dodji}</p>
+              {retci.map((redak, i) => (
+                <p key={i} className={i === 0 ? "mt-3 font-display text-2xl font-extrabold" : "mt-2"}>
+                  {redak}
+                </p>
+              ))}
             </div>
           )}
 
           <div className="px-6 py-7 text-center">
-            {tekst.potvrda && <p className="text-ink-700">{tekst.potvrda}</p>}
+            {potvrda && <p className="text-ink-700">{potvrda}</p>}
 
             <dl className="mt-5 grid gap-2 rounded-2xl bg-brand-50 px-4 py-4 text-sm text-ink-700">
               <div className="flex justify-between gap-4">

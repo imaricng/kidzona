@@ -14,7 +14,9 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { izracunajCijenu } from "@/lib/pricing";
 import { sastaviNapomene } from "@/lib/napomene";
-import { pozivnicaUrl, tekstPozivnice } from "@/lib/pozivnica";
+import { pozivnicaUrl } from "@/lib/pozivnica";
+import { retciPozivnice } from "@/lib/pozivnica-tekst";
+import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { jeDozvoljenPocetak, krajTermina, lokalniISO, preklapaSe, type Termin } from "@/lib/slots";
 import { upisiProslavuUKalendar, ukloniProslavuIzKalendara } from "@/lib/kalendar";
 import { kodRezervacije, qrToken, brojRacuna } from "@/lib/codes";
@@ -285,8 +287,9 @@ export async function posaljiPozivnicu(r: RezervacijaSPovezanim, ponovno = false
   if (!r.email) return { ok: false, poruka: "Rezervacija nema upisanu adresu e-pošte." };
   if (r.pozivnicaPoslanaAt && !ponovno) return { ok: false, poruka: "Pozivnica je već poslana." };
 
-  const tekst = tekstPozivnice(r);
-  const p = predlozakPozivnice(podaciZaPoruku(r), pozivnicaUrl(env.appUrl, r.qrToken), tekst.poziv);
+  const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
+  const retci = retciPozivnice({ ...r, igraonica: r.room.name }, predlozak?.tekstPredlozak);
+  const p = predlozakPozivnice(podaciZaPoruku(r), pozivnicaUrl(env.appUrl, r.qrToken), retci.join(" "));
   await posaljiIZabiljezi({ tip: "pozivnica", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
   await prisma.reservation.update({ where: { id: r.id }, data: { pozivnicaPoslanaAt: new Date() } });
   return { ok: true };

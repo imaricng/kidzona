@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
-import { tekstPozivnice } from "@/lib/pozivnica";
+import { retciPozivnice } from "@/lib/pozivnica-tekst";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { omjerOkvira, rasporedTeksta } from "@/lib/pozivnica-raspored";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
@@ -76,9 +76,9 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
     return new Response("Pozivnica nije dostupna.", { status: 404 });
   }
 
-  const tekst = tekstPozivnice(r);
   const osnova = new URL(req.url).origin;
   const [predlozak, fonts] = await Promise.all([predlozakZaProslavu(r.themeId, r.roomId), dohvatiFontove(osnova)]);
+  const retci = retciPozivnice({ ...r, igraonica: r.room.name }, predlozak?.tekstPredlozak);
   // Sliku predloška učitavamo iz baze i ugrađujemo je u crtež: bez vanjskog
   // zahtjeva crtanje ne ovisi o tome je li aplikacija dostupna sama sebi.
   const slika = predlozak
@@ -109,12 +109,14 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
             ...osnovniStil,
           }}
         >
-          <div style={{ fontSize: 96, fontWeight: 800 }}>{tekst.ime}</div>
-          <div style={{ fontSize: 44, marginTop: 24 }}>{tekst.slavi}</div>
-          <div style={{ fontSize: 44, marginTop: 12 }}>{tekst.dodji}</div>
+          {retci.map((redak, i) => (
+            <div key={i} style={{ fontSize: i === 0 ? 96 : 44, fontWeight: i === 0 ? 800 : 400, marginTop: i === 0 ? 0 : 18 }}>
+              {redak}
+            </div>
+          ))}
         </div>
       ),
-      { width: SIRINA, height: Math.round(SIRINA * 1.414), fonts },
+      { width: SIRINA, height: Math.round(SIRINA * 1.414), fonts, emoji: "noto" },
     ));
   }
 
@@ -122,7 +124,7 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
   const okvir = predlozak.okvir;
   const okvirSirinaPx = (okvir.sirina / 100) * SIRINA;
   const raspored = rasporedTeksta(
-    tekst,
+    retci,
     omjerOkvira(okvir, predlozak.slikaSirina, predlozak.slikaVisina),
     predlozak.stil.velicinaSkala,
   );
@@ -165,16 +167,22 @@ async function nacrtaj(req: Request, { token }: { token: string }) {
             ...(podloga ? { backgroundColor: podloga, borderRadius: Math.round(okvirSirinaPx * 0.04) } : {}),
           }}
         >
-          <div style={{ fontSize: px(raspored.ime), fontWeight: 800, lineHeight: 1.1 }}>{tekst.ime}</div>
-          <div style={{ fontSize: px(raspored.slavi), lineHeight: 1.3, marginTop: px(raspored.razmak) }}>
-            {tekst.slavi}
-          </div>
-          <div style={{ fontSize: px(raspored.dodji), lineHeight: 1.3, marginTop: px(raspored.razmak * 0.6) }}>
-            {tekst.dodji}
-          </div>
+          {retci.map((redak, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: px(raspored.velicine[i]),
+                fontWeight: i === 0 ? 800 : 400,
+                lineHeight: i === 0 ? 1.1 : 1.3,
+                marginTop: i === 0 ? 0 : px(raspored.razmak * (i === 1 ? 1 : 0.6)),
+              }}
+            >
+              {redak}
+            </div>
+          ))}
         </div>
       </div>
     ),
-    { width: SIRINA, height: visina, fonts },
+    { width: SIRINA, height: visina, fonts, emoji: "noto" },
   ));
 }

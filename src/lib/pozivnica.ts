@@ -22,19 +22,6 @@ export interface PodaciPozivnice {
   phone: string | null;
 }
 
-export interface TekstPozivnice {
-  /** 1. redak — ime i prezime slavljenika (istaknuto). */
-  ime: string;
-  /** 2. redak — koji rođendan slavi. */
-  slavi: string;
-  /** 3. redak — kad se proslava održava. */
-  dodji: string;
-  /** Molba za potvrdu dolaska; `null` kad broj telefona nije upisan. */
-  potvrda: string | null;
-  /** Sva tri retka u jednom nizu (e-pošta, sažeci). */
-  poziv: string;
-}
-
 const AKUZATIV: Record<string, string> = {
   ponedjeljak: "u ponedjeljak",
   utorak: "u utorak",
@@ -58,9 +45,11 @@ export function danUAkuzativu(date: Date | string): string {
   return AKUZATIV[naziv.toLowerCase()] ?? `u ${naziv.toLowerCase()}`;
 }
 
-/** Ime slavljenika za pozivnicu (bez imena: neutralan oblik). */
-function imeSlavljenika(childName: string | null): string {
-  return childName?.trim() || "Slavljenik";
+/** Ime slavljenika na pozivnici: puno (s prezimenom) i samo ime. */
+export function imeNaPozivnici(p: PodaciPozivnice): { puno: string; kratko: string } {
+  const kratko = p.childName?.trim() || "Slavljenik";
+  const prezime = p.childLastName?.trim();
+  return { kratko, puno: prezime ? `${kratko} ${prezime}` : kratko };
 }
 
 /**
@@ -75,33 +64,15 @@ export function godineNaProslavi(p: PodaciPozivnice): number | null {
   return godine > 0 && godine < 30 ? godine : null;
 }
 
-/**
- * Tekst pozivnice u tri retka:
- *   Mia Horvat
- *   slavi 5. rođendan i zove te da se pridružiš.
- *   Dođi u subotu, 01. 06. 2030. od 17:00 do 19:00 sati.
- */
-export function tekstPozivnice(p: PodaciPozivnice): TekstPozivnice {
-  const prezime = p.childLastName?.trim();
-  const ime = [imeSlavljenika(p.childName), prezime].filter(Boolean).join(" ");
-  const godine = godineNaProslavi(p);
-  const slavi = godine
-    ? `slavi ${godine}. rođendan i zove te da se pridružiš.`
-    : `slavi rođendan i zove te da se pridružiš.`;
-  const dodji = `Dođi ${danUAkuzativu(p.date)}, ${formatDatum(p.date)} od ${p.slotStart} do ${p.slotEnd} sati.`;
-  const telefon = p.phone?.trim();
-  return {
-    ime,
-    slavi,
-    dodji,
-    potvrda: telefon ? `Dolazak potvrdi na broj ${telefon}.` : null,
-    poziv: `${ime} ${slavi} ${dodji}`,
-  };
-}
-
 /** Javna adresa pozivnice (token iz rezervacije — nije pogodiv). */
 export function pozivnicaUrl(appUrl: string, qrToken: string): string {
   return `${appUrl.replace(/\/$/, "")}/pozivnica/${qrToken}`;
+}
+
+/** Molba za potvrdu dolaska; `null` kad broj telefona nije upisan. */
+export function potvrdaDolaska(phone: string | null | undefined): string | null {
+  const telefon = phone?.trim();
+  return telefon ? `Dolazak potvrdi na broj ${telefon}.` : null;
 }
 
 /**

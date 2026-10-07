@@ -31,12 +31,6 @@ export interface StilPozivnice {
   poravnanje: string; // "gore" | "sredina" | "dolje"
 }
 
-export interface TekstNaPozivnici {
-  ime: string;
-  slavi: string;
-  dodji: string;
-}
-
 export const ZADANI_STIL_POZIVNICE: StilPozivnice = {
   svijetliTekst: false,
   podloga: "nema",
@@ -62,7 +56,7 @@ function poravnanjeKlasa(poravnanje: string): string {
 export function PozivnicaSlika({
   src,
   alt,
-  tekst,
+  retci,
   okvir,
   stil = ZADANI_STIL_POZIVNICE,
   slikaSirina = 1000,
@@ -70,13 +64,14 @@ export function PozivnicaSlika({
 }: {
   src: string;
   alt: string;
-  tekst: TekstNaPozivnici;
+  /** Retci pozivnice; prvi je naslovni. */
+  retci: string[];
   okvir: OkvirPozivnice;
   stil?: StilPozivnice;
   slikaSirina?: number;
   slikaVisina?: number;
 }) {
-  const raspored = rasporedTeksta(tekst, omjerOkvira(okvir, slikaSirina, slikaVisina), stil.velicinaSkala);
+  const raspored = rasporedTeksta(retci, omjerOkvira(okvir, slikaSirina, slikaVisina), stil.velicinaSkala);
   const podloga = bojaPodloge(stil);
   const fontKlasa = stil.font === "sans" ? "" : "font-display";
 
@@ -103,21 +98,19 @@ export function PozivnicaSlika({
           borderRadius: podloga ? "4cqw" : undefined,
         }}
       >
-        <p className={`${fontKlasa} font-extrabold`} style={{ fontSize: `${raspored.ime}cqw`, lineHeight: 1.1 }}>
-          {tekst.ime}
-        </p>
-        <p
-          className={fontKlasa}
-          style={{ fontSize: `${raspored.slavi}cqw`, lineHeight: 1.3, marginTop: `${raspored.razmak}cqw` }}
-        >
-          {tekst.slavi}
-        </p>
-        <p
-          className={fontKlasa}
-          style={{ fontSize: `${raspored.dodji}cqw`, lineHeight: 1.3, marginTop: `${raspored.razmak * 0.6}cqw` }}
-        >
-          {tekst.dodji}
-        </p>
+        {retci.map((redak, i) => (
+          <p
+            key={i}
+            className={`${fontKlasa} ${i === 0 ? "font-extrabold" : ""}`}
+            style={{
+              fontSize: `${raspored.velicine[i]}cqw`,
+              lineHeight: i === 0 ? 1.1 : 1.3,
+              marginTop: i === 0 ? 0 : `${raspored.razmak * (i === 1 ? 1 : 0.6)}cqw`,
+            }}
+          >
+            {redak}
+          </p>
+        ))}
       </div>
     </div>
   );

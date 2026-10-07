@@ -246,10 +246,15 @@ function okvirIzForme(formData: FormData) {
 /** Sprema položaj bijelog okvira (u postocima) za jedan predložak. */
 async function spremiOkvir(formData: FormData) {
   "use server";
+  const tekst = String(formData.get("tekstPredlozak") ?? "").trim();
   await prisma.pozivnicaPredlozak.updateMany({
     where: { themeId: temaIzAdrese(String(formData.get("themeId") || BEZ_TEME)), roomId: String(formData.get("roomId")) },
-    data: okvirIzForme(formData),
+    data: { ...okvirIzForme(formData), tekstPredlozak: tekst || null },
   });
+  // Isti tekst na svim predlošcima — kad se dotjera jednom i vrijedi svuda.
+  if (formData.get("tekstNaSve") === "on") {
+    await prisma.pozivnicaPredlozak.updateMany({ data: { tekstPredlozak: tekst || null } });
+  }
   revalidatePath("/admin/paketi");
 }
 
@@ -276,7 +281,7 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
     prisma.room.findMany({ orderBy: [{ active: "desc" }, { sortOrder: "asc" }] }),
     prisma.pozivnicaPredlozak.findMany({
       select: { themeId: true, roomId: true, updatedAt: true, okvirTop: true, okvirLijevo: true, okvirSirina: true, okvirVisina: true, tekstSvijetli: true,
-        podloga: true, podlogaProzirnost: true, velicinaSkala: true, font: true, poravnanje: true,
+        podloga: true, podlogaProzirnost: true, velicinaSkala: true, font: true, poravnanje: true, tekstPredlozak: true,
         slikaSirina: true, slikaVisina: true },
     }),
   ]);
@@ -480,7 +485,7 @@ function PredlosciTeme({
   tema: { id: string | null; name: string };
   sobe: { id: string; name: string }[];
   predlosci: { themeId: string | null; roomId: string; updatedAt: Date; okvirTop: number; okvirLijevo: number; okvirSirina: number; okvirVisina: number; tekstSvijetli: boolean;
-    podloga: string; podlogaProzirnost: number; velicinaSkala: number; font: string; poravnanje: string;
+    podloga: string; podlogaProzirnost: number; velicinaSkala: number; font: string; poravnanje: string; tekstPredlozak: string | null;
     slikaSirina: number; slikaVisina: number }[];
   naslov?: string;
 }) {
@@ -518,6 +523,7 @@ function PredlosciTeme({
                     font: p.font,
                     poravnanje: p.poravnanje,
                   }}
+                  pocetniTekst={p.tekstPredlozak}
                   slikaSirina={p.slikaSirina}
                   slikaVisina={p.slikaVisina}
                 />

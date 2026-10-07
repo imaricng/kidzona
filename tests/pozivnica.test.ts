@@ -1,59 +1,67 @@
 import { describe, expect, it } from "vitest";
 import {
   danUAkuzativu,
+  potvrdaDolaska,
   predlozakUrl,
   provjeriPredlozak,
-  tekstPozivnice,
   temaIzAdrese,
   whatsappBroj,
   whatsappPoruka,
 } from "@/lib/pozivnica";
+import { popuniTekst, PRIMJER_VRIJEDNOSTI, retciPozivnice } from "@/lib/pozivnica-tekst";
 import { analizirajStil } from "@/lib/okvir-detekcija";
 import { omjerOkvira, rasporedTeksta } from "@/lib/pozivnica-raspored";
 
-describe("tekstPozivnice", () => {
-  // 1. 6. 2030. je subota.
-  const osnova = { date: new Date("2030-06-01T00:00:00"), slotStart: "17:00", slotEnd: "19:00" };
+/** Prijelaz u novi redak — predložak teksta je višeredni. */
+const ENTER = String.fromCharCode(10);
 
-  it("ispisuje ime i prezime u prvom retku", () => {
-    const t = tekstPozivnice({ ...osnova, childName: "Mia", childLastName: "Horvat", childTurning: 5, phone: null });
-    expect(t.ime).toBe("Mia Horvat");
+describe("popuniTekst", () => {
+  const osnova = { date: new Date("2030-06-01T00:00:00+02:00"), slotStart: "17:00", slotEnd: "19:00" };
+
+  it("zadani tekst daje ime, godine i termin", () => {
+    const retci = retciPozivnice(
+      { ...osnova, childName: "Mia", childLastName: "Horvat", childTurning: 5, phone: null },
+      null,
+    );
+    expect(retci).toEqual([
+      "Mia Horvat",
+      "slavi 5. rođendan i zove te da se pridružiš.",
+      "Dođi u subotu, 01. 06. 2030. od 17:00 do 19:00 sati.",
+    ]);
   });
 
   it("bez prezimena prikazuje samo ime", () => {
-    expect(tekstPozivnice({ ...osnova, childName: "Mia", childLastName: "  ", phone: null }).ime).toBe("Mia");
+    const retci = retciPozivnice({ ...osnova, childName: "Mia", childLastName: "  ", phone: null }, null);
+    expect(retci[0]).toBe("Mia");
   });
 
-  it("drugi redak nosi koju godinu slavljenik puni", () => {
-    const t = tekstPozivnice({ ...osnova, childName: "Mia", childTurning: 5, phone: null });
-    expect(t.slavi).toBe("slavi 5. rođendan i zove te da se pridružiš.");
+  it("godine racuna iz datuma rodenja kad nisu upisane", () => {
+    const retci = retciPozivnice(
+      { ...osnova, childName: "Mia", childBirthDate: new Date("2024-03-10T00:00:00"), phone: null },
+      null,
+    );
+    expect(retci[1]).toBe("slavi 6. rođendan i zove te da se pridružiš.");
   });
 
-  it("godine računa iz datuma rođenja kad nisu upisane", () => {
-    const t = tekstPozivnice({ ...osnova, childName: "Mia", childBirthDate: new Date("2024-03-10T00:00:00"), phone: null });
-    expect(t.slavi).toBe("slavi 6. rođendan i zove te da se pridružiš.");
+  it("redak s praznom varijablom se izostavlja", () => {
+    const retci = retciPozivnice({ ...osnova, childName: "Mia", phone: null }, null);
+    expect(retci).toHaveLength(2);
+    expect(retci.join(" ")).not.toContain("slavi");
   });
 
-  it("bez poznatih godina izostavlja broj", () => {
-    expect(tekstPozivnice({ ...osnova, childName: "Mia", phone: null }).slavi).toBe("slavi rođendan i zove te da se pridružiš.");
+  it("vlastiti tekst s emotikonima i varijablama", () => {
+    const predlozak = ["🎉 {imeKratko} te zove!", "U {igraonica}, {dan} u {od}."].join(ENTER);
+    const retci = popuniTekst(predlozak, PRIMJER_VRIJEDNOSTI);
+    expect(retci).toEqual(["🎉 Mia te zove!", "U Kids Play, u subotu u 17:00."]);
   });
 
-  it("treći redak ima dan u akuzativu, datum i termin", () => {
-    const t = tekstPozivnice({ ...osnova, childName: "Mia", phone: null });
-    expect(t.dodji).toBe("Dođi u subotu, 01. 06. 2030. od 17:00 do 19:00 sati.");
+  it("nepoznata varijabla ostaje vidljiva da se primijeti tipfeler", () => {
+    expect(popuniTekst("{imeeee} slavi", PRIMJER_VRIJEDNOSTI)).toEqual(["{imeeee} slavi"]);
   });
 
-  it("traži potvrdu dolaska na broj osobe koja je rezervirala", () => {
-    const t = tekstPozivnice({ ...osnova, childName: "Luka", phone: "095 537 8559" });
-    expect(t.potvrda).toBe("Dolazak potvrdi na broj 095 537 8559.");
-  });
-
-  it("bez telefona ne izmišlja broj za potvrdu", () => {
-    expect(tekstPozivnice({ ...osnova, childName: "Luka", phone: null }).potvrda).toBeNull();
-  });
-
-  it("bez imena slavljenika ostaje čitljiv", () => {
-    expect(tekstPozivnice({ ...osnova, childName: "  ", phone: null }).ime).toBe("Slavljenik");
+  it("potvrda dolaska nosi broj, a bez broja je nema", () => {
+    expect(potvrdaDolaska("095 537 8559")).toBe("Dolazak potvrdi na broj 095 537 8559.");
+    expect(potvrdaDolaska(null)).toBeNull();
   });
 });
 
@@ -112,40 +120,42 @@ describe("provjeriPredlozak", () => {
 });
 
 describe("rasporedTeksta", () => {
-  const retci = {
-    ime: "Mia Horvat",
-    slavi: "slavi 5. rođendan i zove te da se pridružiš.",
-    dodji: "Dođi u subotu, 01. 06. 2030. od 17:00 do 19:00 sati.",
-  };
+  const retci = [
+    "Mia Horvat",
+    "slavi 5. rođendan i zove te da se pridružiš.",
+    "Dođi u subotu, 01. 06. 2030. od 17:00 do 19:00 sati.",
+  ];
+  const sDugimImenom = ["Ana-Marija Kovačević-Babić", retci[1], retci[2]];
 
   it("dugo ime dobiva manja slova od kratkog", () => {
-    const kratko = rasporedTeksta({ ...retci, ime: "Mia" }, 0.5);
-    const dugo = rasporedTeksta({ ...retci, ime: "Ana-Marija Kovačević-Babić" }, 0.5);
-    expect(dugo.ime).toBeLessThan(kratko.ime);
+    expect(rasporedTeksta(sDugimImenom, 0.5).velicine[0]).toBeLessThan(rasporedTeksta(["Mia", retci[1], retci[2]], 0.5).velicine[0]);
   });
 
   it("tekst stane u širinu okvira (uz dopušteno prelamanje)", () => {
-    const r = rasporedTeksta({ ...retci, ime: "Ana-Marija Kovačević-Babić" }, 0.5);
-    // Ime smije u dva retka: procijenjena širina ne smije preći dvostruku širinu okvira.
-    expect("Ana-Marija Kovačević-Babić".length * 0.52 * r.ime).toBeLessThanOrEqual(2 * 94 + 0.01);
-    expect(retci.dodji.length * 0.52 * r.dodji).toBeLessThanOrEqual(3 * 94 + 0.01);
+    const r = rasporedTeksta(sDugimImenom, 0.5);
+    expect(sDugimImenom[0].length * 0.52 * r.velicine[0]).toBeLessThanOrEqual(2 * 94 + 0.01);
+    expect(retci[2].length * 0.52 * r.velicine[2]).toBeLessThanOrEqual(3 * 94 + 0.01);
   });
 
   it("nizak okvir stisne sve retke", () => {
     const visok = rasporedTeksta(retci, 0.6);
     const nizak = rasporedTeksta(retci, 0.15);
-    expect(nizak.ime).toBeLessThan(visok.ime);
-    expect(nizak.dodji).toBeLessThan(visok.dodji);
+    expect(nizak.velicine[0]).toBeLessThan(visok.velicine[0]);
+    expect(nizak.velicine[2]).toBeLessThan(visok.velicine[2]);
   });
 
   it("skala iz administracije mijenja veličinu, ali ne razbija uklapanje", () => {
-    const zadano = rasporedTeksta(retci, 0.5, 1);
-    const vece = rasporedTeksta(retci, 0.5, 1.4);
-    expect(vece.ime).toBeGreaterThanOrEqual(zadano.ime);
+    expect(rasporedTeksta(retci, 0.5, 1.4).velicine[0]).toBeGreaterThanOrEqual(rasporedTeksta(retci, 0.5, 1).velicine[0]);
+  });
+
+  it("podnosi i više od tri retka", () => {
+    const pet = [...retci, "Bit će torte! 🎂", "Vidimo se!"];
+    const r = rasporedTeksta(pet, 0.5);
+    expect(r.velicine).toHaveLength(5);
+    expect(r.velicine.every((v) => v > 0)).toBe(true);
   });
 
   it("omjer okvira računa se iz postotaka i dimenzija slike", () => {
-    // Pola širine i pola visine slike 1000x1000 -> kvadratni okvir.
     expect(omjerOkvira({ sirina: 50, visina: 50 }, 1000, 1000)).toBeCloseTo(1);
     expect(omjerOkvira({ sirina: 80, visina: 20 }, 1000, 1400)).toBeCloseTo((0.2 * 1400) / (0.8 * 1000));
   });

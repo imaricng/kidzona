@@ -213,6 +213,8 @@ model PozivnicaPredlozak {
   velicinaSkala     Float  @default(1) // ručno povećanje/smanjenje slova
   font              String @default("display") // "display" | "sans"
   poravnanje        String @default("sredina") // "gore" | "sredina" | "dolje"
+  // Tekst pozivnice s varijablama ({ime}, {datum}…); prazno = zadani tekst.
+  tekstPredlozak    String?
   // Dimenzije slike — potrebne za uklapanje teksta i crtanje PNG pozivnice.
   slikaSirina Int @default(1000)
   slikaVisina Int @default(1414)
