@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { danaDo, kadaJe } from "@/lib/format";
-import { predlozakPodsjetnika } from "@/lib/notifications/templates";
+import { danaDo, imeVelikimSlovom, kadaJe } from "@/lib/format";
+import { predlozakPodsjetnika, predlozakPotvrde } from "@/lib/notifications/templates";
 
 const PROSLAVA = {
   code: "KZ-2027-0005",
@@ -79,5 +79,33 @@ describe("predlozakPodsjetnika", () => {
     expect(t).not.toContain("Dodaci:");
     expect(t).not.toContain("pozivnica");
     expect(t).not.toContain("Odrasli");
+  });
+});
+
+describe("predlozakPotvrde", () => {
+  it("nosi temu, dodatke i odrasle goste", () => {
+    const t = predlozakPotvrde(PROSLAVA).tijelo;
+    expect(t).toContain("Tema: Dinosauri");
+    expect(t).toContain("Dodaci: Torta ×1, Pizza ×2");
+    expect(t).toContain("Odrasli gosti: 4");
+  });
+  it("kad je sve plaćeno, ne traži plaćanje na dan proslave", () => {
+    const t = predlozakPotvrde({ ...PROSLAVA, paidCents: 15000 }).tijelo;
+    expect(t).not.toContain("Za plaćanje uživo");
+  });
+});
+
+describe("imeVelikimSlovom", () => {
+  it("piše velika početna slova, a ostalo ostavlja", () => {
+    expect(imeVelikimSlovom("ivan maric")).toBe("Ivan Maric");
+    expect(imeVelikimSlovom("  čedo  šimić ")).toBe("Čedo  Šimić");
+    expect(imeVelikimSlovom("ana-marija")).toBe("Ana-Marija");
+    expect(imeVelikimSlovom("McDonald")).toBe("McDonald");
+    expect(imeVelikimSlovom("")).toBe("");
+  });
+  it("vrijedi u pozdravu i za slavljenika", () => {
+    const t = predlozakPodsjetnika({ ...PROSLAVA, parentName: "ivan maric", childName: "niko" }, 1).tijelo;
+    expect(t).toContain("Poštovani/a Ivan Maric,");
+    expect(t).toContain("Slavljenik: Niko");
   });
 });

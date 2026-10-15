@@ -79,6 +79,14 @@ export function kadaJe(dana: number): string {
   return `za ${dana} ${dana % 10 === 1 && dana % 100 !== 11 ? "dan" : "dana"}`;
 }
 
+/**
+ * Ime za ispis s velikim početnim slovom svake riječi: "ivan marić" → "Ivan Marić",
+ * "ana-marija" → "Ana-Marija". Ostala slova ostaju kako su upisana ("McDonald").
+ */
+export function imeVelikimSlovom(ime: string): string {
+  return ime.trim().replace(/(^|[\s-])(\p{Ll})/gu, (_, prije: string, slovo: string) => prije + slovo.toLocaleUpperCase("hr"));
+}
+
 /** ISO datum (YYYY-MM-DD) bez vremenske komponente — za input[type=date] i ključeve. */
 export function isoDatum(date: Date): string {
   return date.toISOString().slice(0, 10);

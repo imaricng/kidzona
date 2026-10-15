@@ -3,7 +3,7 @@
  * Drže se odvojeno od logike slanja radi lakše izmjene.
  */
 import { pozdrav } from "@/lib/nepotpuno";
-import { formatDatumDugi, formatEur, kadaJe } from "@/lib/format";
+import { formatDatumDugi, formatEur, imeVelikimSlovom, kadaJe } from "@/lib/format";
 import { hr, brojDjece } from "@/i18n/hr";
 
 interface RezervacijaPodaci {
@@ -42,7 +42,7 @@ export function predlozakZaprimljenogUpita(r: RezervacijaPodaci): { naslov: stri
       `hvala na upitu! Zaprimili smo sljedeće podatke:`,
       ``,
       `Broj upita: ${r.code}`,
-      r.childName ? `Slavljenik: ${r.childName}` : null,
+      r.childName ? `Slavljenik: ${imeVelikimSlovom(r.childName)}` : null,
       `Datum: ${formatDatumDugi(r.date)}`,
       `Termin: ${r.slotStart} – ${r.slotEnd}`,
       `Igraonica: ${r.roomName}`,
@@ -73,8 +73,8 @@ export function predlozakNovogUpita(
       `Datum i termin: ${formatDatumDugi(r.date)}, ${r.slotStart} – ${r.slotEnd}`,
       `Igraonica: ${r.roomName}`,
       `Paket: ${r.packageName} (${brojDjece(r.numChildren)}${r.numAdults ? ` + ${r.numAdults} odraslih` : ""})`,
-      r.childName ? `Slavljenik: ${r.childName}` : null,
-      `Roditelj: ${r.parentName}`,
+      r.childName ? `Slavljenik: ${imeVelikimSlovom(r.childName)}` : null,
+      `Roditelj: ${imeVelikimSlovom(r.parentName)}`,
       `E-pošta: ${kontakt.email || "—"}`,
       `Telefon: ${kontakt.phone || "—"}`,
       kontakt.notes ? `Napomene: ${kontakt.notes}` : null,
@@ -115,15 +115,18 @@ export function predlozakPotvrde(r: RezervacijaPodaci): { naslov: string; tijelo
       `vaša je rezervacija potvrđena! 🎉`,
       ``,
       `Kod rezervacije: ${r.code}`,
-      r.childName ? `Slavljenik: ${r.childName}` : null,
+      r.childName ? `Slavljenik: ${imeVelikimSlovom(r.childName)}` : null,
       `Datum: ${formatDatumDugi(r.date)}`,
       `Termin: ${r.slotStart} – ${r.slotEnd}`,
       `Igraonica: ${r.roomName}`,
       `Paket: ${r.packageName} (${brojDjece(r.numChildren)})`,
+      r.numAdults ? `Odrasli gosti: ${r.numAdults}` : null,
+      r.themeName ? `Tema: ${r.themeName}` : null,
+      r.dodaci?.length ? `Dodaci: ${r.dodaci.join(", ")}` : null,
       ``,
       `Ukupno: ${iznos(r.totalCents)}`,
       (r.paidCents ?? 0) > 0 ? `Plaćeno: ${formatEur(r.paidCents ?? 0)}` : null,
-      r.totalCents > 0 ? `Za plaćanje uživo na dan proslave: ${formatEur(r.totalCents - (r.paidCents ?? 0))}` : null,
+      r.totalCents > (r.paidCents ?? 0) ? `Za plaćanje uživo na dan proslave: ${formatEur(r.totalCents - (r.paidCents ?? 0))}` : null,
       ``,
       r.qrUrl ? `QR kod za prijavu dolaska: ${r.qrUrl}` : `Na ulaz ponesite QR kod iz potvrde.`,
       ``,
@@ -151,7 +154,7 @@ export function predlozakPodsjetnika(r: RezervacijaPodaci, dana: number): { nasl
       `podsjećamo vas da je vaša proslava ${blizu ? kada.toUpperCase() : kada}! Evo svih pojedinosti:`,
       ``,
       `Kod rezervacije: ${r.code}`,
-      r.childName ? `Slavljenik: ${r.childName}` : null,
+      r.childName ? `Slavljenik: ${imeVelikimSlovom(r.childName)}` : null,
       `Datum: ${formatDatumDugi(r.date)}`,
       `Termin: ${r.slotStart} – ${r.slotEnd}`,
       `Igraonica: ${r.roomName}`,
@@ -217,11 +220,11 @@ export function predlozakRodjendanGodina(
   novaDob: number,
 ): { naslov: string; tijelo: string } {
   return {
-    naslov: `Bliži se rođendan! 🎂 ${childName} uskoro slavi`,
+    naslov: `Bliži se rođendan! 🎂 ${imeVelikimSlovom(childName)} uskoro slavi`,
     tijelo: [
       pozdrav(parentName),
       ``,
-      `prošla je godina otkad ste slavili s nama — ${childName} uskoro puni ${novaDob}. 🎉`,
+      `prošla je godina otkad ste slavili s nama — ${imeVelikimSlovom(childName)} uskoro puni ${novaDob}. 🎉`,
       ``,
       `Rezervirajte termin na vrijeme i osigurajte omiljenu igraonicu i temu.`,
       `Kao zahvalu za vjernost, javite nam se za poseban popust.`,
@@ -241,7 +244,7 @@ export function predlozakPozivnice(
   tekstPoziva: string,
 ): { naslov: string; tijelo: string } {
   return {
-    naslov: `Pozivnica za rođendan ${r.childName ? `— ${r.childName} ` : ""}je gotova! 🎉`,
+    naslov: `Pozivnica za rođendan ${r.childName ? `— ${imeVelikimSlovom(r.childName)} ` : ""}je gotova! 🎉`,
     tijelo: [
       pozdrav(r.parentName),
       ``,

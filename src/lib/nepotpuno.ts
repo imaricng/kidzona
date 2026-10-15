@@ -4,6 +4,7 @@
  * ono što takvu rezervaciju čini upotrebljivom dok se ne dopuni: ime za
  * popise i popis onoga što treba doznati.
  */
+import { imeVelikimSlovom } from "@/lib/format";
 
 interface OsobniPodaci {
   parentName: string;
@@ -20,7 +21,7 @@ export function imeProslave(r: Pick<OsobniPodaci, "parentName" | "childName">): 
 
 /** Pozdrav u e-poruci; bez imena ostaje uljudan umjesto „Poštovani/a ,". */
 export function pozdrav(parentName: string): string {
-  return parentName.trim() ? `Poštovani/a ${parentName.trim()},` : "Poštovani/a,";
+  return parentName.trim() ? `Poštovani/a ${imeVelikimSlovom(parentName)},` : "Poštovani/a,";
 }
 
 /** Što još treba doznati, redom kako se pita. Prazno = rezervacija je potpuna. */

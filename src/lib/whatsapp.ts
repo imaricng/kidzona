@@ -7,7 +7,7 @@
  * klikne, WhatsApp se otvori s upisanim tekstom i on samo pošalje. Bez troška
  * i bez rizika da broj završi blokiran.
  */
-import { formatDatumDugi, kadaJe } from "@/lib/format";
+import { formatDatumDugi, imeVelikimSlovom, kadaJe } from "@/lib/format";
 
 /**
  * Broj telefona u obliku koji traži `wa.me` (samo cifre, s pozivnim brojem).
@@ -40,7 +40,7 @@ export interface PodaciZaPoruku {
 }
 
 function oslovi(parentName: string): string {
-  const ime = parentName.trim().split(/\s+/)[0];
+  const ime = imeVelikimSlovom(parentName).split(/\s+/)[0];
   return ime ? `Pozdrav ${ime}!` : "Pozdrav!";
 }
 
@@ -63,7 +63,7 @@ export function porukaPotvrde(r: PodaciZaPoruku, poveznica: string): string {
   return [
     oslovi(r.parentName),
     `rezervacija je potvrđena 🎉`,
-    `${r.childName ? `${r.childName}, ` : ""}${termin(r)}.`,
+    `${r.childName ? `${imeVelikimSlovom(r.childName)}, ` : ""}${termin(r)}.`,
     `Sve detalje i QR kod za prijavu imate ovdje: ${poveznica}`,
   ].join(" ");
 }
@@ -90,7 +90,7 @@ export function porukaZahvale(r: PodaciZaPoruku, recenzijaUrl: string): string {
 
 /** Poruka uz digitalnu pozivnicu. */
 export function porukaPozivnice(poveznica: string, childName: string | null): string {
-  const ime = childName?.trim();
+  const ime = childName ? imeVelikimSlovom(childName) : "";
   return (
     `Pozdrav! Pozivnica za rođendan${ime ? ` (${ime})` : ""} je gotova 🎉 ` +
     `Otvorite je i proslijedite gostima: ${poveznica}`

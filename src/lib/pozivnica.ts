@@ -8,7 +8,7 @@
  * Digitalna pozivnica šalje se roditelju samo kad administrator potvrdi
  * rezervaciju (prije potvrde termin još nije siguran).
  */
-import { dobGodine, formatDatum } from "@/lib/format";
+import { dobGodine, formatDatum, imeVelikimSlovom } from "@/lib/format";
 
 export interface PodaciPozivnice {
   childName: string | null;
@@ -47,8 +47,8 @@ export function danUAkuzativu(date: Date | string): string {
 
 /** Ime slavljenika na pozivnici: puno (s prezimenom) i samo ime. */
 export function imeNaPozivnici(p: PodaciPozivnice): { puno: string; kratko: string } {
-  const kratko = p.childName?.trim() || "Slavljenik";
-  const prezime = p.childLastName?.trim();
+  const kratko = imeVelikimSlovom(p.childName ?? "") || "Slavljenik";
+  const prezime = imeVelikimSlovom(p.childLastName ?? "");
   return { kratko, puno: prezime ? `${kratko} ${prezime}` : kratko };
 }
 
