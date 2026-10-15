@@ -28,7 +28,9 @@ import {
   whatsappVeza,
 } from "@/lib/whatsapp";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
-import { odbijUpitAkcija, odobriUpitAkcija, spremiIzmjene } from "../akcije";
+import { odbijUpitAkcija, odobriUpitAkcija, oznaciWhatsappPoruku, spremiIzmjene } from "../akcije";
+import { WhatsAppGumb } from "@/components/admin/WhatsAppGumb";
+import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,9 @@ const PORUKE: Record<string, string> = {
   odbijeno: "Upit je odbijen i kupac je obaviješten.",
   spremljeno: "✅ Rezervacija je spremljena.",
 };
+
+// Statusne radnje koje se bilježe (tip u dnevniku je `radnja-<status>`).
+const RADNJE_STATUSA: Record<string, string> = { placeno: "Označeno plaćeno", zavrseno: "Označeno završeno" };
 
 // --- Server actions ---------------------------------------------------
 async function promijeniStatus(code: string, status: string) {
@@ -71,6 +76,12 @@ async function promijeniStatus(code: string, status: string) {
   }
   // Otkazan termin oslobađa i kalendar igraonice.
   if (status === "otkazano") await ukloniProslavuIzKalendara(code);
+  // Trag radnje osoblja — pod „Radnje" se vidi kad je zadnji put izvršena.
+  if (RADNJE_STATUSA[status]) {
+    await prisma.notificationLog.create({
+      data: { type: `radnja-${status}`, channel: "admin", recipient: "—", subject: RADNJE_STATUSA[status], body: RADNJE_STATUSA[status], reservationId: r.id, status: "rucno" },
+    });
+  }
   revalidatePath(`/admin/rezervacije/${code}`);
 }
 
@@ -172,6 +183,23 @@ export default async function RezervacijaDetalj({
     pozivnica: whatsappVeza(r.phone, porukaPozivnice(vezaPozivnice, r.childName)),
   };
   const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
+
+  // Radnje osoblja bilježe se uz poruke, ali na popisu poruka ne pripadaju.
+  const poruke = r.notifications.filter((n) => !n.type.startsWith("radnja-"));
+  /** Zadnji zapis (popis je od najnovijeg) koji odgovara radnji, za „Zadnji put: …". */
+  const zadnje = (tipovi: string[], kanal: string) => r.notifications.find((n) => tipovi.includes(n.type) && n.channel === kanal) ?? null;
+  const zadnjaUplata = r.payments
+    .filter((pl) => pl.status === "uspjesno")
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  // Pregled poruka točno kakve će roditelj dobiti.
+  const podaciEmail = podaciZaPoruku(r);
+  const pregled = {
+    podsjetnik: danaDoProslave >= 0 ? predlozakPodsjetnika(podaciEmail, danaDoProslave) : null,
+    zahvala: predlozakZahvale(podaciEmail, env.reviewUrl),
+    waPotvrda: porukaPotvrde(zaPoruku, `${env.appUrl}/potvrda/${r.code}?k=${r.qrToken}`),
+    waPodsjetnik: porukaPodsjetnika(zaPoruku, danaDoProslave),
+    waZahvala: porukaZahvale(zaPoruku, env.reviewUrl),
+  };
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -369,17 +397,45 @@ export default async function RezervacijaDetalj({
       {potvrdjena && (
         <section className="card mt-6">
           <h2 className="font-semibold text-ink-800">Radnje</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Akcija action={promijeniStatus.bind(null, code, "placeno")} label="Označi plaćeno" />
-            <Akcija action={promijeniStatus.bind(null, code, "zavrseno")} label="Označi završeno" />
-            {r.email && danaDoProslave >= 0 && (
-              <Akcija action={posaljiPodsjetnik.bind(null, code)} label={`📨 Pošalji podsjetnik (proslava je ${kadaJe(danaDoProslave)})`} />
+          <ul className="mt-2">
+            <RadnjaRed zadnje={zadnje(["radnja-placeno"], "admin")?.createdAt ?? (r.status === "placeno" ? zadnjaUplata?.createdAt : null)}>
+              <Akcija action={promijeniStatus.bind(null, code, "placeno")} label="Označi plaćeno" />
+            </RadnjaRed>
+            <RadnjaRed zadnje={zadnje(["radnja-zavrseno"], "admin")?.createdAt}>
+              <Akcija action={promijeniStatus.bind(null, code, "zavrseno")} label="Označi završeno" />
+            </RadnjaRed>
+            {r.email && pregled.podsjetnik && (
+              <RadnjaRed zapis={zadnje(["podsjetnik-rucno", "podsjetnik", "podsjetnik-tjedan"], "email")} pregled={pregled.podsjetnik}>
+                <Akcija action={posaljiPodsjetnik.bind(null, code)} label={`📨 Pošalji podsjetnik (proslava je ${kadaJe(danaDoProslave)})`} />
+              </RadnjaRed>
             )}
-            {r.email && <Akcija action={posaljiZahvalu.bind(null, code)} label="💛 Pošalji zahvalu i molbu za recenziju" />}
-            {wa.potvrda && <WhatsAppGumb href={wa.potvrda} naziv="Potvrda na WhatsApp" />}
-            {wa.podsjetnik && <WhatsAppGumb href={wa.podsjetnik} naziv="Podsjetnik na WhatsApp" />}
-            {wa.zahvala && <WhatsAppGumb href={wa.zahvala} naziv="Zahvala na WhatsApp" />}
-            {racun && <a href={`/admin/racun/${racun.id}`} target="_blank" className="btn-secondary">🧾 Ispis računa (PDF)</a>}
+            {wa.podsjetnik && (
+              <RadnjaRed zapis={zadnje(["podsjetnik-rucno"], "whatsapp")} pregled={{ tijelo: pregled.waPodsjetnik }}>
+                <WhatsAppGumb href={wa.podsjetnik} naziv="Podsjetnik na WhatsApp" oznaci={oznaciWhatsappPoruku.bind(null, code, "podsjetnik-rucno")} />
+              </RadnjaRed>
+            )}
+            {r.email && (
+              <RadnjaRed zapis={zadnje(["zahvala"], "email")} pregled={pregled.zahvala}>
+                <Akcija action={posaljiZahvalu.bind(null, code)} label="💛 Pošalji zahvalu i molbu za recenziju" />
+              </RadnjaRed>
+            )}
+            {wa.zahvala && (
+              <RadnjaRed zapis={zadnje(["zahvala"], "whatsapp")} pregled={{ tijelo: pregled.waZahvala }}>
+                <WhatsAppGumb href={wa.zahvala} naziv="Zahvala na WhatsApp" oznaci={oznaciWhatsappPoruku.bind(null, code, "zahvala")} />
+              </RadnjaRed>
+            )}
+            {wa.potvrda && (
+              <RadnjaRed zapis={zadnje(["potvrda"], "whatsapp")} pregled={{ tijelo: pregled.waPotvrda }}>
+                <WhatsAppGumb href={wa.potvrda} naziv="Potvrda na WhatsApp" oznaci={oznaciWhatsappPoruku.bind(null, code, "potvrda")} />
+              </RadnjaRed>
+            )}
+            {racun && (
+              <RadnjaRed zadnje={racun.issuedAt} oznaka="Račun izdan">
+                <a href={`/admin/racun/${racun.id}`} target="_blank" className="btn-secondary">🧾 Ispis računa (PDF)</a>
+              </RadnjaRed>
+            )}
+          </ul>
+          <div className="mt-3">
             <form action={otkaziUzPovrat.bind(null, code)}>
               <ConfirmSubmit poruka={`Otkazati ${code} uz povrat uplaćenog iznosa?`} className="btn-secondary !text-red-600">
                 Otkaži i vrati uplatu
@@ -449,9 +505,9 @@ export default async function RezervacijaDetalj({
 
       {/* Log poruka */}
       <section className="card mt-6">
-        <h2 className="font-semibold text-ink-800">Automatske poruke ({r.notifications.length})</h2>
+        <h2 className="font-semibold text-ink-800">Automatske poruke ({poruke.length})</h2>
         <ul className="mt-3 space-y-2 text-sm">
-          {r.notifications.map((n) => (
+          {poruke.map((n) => (
             <li key={n.id} className="border-b border-black/5 pb-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-ink-700">
@@ -466,7 +522,7 @@ export default async function RezervacijaDetalj({
               {n.status === "greska" && <p className="mt-1 text-xs text-red-700">{n.body}</p>}
             </li>
           ))}
-          {r.notifications.length === 0 && <li className="text-ink-400">Nema poruka.</li>}
+          {poruke.length === 0 && <li className="text-ink-400">Nema poruka.</li>}
         </ul>
       </section>
     </div>
@@ -481,6 +537,47 @@ function Akcija({ action, label, opasno }: { action: () => Promise<void>; label:
   );
 }
 
+/**
+ * Jedna radnja: gumb, kad je zadnji put izvršena i (za poruke) pregled teksta
+ * točno kakav roditelj dobiva. `zapis` je zadnja poruka iz dnevnika, `zadnje`
+ * samo vrijeme kad zapisa nema (npr. uplata, račun).
+ */
+function RadnjaRed({
+  children,
+  zapis,
+  zadnje,
+  oznaka = "Zadnji put",
+  pregled,
+}: {
+  children: ReactNode;
+  zapis?: { createdAt: Date; status: string } | null;
+  zadnje?: Date | null;
+  oznaka?: string;
+  pregled?: { naslov?: string; tijelo: string };
+}) {
+  const kada = zapis?.createdAt ?? zadnje ?? null;
+  const neuspjelo = zapis?.status === "greska";
+  return (
+    <li className="border-b border-black/5 py-3 last:border-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {children}
+        <span className={`text-xs ${neuspjelo ? "text-red-700" : kada ? "text-ink-500" : "text-ink-400"}`}>
+          {kada ? `${neuspjelo ? "⚠️ Nije uspjelo" : `✅ ${oznaka}`}: ${formatDatumVrijeme(kada)}` : "Još nije izvršeno"}
+        </span>
+      </div>
+      {pregled && (
+        <details className="mt-2 text-sm">
+          <summary className="cursor-pointer text-xs font-medium text-brand-600">👁 Pregled poruke</summary>
+          <div className="mt-2 rounded-2xl bg-ink-50 px-4 py-3 text-ink-700">
+            {pregled.naslov && <p className="mb-2 font-semibold text-ink-800">{pregled.naslov}</p>}
+            <p className="whitespace-pre-line break-words">{pregled.tijelo}</p>
+          </div>
+        </details>
+      )}
+    </li>
+  );
+}
+
 function Red({ n, v }: { n: string; v: string }) {
   return (
     <div className="flex justify-between gap-3">
@@ -490,14 +587,3 @@ function Red({ n, v }: { n: string; v: string }) {
   );
 }
 
-/**
- * Gumb koji otvara WhatsApp s pripremljenom porukom. Poruku šalje osoblje
- * jednim klikom — aplikacija je ne šalje sama (vidi `lib/whatsapp.ts`).
- */
-function WhatsAppGumb({ href, naziv }: { href: string; naziv: string }) {
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-      💬 {naziv}
-    </a>
-  );
-}

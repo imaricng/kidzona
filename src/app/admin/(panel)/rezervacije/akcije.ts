@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
 import { adminRezervacijaSchema, type AdminRezervacijaInput } from "@/lib/validation";
 import {
@@ -140,4 +141,29 @@ export async function odbijUpitAkcija(formData: FormData): Promise<void> {
       ? `/admin/rezervacije/${code}?poruka=odbijeno`
       : `/admin/rezervacije/${code}?greska=${encodeURIComponent(rezultat.poruka)}`,
   );
+}
+
+const WHATSAPP_PORUKE = { potvrda: "Potvrda", "podsjetnik-rucno": "Podsjetnik", zahvala: "Zahvala" } as const;
+export type WhatsappPoruka = keyof typeof WHATSAPP_PORUKE;
+
+/**
+ * Bilježi da je osoblje roditelju otvorilo i poslalo poruku WhatsAppom.
+ * Aplikacija poruku ne šalje sama (vidi `lib/whatsapp.ts`), pa je ovo jedini
+ * trag da je poruka otišla — prikazuje se pod „Radnje" kao zadnje slanje.
+ */
+export async function oznaciWhatsappPoruku(code: string, tip: WhatsappPoruka): Promise<void> {
+  await zahtijevajOsoblje();
+  const r = await prisma.reservation.findUniqueOrThrow({ where: { code }, select: { id: true, phone: true } });
+  await prisma.notificationLog.create({
+    data: {
+      type: tip,
+      channel: "whatsapp",
+      recipient: r.phone ?? "—",
+      subject: `${WHATSAPP_PORUKE[tip]} poslana WhatsAppom (${code})`,
+      body: `Osoblje je poruku poslalo WhatsAppom.`,
+      reservationId: r.id,
+      status: "rucno",
+    },
+  });
+  revalidatePath(`/admin/rezervacije/${code}`);
 }

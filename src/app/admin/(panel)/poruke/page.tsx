@@ -43,6 +43,8 @@ export default async function PorukePage({
   const stranica = Math.max(1, Number(str) || 1);
 
   const where: Prisma.NotificationLogWhereInput = {
+    // Radnje osoblja (označeno plaćeno/završeno) bilježe se uz rezervaciju, ali nisu poruke.
+    NOT: { type: { startsWith: "radnja-" } },
     ...(vrsta && VRSTE[vrsta] ? { type: vrsta } : {}),
     ...(status && STATUSI[status] ? { status } : {}),
     ...(trazi?.trim()
