@@ -97,8 +97,9 @@ export interface UpitInput extends PodaciRezervacije {
   voucherCode?: string | null;
 }
 
-const UKLJUCI = { room: true, secondRoom: true, package: true, theme: true, addOns: { include: { addOn: true } } } as const;
-type RezervacijaSPovezanim = Prisma.ReservationGetPayload<{ include: typeof UKLJUCI }>;
+/** Što rezervacija mora imati učitano za poruke roditelju i kalendar. */
+export const UKLJUCI = { room: true, secondRoom: true, package: true, theme: true, addOns: { include: { addOn: true } } } as const;
+export type RezervacijaSPovezanim = Prisma.ReservationGetPayload<{ include: typeof UKLJUCI }>;
 
 // --- Pomoćnici --------------------------------------------------------
 /** Postoji li u igraonicama POTVRĐENA rezervacija koja se preklapa s terminom (osim zadane)? */
@@ -195,7 +196,8 @@ async function poveziObitelj(
   return family.id;
 }
 
-function podaciZaPoruku(r: RezervacijaSPovezanim) {
+/** Podaci za e-poruke roditelju: sve što je odabrao, uključujući temu i dodatke. */
+export function podaciZaPoruku(r: RezervacijaSPovezanim) {
   return {
     code: r.code,
     parentName: r.parentName,
@@ -211,6 +213,9 @@ function podaciZaPoruku(r: RezervacijaSPovezanim) {
     depositCents: r.depositCents,
     paidCents: r.paidCents,
     qrUrl: `${env.appUrl}/potvrda/${r.code}?k=${r.qrToken}`,
+    themeName: r.theme?.name ?? null,
+    dodaci: r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`),
+    pozivnicaUrl: r.pozivniceDigitalne ? pozivnicaUrl(env.appUrl, r.qrToken) : null,
   };
 }
 

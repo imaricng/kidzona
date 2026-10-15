@@ -7,7 +7,7 @@
  * klikne, WhatsApp se otvori s upisanim tekstom i on samo pošalje. Bez troška
  * i bez rizika da broj završi blokiran.
  */
-import { formatDatumDugi } from "@/lib/format";
+import { formatDatumDugi, kadaJe } from "@/lib/format";
 
 /**
  * Broj telefona u obliku koji traži `wa.me` (samo cifre, s pozivnim brojem).
@@ -68,12 +68,14 @@ export function porukaPotvrde(r: PodaciZaPoruku, poveznica: string): string {
   ].join(" ");
 }
 
-/** Podsjetnik dan prije proslave. */
-export function porukaPodsjetnika(r: PodaciZaPoruku): string {
+/** Podsjetnik na proslavu; `dana` je broj dana do nje (1 = sutra, 7 = za tjedan). */
+export function porukaPodsjetnika(r: PodaciZaPoruku, dana: number): string {
   return [
     oslovi(r.parentName),
-    `podsjećamo da je proslava sutra — ${r.slotStart} do ${r.slotEnd}, ${r.roomName}.`,
-    `Dođite 10 minuta ranije da u miru dočekamo goste. Vidimo se! 🎈`,
+    `podsjećamo da je proslava ${kadaJe(dana)} — ${termin(r)}.`,
+    dana <= 1
+      ? `Dođite 10 minuta ranije da u miru dočekamo goste. Vidimo se! 🎈`
+      : `Ako se nešto promijenilo (broj djece, dodaci, tema), javite nam se na vrijeme. Veselimo se! 🎈`,
   ].join(" ");
 }
 

@@ -54,8 +54,12 @@ describe("poruke", () => {
     expect(p).toContain("Kids Play");
     expect(p).toContain("https://x.hr/potvrda/KZ-2026-0042?k=t");
   });
-  it("podsjetnik govori o sutrasnjoj proslavi", () => {
-    expect(porukaPodsjetnika(PROSLAVA)).toContain("sutra");
+  it("podsjetnik govori koliko je dana do proslave", () => {
+    expect(porukaPodsjetnika(PROSLAVA, 1)).toContain("proslava sutra");
+    const tjedan = porukaPodsjetnika(PROSLAVA, 7);
+    expect(tjedan).toContain("za 7 dana");
+    expect(tjedan).not.toContain("sutra");
+    expect(tjedan).toMatch(/01\.\s?06\.\s?2030\./);
   });
   it("zahvala nosi poveznicu na recenziju", () => {
     expect(porukaZahvale(PROSLAVA, "https://g.page/r/recenzija")).toContain("https://g.page/r/recenzija");

@@ -3,7 +3,7 @@
  * Drže se odvojeno od logike slanja radi lakše izmjene.
  */
 import { pozdrav } from "@/lib/nepotpuno";
-import { formatDatumDugi, formatEur } from "@/lib/format";
+import { formatDatumDugi, formatEur, kadaJe } from "@/lib/format";
 import { hr, brojDjece } from "@/i18n/hr";
 
 interface RezervacijaPodaci {
@@ -21,6 +21,9 @@ interface RezervacijaPodaci {
   depositCents: number;
   paidCents?: number;
   qrUrl?: string;
+  themeName?: string | null;
+  dodaci?: string[]; // npr. ["Torta ×1", "Pizza ×2"]
+  pozivnicaUrl?: string | null; // samo kad je roditelj zatražio digitalne pozivnice
 }
 
 const KONTAKT = `${hr.kontakt.telefon} (i WhatsApp) ili ${hr.kontakt.email}`;
@@ -131,18 +134,48 @@ export function predlozakPotvrde(r: RezervacijaPodaci): { naslov: string; tijelo
   };
 }
 
-export function predlozakPodsjetnika(r: RezervacijaPodaci): { naslov: string; tijelo: string } {
+/**
+ * Podsjetnik roditelju sa svim odabranim pojedinostima proslave. `dana` je
+ * broj dana do proslave (0 = danas, 1 = sutra) — tekst se ravna prema njemu,
+ * pa je isti predložak ispravan i tjedan dana prije i dan prije.
+ */
+export function predlozakPodsjetnika(r: RezervacijaPodaci, dana: number): { naslov: string; tijelo: string } {
+  const kada = kadaJe(dana);
+  const blizu = dana <= 1;
+  const placeno = r.paidCents ?? 0;
   return {
-    naslov: `Podsjetnik: proslava je sutra (${r.code})`,
+    naslov: `Podsjetnik: proslava je ${kada} — ${formatDatumDugi(r.date)} (${r.code})`,
     tijelo: [
       pozdrav(r.parentName),
       ``,
-      `podsjećamo vas da je vaša proslava SUTRA:`,
-      `Datum: ${formatDatumDugi(r.date)}, ${r.slotStart} – ${r.slotEnd}`,
-      `Igraonica: ${r.roomName}`,
+      `podsjećamo vas da je vaša proslava ${blizu ? kada.toUpperCase() : kada}! Evo svih pojedinosti:`,
       ``,
-      `Ponesite QR kod za brzu prijavu dolaska. Veselimo se! 🎈`,
-    ].join("\n"),
+      `Kod rezervacije: ${r.code}`,
+      r.childName ? `Slavljenik: ${r.childName}` : null,
+      `Datum: ${formatDatumDugi(r.date)}`,
+      `Termin: ${r.slotStart} – ${r.slotEnd}`,
+      `Igraonica: ${r.roomName}`,
+      `Paket: ${r.packageName} (${brojDjece(r.numChildren)})`,
+      r.numAdults ? `Odrasli gosti: ${r.numAdults}` : null,
+      r.themeName ? `Tema: ${r.themeName}` : null,
+      r.dodaci?.length ? `Dodaci: ${r.dodaci.join(", ")}` : null,
+      ``,
+      `Ukupno: ${iznos(r.totalCents)}`,
+      placeno > 0 ? `Plaćeno: ${formatEur(placeno)}` : null,
+      r.totalCents > 0 && r.totalCents > placeno ? `Za plaćanje uživo na dan proslave: ${formatEur(r.totalCents - placeno)}` : null,
+      ``,
+      r.pozivnicaUrl ? `Digitalna pozivnica za goste: ${r.pozivnicaUrl}` : null,
+      r.qrUrl ? `QR kod za prijavu dolaska: ${r.qrUrl}` : null,
+      r.pozivnicaUrl || r.qrUrl ? `` : null,
+      blizu
+        ? `Dođite 10-ak minuta ranije i ponesite QR kod za brzu prijavu dolaska.`
+        : `Ako se nešto promijenilo (broj djece, dodaci, tema), javite nam se na vrijeme.`,
+      `Za pitanja: ${KONTAKT}.`,
+      ``,
+      `Veselimo se! 🎈 — ${hr.brand.naziv}`,
+    ]
+      .filter((l) => l !== null)
+      .join("\n"),
   };
 }
 

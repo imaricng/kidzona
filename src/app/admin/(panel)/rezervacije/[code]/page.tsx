@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { hr, brojDjece } from "@/i18n/hr";
-import { formatDatumDugi, formatDatumVrijeme, formatEur } from "@/lib/format";
+import { danaDo, kadaJe, formatDatumDugi, formatDatumVrijeme, formatEur } from "@/lib/format";
 import { lokalniISO } from "@/lib/slots";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
@@ -16,7 +16,7 @@ import { PosaljiPozivnicuWhatsapp } from "@/components/admin/PosaljiPozivnicuWha
 import { oznaciWhatsappPozivnicu } from "../../pozivnice/akcije";
 import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
-import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu } from "@/lib/reservations";
+import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu, podaciZaPoruku, UKLJUCI } from "@/lib/reservations";
 import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
 import { pozivnicaUrl } from "@/lib/pozivnica";
 import {
@@ -77,14 +77,14 @@ async function promijeniStatus(code: string, status: string) {
 async function posaljiPodsjetnik(code: string) {
   "use server";
   await zahtijevajOsoblje();
-  const r = await prisma.reservation.findUniqueOrThrow({ where: { code }, include: { room: true, secondRoom: true, package: true } });
-  const p = predlozakPodsjetnika({
-    code: r.code, parentName: r.parentName, childName: r.childName, date: r.date,
-    slotStart: r.slotStart, slotEnd: r.slotEnd,
-    roomName: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
-    packageName: r.package.name, numChildren: r.numChildren, totalCents: r.totalCents, depositCents: r.depositCents,
-  });
-  await posaljiIZabiljezi({ tip: "podsjetnik", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
+  const r = await prisma.reservation.findUniqueOrThrow({ where: { code }, include: UKLJUCI });
+  if (!r.email) redirect(`/admin/rezervacije/${code}?greska=${encodeURIComponent("Rezervacija nema upisanu adresu e-pošte.")}`);
+  // Tekst se ravna prema stvarnom broju dana do proslave ("sutra", "za 7 dana"…).
+  const dana = danaDo(r.date);
+  if (dana < 0) redirect(`/admin/rezervacije/${code}?greska=${encodeURIComponent("Proslava je već prošla — podsjetnik nije poslan.")}`);
+  const p = predlozakPodsjetnika(podaciZaPoruku(r), dana);
+  // Zaseban tip da ručni podsjetnik ne blokira automatske (7 dana i dan prije).
+  await posaljiIZabiljezi({ tip: "podsjetnik-rucno", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
   revalidatePath(`/admin/rezervacije/${code}`);
 }
 
@@ -163,10 +163,11 @@ export default async function RezervacijaDetalj({
     slotEnd: r.slotEnd,
     roomName: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
   };
+  const danaDoProslave = danaDo(r.date);
   const wa = {
     upit: whatsappVeza(r.phone, porukaUpita(zaPoruku)),
     potvrda: whatsappVeza(r.phone, porukaPotvrde(zaPoruku, `${env.appUrl}/potvrda/${r.code}?k=${r.qrToken}`)),
-    podsjetnik: whatsappVeza(r.phone, porukaPodsjetnika(zaPoruku)),
+    podsjetnik: whatsappVeza(r.phone, porukaPodsjetnika(zaPoruku, danaDoProslave)),
     zahvala: whatsappVeza(r.phone, porukaZahvale(zaPoruku, env.reviewUrl)),
     pozivnica: whatsappVeza(r.phone, porukaPozivnice(vezaPozivnice, r.childName)),
   };
@@ -371,7 +372,9 @@ export default async function RezervacijaDetalj({
           <div className="mt-3 flex flex-wrap gap-2">
             <Akcija action={promijeniStatus.bind(null, code, "placeno")} label="Označi plaćeno" />
             <Akcija action={promijeniStatus.bind(null, code, "zavrseno")} label="Označi završeno" />
-            {r.email && <Akcija action={posaljiPodsjetnik.bind(null, code)} label="📨 Pošalji podsjetnik" />}
+            {r.email && danaDoProslave >= 0 && (
+              <Akcija action={posaljiPodsjetnik.bind(null, code)} label={`📨 Pošalji podsjetnik (proslava je ${kadaJe(danaDoProslave)})`} />
+            )}
             {r.email && <Akcija action={posaljiZahvalu.bind(null, code)} label="💛 Pošalji zahvalu i molbu za recenziju" />}
             {wa.potvrda && <WhatsAppGumb href={wa.potvrda} naziv="Potvrda na WhatsApp" />}
             {wa.podsjetnik && <WhatsAppGumb href={wa.podsjetnik} naziv="Podsjetnik na WhatsApp" />}

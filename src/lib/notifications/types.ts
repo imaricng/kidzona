@@ -9,6 +9,8 @@ export type Kanal = "email" | "sms";
 export type TipPoruke =
   | "potvrda" // potvrda rezervacije (s QR kodom)
   | "podsjetnik" // podsjetnik dan prije
+  | "podsjetnik-tjedan" // podsjetnik 7 dana prije
+  | "podsjetnik-rucno" // podsjetnik koji je osoblje poslalo gumbom
   | "osoblje" // obavijest osoblju o terminu/pripremi
   | "zahvala" // zahvala + zamolba za Google recenziju
   | "pozivnica" // digitalna pozivnica roditelju (nakon potvrde rezervacije)

@@ -16,7 +16,9 @@ export const metadata = { title: "Poslane poruke" };
 const VRSTE: Record<string, string> = {
   potvrda: "Poruka kupcu (upit / potvrda / otkazivanje)",
   osoblje: "Obavijest osoblju",
+  "podsjetnik-tjedan": "Podsjetnik 7 dana prije",
   podsjetnik: "Podsjetnik dan prije",
+  "podsjetnik-rucno": "Podsjetnik (poslan ručno)",
   zahvala: "Zahvala i molba za recenziju",
   pozivnica: "Digitalna pozivnica roditelju",
   "rodjendan-godina": "Rođendanska ponuda za sljedeću godinu",
@@ -166,7 +168,7 @@ export default async function PorukePage({
           Svaki dan ujutro sustav sam pregledava rezervacije i šalje (samo kupcima s upisanom e-poštom):
         </p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li><strong>podsjetnik</strong> dan prije proslave;</li>
+          <li><strong>podsjetnik sa svim pojedinostima proslave</strong> 7 dana prije i ponovno dan prije proslave;</li>
           <li><strong>zahvalu i molbu za recenziju</strong> dan nakon proslave (proslava se tada označi završenom);</li>
           <li><strong>rođendansku ponudu</strong> 21 dan prije sljedećeg rođendana djeteta — samo obiteljima koje su dale privolu za marketing.</li>
         </ul>

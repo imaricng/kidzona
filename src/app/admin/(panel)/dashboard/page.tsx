@@ -24,16 +24,17 @@ async function pokreniAutomatiku() {
   const r = await pokreniPodsjetnike();
   revalidatePath("/admin/dashboard");
   // Rezultat ide u adresu da ga stranica može prikazati — inače klik izgleda kao da ništa nije napravio.
-  redirect(`/admin/dashboard?automatika=${r.podsjetnici}-${r.zahvale}-${r.rodjendani}`);
+  redirect(`/admin/dashboard?automatika=${r.podsjetniciTjedan}-${r.podsjetnici}-${r.zahvale}-${r.rodjendani}`);
 }
 
-/** „2-1-0" → čitljiv sažetak onoga što je automatika upravo poslala. */
+/** „1-2-1-0" → čitljiv sažetak onoga što je automatika upravo poslala. */
 function sazetakAutomatike(kod: string | undefined): string | null {
-  const m = /^(\d+)-(\d+)-(\d+)$/.exec(kod ?? "");
+  const m = /^(\d+)-(\d+)-(\d+)-(\d+)$/.exec(kod ?? "");
   if (!m) return null;
-  const [p, z, r] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  if (p + z + r === 0) return "Automatika je pokrenuta — danas nije bilo ničega za poslati.";
+  const [t, p, z, r] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+  if (t + p + z + r === 0) return "Automatika je pokrenuta — danas nije bilo ničega za poslati.";
   const dijelovi = [
+    t ? `${t} podsjetnik(a) za proslave za 7 dana` : null,
     p ? `${p} podsjetnik(a) za sutrašnje proslave` : null,
     z ? `${z} zahvala za jučerašnje proslave` : null,
     r ? `${r} rođendanskih ponuda` : null,
@@ -107,7 +108,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <button
               type="submit"
               className="btn-secondary !py-2 !text-sm"
-              title="Odmah pošalji ono što inače ide svako jutro: podsjetnike za sutrašnje proslave, zahvale za jučerašnje i rođendanske ponude"
+              title="Odmah pošalji ono što inače ide svako jutro: podsjetnike za proslave za 7 dana i za sutrašnje, zahvale za jučerašnje i rođendanske ponude"
             >
               ⚙️ Pokreni automatiku
             </button>

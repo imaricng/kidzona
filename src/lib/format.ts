@@ -59,6 +59,26 @@ export function formatDatumVrijeme(date: Date | string): string {
   }).format(d);
 }
 
+/** Kalendarski datum (YYYY-MM-DD) kakav je u Hrvatskoj, neovisno o zoni poslužitelja. */
+export function datumUZoni(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TZ }).format(d);
+}
+
+/** Koliko je kalendarskih dana do datuma: 0 = danas, 1 = sutra, negativno = prošlo. */
+export function danaDo(date: Date | string, sada: Date = new Date()): number {
+  const [cilj, danas] = [datumUZoni(date), datumUZoni(sada)].map((iso) => Date.parse(`${iso}T00:00:00Z`));
+  return Math.round((cilj - danas) / 86_400_000);
+}
+
+/** Kad je nešto, riječima: "danas", "sutra", "prekosutra", "za 7 dana", "za 21 dan". */
+export function kadaJe(dana: number): string {
+  if (dana === 0) return "danas";
+  if (dana === 1) return "sutra";
+  if (dana === 2) return "prekosutra";
+  return `za ${dana} ${dana % 10 === 1 && dana % 100 !== 11 ? "dan" : "dana"}`;
+}
+
 /** ISO datum (YYYY-MM-DD) bez vremenske komponente — za input[type=date] i ključeve. */
 export function isoDatum(date: Date): string {
   return date.toISOString().slice(0, 10);
