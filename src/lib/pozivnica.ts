@@ -53,14 +53,19 @@ export function imeNaPozivnici(p: PodaciPozivnice): { puno: string; kratko: stri
 }
 
 /**
- * Koju godinu slavljenik puni na dan proslave: upisana vrijednost ima prednost,
- * inače se računa iz datuma rođenja. `null` kad se ne zna.
+ * Koji rođendan se slavi: upisana vrijednost ima prednost, inače se računa iz
+ * datuma rođenja. Slavi se rođendan najbliži proslavi — proslava često bude
+ * nekoliko dana ili tjedana prije rođendana, a tada slavljenik puni sljedeću
+ * godinu, ne onu koju ima na dan proslave. `null` kad se ne zna.
  */
 export function godineNaProslavi(p: PodaciPozivnice): number | null {
   if (p.childTurning && p.childTurning > 0) return p.childTurning;
   if (!p.childBirthDate) return null;
   const datum = typeof p.date === "string" ? new Date(p.date) : p.date;
-  const godine = dobGodine(p.childBirthDate, datum);
+  const rodjen = typeof p.childBirthDate === "string" ? new Date(p.childBirthDate) : p.childBirthDate;
+  let godine = dobGodine(rodjen, datum);
+  const sljedeci = new Date(rodjen.getFullYear() + godine + 1, rodjen.getMonth(), rodjen.getDate());
+  if (sljedeci.getTime() - datum.getTime() < 183 * 86_400_000) godine++;
   return godine > 0 && godine < 30 ? godine : null;
 }
 

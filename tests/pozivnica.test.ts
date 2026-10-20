@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { danUAkuzativu, potvrdaDolaska, predlozakUrl, provjeriPredlozak, temaIzAdrese } from "@/lib/pozivnica";
+import { danUAkuzativu, godineNaProslavi, potvrdaDolaska, predlozakUrl, provjeriPredlozak, temaIzAdrese, type PodaciPozivnice } from "@/lib/pozivnica";
 import { popuniTekst, PRIMJER_VRIJEDNOSTI, retciPozivnice } from "@/lib/pozivnica-tekst";
 import { analizirajStil } from "@/lib/okvir-detekcija";
 import { omjerOkvira, rasporedTeksta } from "@/lib/pozivnica-raspored";
@@ -163,5 +163,20 @@ describe("analizirajStil", () => {
     const stil = analizirajStil(d, n, n, cijela, 4);
     expect(stil.podloga).toBe("svijetla");
     expect(stil.podlogaProzirnost).toBeGreaterThan(50);
+  });
+});
+
+describe("godineNaProslavi", () => {
+  const proslava = (datum: string, rodjen: string) =>
+    godineNaProslavi({ date: new Date(`${datum}T00:00:00`), childBirthDate: new Date(`${rodjen}T00:00:00`) } as PodaciPozivnice);
+  it("proslava dan prije rođendana slavi rođendan koji dolazi", () => {
+    expect(proslava("2026-11-15", "2019-11-16")).toBe(7);
+  });
+  it("proslava na sam rođendan ili poslije njega", () => {
+    expect(proslava("2026-11-16", "2019-11-16")).toBe(7);
+    expect(proslava("2026-12-05", "2019-11-16")).toBe(7);
+  });
+  it("proslava mjesec prije rođendana", () => {
+    expect(proslava("2026-10-16", "2019-11-16")).toBe(7);
   });
 });
