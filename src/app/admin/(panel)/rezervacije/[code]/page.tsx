@@ -18,7 +18,7 @@ import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
 import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu, podaciZaPoruku, UKLJUCI } from "@/lib/reservations";
 import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
-import { pozivnicaUrl } from "@/lib/pozivnica";
+import { pozivnicaUrl, slikaPozivniceUrl } from "@/lib/pozivnica";
 import {
   porukaPodsjetnika,
   porukaPotvrde,
@@ -369,7 +369,7 @@ export default async function RezervacijaDetalj({
                   👀 Otvori pozivnicu
                 </a>
                 <PosaljiPozivnicuWhatsapp
-                  slikaUrl={`/pozivnica/${r.qrToken}/slika`}
+                  slikaUrl={slikaPozivniceUrl(r.qrToken, [r.updatedAt, predlozak?.updatedAt])}
                   waVeza={wa.pozivnica}
                   poruka={porukaPozivnice(vezaPozivnice, r.childName)}
                   nazivDatoteke={`pozivnica-${r.childName?.trim().replace(/\s+/g, "-").toLowerCase() || r.code}.jpg`}

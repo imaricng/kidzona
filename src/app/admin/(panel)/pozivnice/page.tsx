@@ -8,7 +8,7 @@ import { formatDatumDugi, formatDatumVrijeme } from "@/lib/format";
 import { lokalniISO } from "@/lib/slots";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
-import { pozivnicaUrl } from "@/lib/pozivnica";
+import { pozivnicaUrl, slikaPozivniceUrl } from "@/lib/pozivnica";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { porukaPozivnice, whatsappVeza } from "@/lib/whatsapp";
 import { posaljiPozivnicu } from "@/lib/reservations";
@@ -52,6 +52,7 @@ export default async function AdminPozivnicePage({
       return {
         r,
         imaPredlozak: !!predlozak,
+        izmjenaPredloska: predlozak?.updatedAt,
         tematski: !!predlozak?.themeId,
         veza,
         poruka: porukaPozivnice(veza, r.childName),
@@ -83,7 +84,7 @@ export default async function AdminPozivnicePage({
         <p className="mt-6 text-sm text-ink-500">Nema nadolazećih potvrđenih proslava.</p>
       ) : (
         <div className="mt-6 space-y-3">
-          {redovi.map(({ r, imaPredlozak, tematski, veza, poruka: tekstPoruke, wa }) => (
+          {redovi.map(({ r, imaPredlozak, izmjenaPredloska, tematski, veza, poruka: tekstPoruke, wa }) => (
             <div key={r.id} className="card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -127,7 +128,7 @@ export default async function AdminPozivnicePage({
                   👀 Otvori
                 </a>
                 <PosaljiPozivnicuWhatsapp
-                  slikaUrl={`/pozivnica/${r.qrToken}/slika`}
+                  slikaUrl={slikaPozivniceUrl(r.qrToken, [r.updatedAt, izmjenaPredloska])}
                   waVeza={wa}
                   poruka={tekstPoruke}
                   nazivDatoteke={`pozivnica-${r.childName?.trim().replace(/\s+/g, "-").toLowerCase() || r.code}.jpg`}

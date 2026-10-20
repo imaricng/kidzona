@@ -21,6 +21,8 @@ export interface OdabraniPredlozak {
   slikaVisina: number;
   /** Tekst pozivnice s varijablama; `null` = zadani tekst. */
   tekstPredlozak: string | null;
+  /** Zadnja izmjena predloška — ulazi u verziju adrese nacrtane pozivnice. */
+  updatedAt: Date;
 }
 
 const POLJA = {
@@ -39,6 +41,7 @@ const POLJA = {
   slikaSirina: true,
   slikaVisina: true,
   tekstPredlozak: true,
+  updatedAt: true,
 } as const;
 
 type Zapis = {
@@ -57,6 +60,7 @@ type Zapis = {
   slikaSirina: number;
   slikaVisina: number;
   tekstPredlozak: string | null;
+  updatedAt: Date;
 };
 
 function uPredlozak(z: Zapis): OdabraniPredlozak {
@@ -75,6 +79,7 @@ function uPredlozak(z: Zapis): OdabraniPredlozak {
     slikaSirina: z.slikaSirina,
     slikaVisina: z.slikaVisina,
     tekstPredlozak: z.tekstPredlozak,
+    updatedAt: z.updatedAt,
   };
 }
 

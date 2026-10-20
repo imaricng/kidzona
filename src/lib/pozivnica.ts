@@ -69,6 +69,16 @@ export function pozivnicaUrl(appUrl: string, qrToken: string): string {
   return `${appUrl.replace(/\/$/, "")}/pozivnica/${qrToken}`;
 }
 
+/**
+ * Adresa nacrtane pozivnice (JPEG). Verzija u adresi je vrijeme zadnje izmjene
+ * rezervacije ili predloška: preglednik i CDN sliku čuvaju po adresi, pa bi
+ * nakon promjene termina inače i dalje davali staru sliku.
+ */
+export function slikaPozivniceUrl(qrToken: string, izmjene: (Date | null | undefined)[]): string {
+  const verzija = Math.max(0, ...izmjene.map((d) => d?.getTime() ?? 0));
+  return `/pozivnica/${qrToken}/slika?v=${verzija.toString(36)}`;
+}
+
 /** Molba za potvrdu dolaska; `null` kad broj telefona nije upisan. */
 export function potvrdaDolaska(phone: string | null | undefined): string | null {
   const telefon = phone?.trim();

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { hr } from "@/i18n/hr";
 import { formatDatumDugi } from "@/lib/format";
-import { potvrdaDolaska, predlozakUrl } from "@/lib/pozivnica";
+import { potvrdaDolaska, predlozakUrl, slikaPozivniceUrl } from "@/lib/pozivnica";
 import { retciPozivnice } from "@/lib/pozivnica-tekst";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
@@ -20,7 +20,9 @@ export const dynamic = "force-dynamic";
  */
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
-  const slika = `${env.appUrl}/pozivnica/${token}/slika`;
+  const r = await prisma.reservation.findUnique({ where: { qrToken: token }, select: { updatedAt: true, themeId: true, roomId: true } });
+  const predlozak = r ? await predlozakZaProslavu(r.themeId, r.roomId) : null;
+  const slika = `${env.appUrl}${slikaPozivniceUrl(token, [r?.updatedAt, predlozak?.updatedAt])}`;
   return {
     title: "Pozivnica na rođendan",
     openGraph: { title: "Pozivnica na rođendan 🎉", images: [slika], type: "website" },
@@ -99,7 +101,7 @@ export default async function PozivnicaPage({ params }: { params: Promise<{ toke
         <div className="mt-6 flex flex-wrap justify-center gap-3 print:hidden">
           <PrintButton />
           <PodijeliPozivnicu />
-          <a href={`/pozivnica/${token}/slika`} download="pozivnica.jpg" className="btn-secondary">
+          <a href={slikaPozivniceUrl(token, [r.updatedAt, predlozak?.updatedAt])} download="pozivnica.jpg" className="btn-secondary">
             ⬇️ Spremi kao sliku
           </a>
         </div>
