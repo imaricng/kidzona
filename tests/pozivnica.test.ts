@@ -179,4 +179,7 @@ describe("godineNaProslavi", () => {
   it("proslava mjesec prije rođendana", () => {
     expect(proslava("2026-10-16", "2019-11-16")).toBe(7);
   });
+  it("proslava mjesecima prije rođendana slavi godine koje već ima", () => {
+    expect(proslava("2026-11-08", "2016-02-10")).toBe(10);
+  });
 });
