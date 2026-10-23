@@ -18,6 +18,7 @@ const STAVKE = [
   { href: "/admin/pokloni", label: hr.pokloni.naslov, ikona: "🎀" },
   { href: "/admin/clanstva", label: "Članstva i vjernost", ikona: "⭐" },
   { href: "/admin/pos", label: hr.admin.pos, ikona: "🛒" },
+  { href: "/admin/dnevna-igra", label: "Dnevna igra", ikona: "🧸" },
 ];
 
 export function AdminNav() {

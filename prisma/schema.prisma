@@ -72,6 +72,7 @@ model Family {
   loyalty       LoyaltyAccount?
   memberships   Membership[]
   openPlay      OpenPlaySession[]
+  dnevnaIgra    DailyPlay[]
 }
 
 model Child {
@@ -83,6 +84,7 @@ model Child {
   allergies String?  // osjetljivo (GDPR)
   notes     String?
   createdAt DateTime @default(now())
+  dnevnaIgra DailyPlay[]
 
   @@index([birthDate])
 }
@@ -474,4 +476,30 @@ model OpenPlaySession {
   createdAt   DateTime @default(now())
 
   @@index([status])
+}
+
+// Dnevna igra: dolasci djece u igraonicu u terminima bez rođendana.
+// Jedan zapis = jedan boravak; dok je `leftAt` prazan, dijete je u igraonici.
+// Uz e-mail roditelja boravak se povezuje s obitelji (i djetetom) u CRM-u.
+model DailyPlay {
+  id               String    @id @default(cuid())
+  childName        String // ime i prezime djeteta
+  parentName       String
+  parentPhone      String
+  childBirthDate   DateTime? // opcionalno („Više o djetetu”)
+  parentEmail      String? // tražimo ga uvijek; bez njega nema veze s CRM-om
+  arrivedAt        DateTime  @default(now())
+  leftAt           DateTime?
+  marketingConsent Boolean   @default(false) // roditelj je usmeno pristao na obavijesti i ponude
+  familyId         String?
+  family           Family?   @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  childId          String?
+  child            Child?    @relation(fields: [childId], references: [id], onDelete: SetNull)
+  createdBy        String? // ime osobe koja je upisala dolazak
+  createdAt        DateTime  @default(now())
+
+  @@index([leftAt])
+  @@index([parentPhone])
+  @@index([arrivedAt])
+  @@map("dnevna_igra")
 }
