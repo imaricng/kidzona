@@ -2,12 +2,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
-import { formatDatum, formatDatumVrijeme, imeVelikimSlovom } from "@/lib/format";
+import { datumUZoni, formatDatum, formatDatumVrijeme, imeVelikimSlovom } from "@/lib/format";
 import { formatTrajanje, minuteBoravka } from "@/lib/dnevna-igra";
 import { poveziSCrm } from "@/lib/dnevna-igra-crm";
 import { lokalniISO } from "@/lib/slots";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { DatumPolje } from "@/components/DatumPolje";
+import { DolazakForma, type PoznatoDijete } from "@/components/admin/DolazakForma";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dnevna igra" };
@@ -55,7 +56,7 @@ async function upisiDolazak(formData: FormData) {
   });
   if (email) await poveziSCrm(boravak.id, { email, rodendan: boravak.childBirthDate, privola });
   osvjezi();
-  redirect(`/admin/dnevna-igra?poruka=${email ? "dodano" : "bez-emaila"}`);
+  redirect(`/admin/dnevna-igra?poruka=${email ? "dodano" : "bez-emaila"}&n=${boravak.id}`);
 }
 
 /** Naknadno upisan e-mail (npr. pri sljedećem dolasku) povezuje dijete s CRM-om. */
@@ -96,17 +97,52 @@ const PORUKE: Record<string, string> = {
 export default async function DnevnaIgraPage({
   searchParams,
 }: {
-  searchParams: Promise<{ poruka?: string; greska?: string; zavrseno?: string }>;
+  searchParams: Promise<{ poruka?: string; greska?: string; zavrseno?: string; n?: string }>;
 }) {
-  const { poruka, greska, zavrseno } = await searchParams;
+  const { poruka, greska, zavrseno, n } = await searchParams;
   const sada = new Date();
   const danas = lokalniISO(sada);
-  const [aktivni, zavrseni, upravoZavrsen, bezEmailaSvi] = await Promise.all([
+  const [aktivni, zavrseni, upravoZavrsen, bezEmailaSvi, raniji, crmDjeca] = await Promise.all([
     prisma.dailyPlay.findMany({ where: { leftAt: null }, orderBy: { arrivedAt: "asc" } }),
     prisma.dailyPlay.findMany({ where: { leftAt: { not: null } }, orderBy: { leftAt: "desc" }, take: 50 }),
     zavrseno ? prisma.dailyPlay.findUnique({ where: { id: zavrseno } }) : Promise.resolve(null),
     prisma.dailyPlay.findMany({ where: { familyId: null }, orderBy: { arrivedAt: "desc" }, take: 200 }),
+    prisma.dailyPlay.findMany({ orderBy: { arrivedAt: "desc" }, take: 3000, include: { family: true } }),
+    prisma.child.findMany({ include: { family: true }, orderBy: { createdAt: "desc" }, take: 3000 }),
   ]);
+
+  // Poznata djeca za brzi odabir: najnoviji podaci s dnevne igre, pa djeca iz CRM-a (s rođendana).
+  const poznata: PoznatoDijete[] = [];
+  const poznatiKljucevi = new Set<string>();
+  for (const d of raniji) {
+    const kljuc = `${d.parentPhone}|${d.childName.toLowerCase()}`;
+    if (poznatiKljucevi.has(kljuc)) continue;
+    poznatiKljucevi.add(kljuc);
+    if (d.childId) poznatiKljucevi.add(`crm|${d.childId}`);
+    poznata.push({
+      kljuc,
+      dijete: d.childName,
+      roditelj: d.parentName,
+      telefon: d.parentPhone,
+      email: d.parentEmail ?? "",
+      rodendan: d.childBirthDate ? datumUZoni(d.childBirthDate) : "",
+      privola: d.family?.marketingConsent ?? d.marketingConsent,
+      izvor: "dnevna-igra",
+    });
+  }
+  for (const c of crmDjeca) {
+    if (poznatiKljucevi.has(`crm|${c.id}`)) continue;
+    poznata.push({
+      kljuc: `crm|${c.id}`,
+      dijete: c.firstName,
+      roditelj: c.family.parentName,
+      telefon: c.family.phone ?? "",
+      email: c.family.email,
+      rodendan: datumUZoni(c.birthDate),
+      privola: c.family.marketingConsent,
+      izvor: "crm",
+    });
+  }
   // Jedno dijete (isti telefon i ime) samo jednom, s najnovijim dolaskom.
   const vidjeni = new Set<string>();
   const bezEmaila = bezEmailaSvi.filter((d) => {
@@ -144,41 +180,7 @@ export default async function DnevnaIgraPage({
       {greska && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 ring-1 ring-red-200">{greska}</p>}
 
       {/* Novi dolazak */}
-      <form action={upisiDolazak} className="card mt-6">
-        <h2 className="font-semibold text-ink-800">+ Novi dolazak</h2>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-ink-500">Ime i prezime djeteta *</span>
-            <input name="dijete" required minLength={3} maxLength={80} className="input !py-2" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-ink-500">Ime roditelja *</span>
-            <input name="roditelj" required minLength={2} maxLength={80} className="input !py-2" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-ink-500">Telefon roditelja *</span>
-            <input name="telefon" type="tel" required inputMode="tel" maxLength={30} className="input !py-2" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-ink-500">E-mail roditelja (tražite ga)</span>
-            <input name="email" type="email" maxLength={120} className="input !py-2" />
-          </label>
-        </div>
-        <label className="mt-3 flex items-start gap-2 text-sm text-ink-700">
-          <input type="checkbox" name="privola" className="mt-0.5 h-4 w-4 accent-brand-500" />
-          Roditelj pristaje primati obavijesti i ponude Kidzone (npr. podsjetnik za rođendan)
-        </label>
-        <details className="mt-3">
-          <summary className="cursor-pointer text-sm font-medium text-brand-600">Više o djetetu</summary>
-          <label className="mt-3 block max-w-xs">
-            <span className="mb-1 block text-xs font-medium text-ink-500">Datum rođenja djeteta (za rođendanske ponude)</span>
-            <DatumPolje name="rodendan" max={danas} className="input !py-2" />
-          </label>
-        </details>
-        <div className="mt-4 flex justify-end">
-          <button type="submit" className="btn-primary !py-2">Upiši dolazak</button>
-        </div>
-      </form>
+      <DolazakForma key={n ?? "nova"} akcija={upisiDolazak} poznata={poznata} danas={danas} />
 
       {/* Djeca trenutno u igraonici */}
       <h2 className="mt-8 font-semibold text-ink-800">Trenutno u igraonici ({aktivni.length})</h2>
