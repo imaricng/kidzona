@@ -226,6 +226,26 @@ funkciji. Bez ostalih izmjena u kodu.
 
 ---
 
+## 💾 Backup baze
+
+GitHub Actions (`.github/workflows/backup.yml`) svaku noć u 02:00 UTC radi
+`pg_dump` baze, šifrira ga lozinkom i čuva 90 dana (Actions → Backup baze →
+pojedino pokretanje → Artifacts). Ručno: Actions → Backup baze → Run workflow.
+
+Tajne (Settings → Secrets and variables → Actions): `DATABASE_URL`,
+`BACKUP_PASSWORD`. Bez te lozinke backup se ne može otvoriti — čuvaj je izvan
+GitHuba.
+
+Vraćanje (preuzeti zip raspakirati, zatim):
+
+```bash
+gpg -d -o kidzona.dump kidzona-GGGG-MM-DD.dump.gpg   # traži BACKUP_PASSWORD
+pg_restore --clean --if-exists --no-owner -d "$DATABASE_URL" kidzona.dump
+```
+
+`--clean` briše postojeće podatke u ciljnoj bazi. Najprije vrati u praznu
+probnu bazu i provjeri, a tek onda u produkciju.
+
 ## 🏛️ Arhitektura (ukratko)
 
 ```

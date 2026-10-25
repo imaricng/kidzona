@@ -1,0 +1,46 @@
+# Dnevni backup baze (pg_dump), sifriran lozinkom BACKUP_PASSWORD.
+# Potrebne tajne u GitHubu: DATABASE_URL, BACKUP_PASSWORD.
+# Vracanje: vidi README, odjeljak "Backup baze".
+name: Backup baze
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # 02:00 UTC = 03:00/04:00 po hrvatskom vremenu
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: pg_dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          test -n "$DATABASE_URL" || { echo "Nedostaje tajna DATABASE_URL"; exit 1; }
+          docker run --rm -e DATABASE_URL -v "$PWD:/out" postgres:17 \
+            sh -c 'pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges -f /out/kidzona.dump'
+          # Prazan ili ostecen dump = neuspjeh
+          docker run --rm -v "$PWD:/out" postgres:17 pg_restore --list /out/kidzona.dump > /dev/null
+          ls -lh kidzona.dump
+
+      - name: Sifriranje
+        env:
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          test -n "$BACKUP_PASSWORD" || { echo "Nedostaje tajna BACKUP_PASSWORD"; exit 1; }
+          NAME="kidzona-$(date -u +%Y-%m-%d).dump.gpg"
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o "$NAME" kidzona.dump <<< "$BACKUP_PASSWORD"
+          rm kidzona.dump
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}
+          retention-days: 90
+          compression-level: 0
