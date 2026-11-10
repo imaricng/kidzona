@@ -22,6 +22,8 @@ export interface Poruka {
   primatelj: string; // email ili broj telefona
   naslov?: string;
   tijelo: string;
+  // Oblikovana e-pošta; bez nje se HTML gradi iz teksta (`tijeloUHtml`).
+  html?: string;
   reservationId?: string;
 }
 

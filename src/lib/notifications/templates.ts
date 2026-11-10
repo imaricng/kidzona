@@ -5,6 +5,7 @@
 import { pozdrav } from "@/lib/nepotpuno";
 import { formatDatumDugi, formatEur, imeVelikimSlovom, kadaJe } from "@/lib/format";
 import { hr, brojDjece } from "@/i18n/hr";
+import { env } from "@/lib/env";
 
 interface RezervacijaPodaci {
   code: string;
@@ -218,20 +219,62 @@ export function predlozakRodjendanGodina(
   parentName: string,
   childName: string,
   novaDob: number,
-): { naslov: string; tijelo: string } {
-  return {
-    naslov: `Bliži se rođendan! 🎂 ${imeVelikimSlovom(childName)} uskoro slavi`,
-    tijelo: [
-      pozdrav(parentName),
-      ``,
-      `prošla je godina otkad ste slavili s nama — ${imeVelikimSlovom(childName)} uskoro puni ${novaDob}. 🎉`,
-      ``,
-      `Rezervirajte termin na vrijeme i osigurajte omiljenu igraonicu i temu.`,
-      `Kao zahvalu za vjernost, javite nam se za poseban popust.`,
-      ``,
-      `Veselimo se novoj proslavi! — ${hr.brand.naziv}`,
-    ].join("\n"),
+): { naslov: string; tijelo: string; html: string } {
+  const dijete = imeVelikimSlovom(childName);
+  const roditelj = imeVelikimSlovom(parentName.trim().split(/\s+/)[0] ?? "");
+  const pozdravRed = roditelj ? `Pozdrav, ${roditelj}! 👋` : `Pozdrav! 👋`;
+  const rezervacijaUrl = `${env.appUrl}/rezervacija`;
+  const recenice = {
+    uvod: `kako vrijeme brzo leti! 🥳 Za nekoliko tjedana ${dijete} slavi svoj ${novaDob}. rođendan, a mi bismo ga jako voljeli ponovno ugostiti u Party Kidzoni.`,
+    sve: `Animatori, igre, torta, smijeh i gomila prijatelja: vi samo dovedite slavljenika, a za sve ostalo se brinemo mi. 💜`,
+    termini: `Najtraženiji vikend-termini brzo se popune, zato vam predlažemo da termin rezervirate na vrijeme.`,
   };
+  const e = escapeHtml;
+  return {
+    naslov: `${dijete} uskoro puni ${novaDob}! 🎂 Proslavimo zajedno?`,
+    tijelo: [
+      pozdravRed,
+      ``,
+      recenice.uvod,
+      ``,
+      recenice.sve,
+      ``,
+      recenice.termini,
+      ``,
+      `Rezervirajte termin: ${rezervacijaUrl}`,
+      `ili nas nazovite / pišite na WhatsApp: ${hr.kontakt.telefon}`,
+      ``,
+      `Veselimo se novoj proslavi! 🎊 — Party Kidzona`,
+    ].join("\n"),
+    // Tablice i atributi bgcolor/font: tako izgled drže i stroži klijenti e-pošte.
+    html: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f4f0ff"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;border-radius:20px;font-family:Arial,Helvetica,sans-serif;color:#2b2340">
+<tr><td bgcolor="#ffe3f1" align="center" style="padding:26px 24px 20px;border-radius:20px 20px 0 0">
+<img src="${e(env.appUrl)}/brand/logo.png" alt="Party Kidzona" width="220" style="display:block;margin:0 auto 12px;max-width:70%;height:auto">
+<div style="font-size:40px;line-height:1">🎈🎂🎈</div>
+<h1 style="margin:12px 0 0;font-size:26px;color:#6a3de8">${e(dijete)} uskoro puni ${novaDob}!</h1>
+</td></tr>
+<tr><td style="padding:24px 30px 6px;font-size:16px;line-height:1.6">
+<p style="margin:0 0 14px">${e(pozdravRed)}</p>
+<p style="margin:0 0 14px">kako vrijeme brzo leti! 🥳 Za nekoliko tjedana <b>${e(dijete)}</b> slavi svoj <b>${novaDob}. rođendan</b>, a mi bismo ga jako voljeli ponovno ugostiti u <b>Party Kidzoni</b>.</p>
+<p style="margin:0 0 14px">${recenice.sve}</p>
+<p style="margin:0 0 6px">${recenice.termini}</p>
+</td></tr>
+<tr><td align="center" style="padding:16px 30px 24px">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ec3f8c" align="center" style="padding:14px 34px;border-radius:30px">
+<a href="${e(rezervacijaUrl)}" style="color:#ffffff;text-decoration:none;font-weight:bold;font-size:17px">🎉 Rezerviraj termin</a>
+</td></tr></table>
+<p style="margin:12px 0 0;font-size:13px;color:#7a7194">ili nas nazovite / pišite na WhatsApp: <b>${e(hr.kontakt.telefon)}</b></p>
+</td></tr>
+<tr><td bgcolor="#6a3de8" align="center" style="padding:16px;font-size:14px;color:#ffffff;border-radius:0 0 20px 20px">Veselimo se novoj proslavi! 🎊<br>Party Kidzona · Strossmayerova 3, Nova Gradiška</td></tr>
+</table>
+<p style="margin:10px 0 0;font-size:11px;color:#9a93b0">Ovu poruku primate jer ste pristali na obavijesti Party Kidzone. Odjava: ${e(hr.kontakt.email)}</p>
+</td></tr></table>`,
+  };
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 /**

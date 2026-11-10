@@ -43,7 +43,7 @@ export class SmtpNotificationProvider implements NotificationService {
         to: poruka.primatelj,
         subject: poruka.naslov ?? "Kidzona",
         text: poruka.tijelo,
-        html: tijeloUHtml(poruka.tijelo),
+        html: poruka.html ?? tijeloUHtml(poruka.tijelo),
       });
       return { status: "poslano", providerRef: info.messageId };
     } catch (e) {

@@ -26,7 +26,7 @@ async function posaljiRodjendanskiPodsjetnik(childId: string) {
   const dijete = await prisma.child.findUniqueOrThrow({ where: { id: childId }, include: { family: true } });
   const novaDob = dobGodine(dijete.birthDate) + 1;
   const p = predlozakRodjendanGodina(dijete.family.parentName, dijete.firstName, novaDob);
-  await posaljiIZabiljezi({ tip: "rodjendan-godina", kanal: "email", primatelj: dijete.family.email, naslov: p.naslov, tijelo: p.tijelo });
+  await posaljiIZabiljezi({ tip: "rodjendan-godina", kanal: "email", primatelj: dijete.family.email, naslov: p.naslov, tijelo: p.tijelo, html: p.html });
   revalidatePath("/admin/crm");
 }
 

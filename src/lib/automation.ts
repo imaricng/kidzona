@@ -128,9 +128,18 @@ export async function pokreniPodsjetnike(): Promise<RezultatPodsjetnika> {
       where: { type: "rodjendan-godina", recipient: c.family.email, createdAt: { gte: prije60 } },
     });
     if (vec > 0) continue;
+    // Obitelj koja već ima dogovorenu ili traženu proslavu ne treba poziv da rezervira.
+    const dogovoreno = await prisma.reservation.count({
+      where: {
+        OR: [{ familyId: c.familyId }, { email: c.family.email }],
+        status: { in: ["upit", ...AKTIVNI] },
+        date: { gte: pocetakDana(0) },
+      },
+    });
+    if (dogovoreno > 0) continue;
     const novaDob = dobGodine(c.birthDate) + 1;
     const p = predlozakRodjendanGodina(c.family.parentName, c.firstName, novaDob);
-    await posaljiIZabiljezi({ tip: "rodjendan-godina", kanal: "email", primatelj: c.family.email, naslov: p.naslov, tijelo: p.tijelo });
+    await posaljiIZabiljezi({ tip: "rodjendan-godina", kanal: "email", primatelj: c.family.email, naslov: p.naslov, tijelo: p.tijelo, html: p.html });
     rezultat.rodjendani++;
   }
 

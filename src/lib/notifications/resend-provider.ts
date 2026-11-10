@@ -32,7 +32,7 @@ export class ResendNotificationProvider implements NotificationService {
           to: poruka.primatelj,
           subject: poruka.naslov ?? "Kidzona",
           // Jednostavan tekst → HTML (zadržava prijelome redaka).
-          html: tijeloUHtml(poruka.tijelo),
+          html: poruka.html ?? tijeloUHtml(poruka.tijelo),
           text: poruka.tijelo,
         }),
       });
