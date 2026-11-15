@@ -34,8 +34,10 @@ export default async function RucniUnosPage() {
     childBirthDate: "",
     napomene: "",
     dogovorenaCijena: "",
+    gdprConsent: "",
+    marketingConsent: "",
+    izjavaRoditelja: "",
     status: "potvrdjeno",
-    posaljiPotvrdu: "on",
   };
 
   return (

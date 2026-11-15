@@ -1,12 +1,12 @@
 /**
  * Automatizacija vremenski okidanih poruka (srce automatizacije). Funkcija
- * `pokreniPodsjetnike()` namijenjena je pozivu iz cron jobova (npr. Vercel Cron
- * jednom dnevno) ili ručno iz administracije. Idempotentna je — za isti događaj
- * neće poslati duplu poruku (provjerava `NotificationLog`).
+ * `pokreniPodsjetnike()` namijenjena je jutarnjem cronu (ili ručnom pokretanju
+ * iz administracije), a `zakljuciDan()` večernjem u 21 h. Obje su idempotentne —
+ * za isti događaj neće poslati duplu poruku (provjerava `NotificationLog`).
  */
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { isoDatum, dobGodine } from "@/lib/format";
+import { isoDatum, dobGodine, satUZoni } from "@/lib/format";
 import { posaljiIZabiljezi } from "@/lib/notifications";
 import { UKLJUCI, podaciZaPoruku } from "@/lib/reservations";
 import {
@@ -20,7 +20,7 @@ const AKTIVNI = ["potvrdjeno", "placeno", "checkin"];
 // Automatski podsjetnici roditelju: koliko dana prije proslave i pod kojim tipom se bilježe.
 const PODSJETNICI = [
   { dana: 7, tip: "podsjetnik-tjedan" },
-  { dana: 1, tip: "podsjetnik" },
+  { dana: 3, tip: "podsjetnik" },
 ] as const;
 const TIPOVI_PODSJETNIKA = ["podsjetnik", "podsjetnik-tjedan", "podsjetnik-rucno"];
 
@@ -29,8 +29,8 @@ const RODJENDAN_DANA_PRIJE = 21;
 
 export interface RezultatPodsjetnika {
   podsjetniciTjedan: number; // 7 dana prije
-  podsjetnici: number; // dan prije
-  zahvale: number;
+  podsjetnici: number; // 3 dana prije
+  zahvale: number; // za jučerašnje proslave koje večer prije nisu zaključene
   rodjendani: number;
 }
 
@@ -60,10 +60,62 @@ async function vecPoslano(reservationId: string, type: string): Promise<boolean>
   return n > 0;
 }
 
+/** Bodovi lojalnosti obitelji za završenu proslavu (dodjeljuju se jednom, pri prelasku u „završeno"). */
+export async function dodijeliBodoveLojalnosti(familyId: string | null): Promise<void> {
+  if (!familyId) return;
+  await prisma.loyaltyAccount.upsert({
+    where: { familyId },
+    update: { points: { increment: env.loyaltyPointsPerParty } },
+    create: { familyId, points: env.loyaltyPointsPerParty },
+  });
+}
+
+/**
+ * Zaključuje proslave zadanog dana (0 = danas, -1 = jučer): aktivne prelaze u
+ * „završeno" (uz bodove lojalnosti), a roditelju ide zahvala i zamolba za
+ * recenziju. Proslava koju je osoblje već ručno označilo završenom dobiva samo
+ * zahvalu. Vraća broj poslanih zahvala.
+ */
+async function zakljuciProslave(offset: number): Promise<number> {
+  const proslave = await prisma.reservation.findMany({
+    where: { date: { gte: pocetakDana(offset), lt: pocetakDana(offset + 1) }, status: { in: [...AKTIVNI, "zavrseno"] } },
+    include: { room: true, package: true },
+  });
+  let zahvale = 0;
+  for (const r of proslave) {
+    if (r.status !== "zavrseno") {
+      await prisma.reservation.update({ where: { id: r.id }, data: { status: "zavrseno" } });
+      await dodijeliBodoveLojalnosti(r.familyId);
+    }
+    // Bez e-pošte se zahvala preskače, ali proslava se svejedno zaključuje.
+    if (!r.email || (await vecPoslano(r.id, "zahvala"))) continue;
+    const p = predlozakZahvale(
+      { code: r.code, parentName: r.parentName, childName: r.childName, date: r.date, slotStart: r.slotStart, slotEnd: r.slotEnd, roomName: r.room.name, packageName: r.package.name, numChildren: r.numChildren, totalCents: r.totalCents, depositCents: r.depositCents },
+      env.reviewUrl,
+    );
+    await posaljiIZabiljezi({ tip: "zahvala", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
+    zahvale++;
+  }
+  return zahvale;
+}
+
+// Od kojeg sata (po hrvatskom vremenu) se smije zaključiti radni dan.
+const KRAJ_RADNOG_DANA = 21;
+
+/**
+ * Kraj radnog dana: današnje proslave prelaze u „završeno" i roditeljima ide
+ * zahvala s molbom za recenziju. Cron se pokreće u dva UTC termina (zimsko i
+ * ljetno vrijeme), a raniji poziv prije 21 h po našem vremenu ne radi ništa.
+ */
+export async function zakljuciDan(sada: Date = new Date()): Promise<{ zakljuceno: boolean; zahvale: number }> {
+  if (satUZoni(sada) < KRAJ_RADNOG_DANA) return { zakljuceno: false, zahvale: 0 };
+  return { zakljuceno: true, zahvale: await zakljuciProslave(0) };
+}
+
 export async function pokreniPodsjetnike(): Promise<RezultatPodsjetnika> {
   const rezultat: RezultatPodsjetnika = { podsjetniciTjedan: 0, podsjetnici: 0, zahvale: 0, rodjendani: 0 };
 
-  // --- 1) Podsjetnici 7 dana i dan prije proslave ---------------------
+  // --- 1) Podsjetnici 7 i 3 dana prije proslave ----------------------
   for (const { dana, tip } of PODSJETNICI) {
     const proslave = await prisma.reservation.findMany({
       where: { date: { gte: pocetakDana(dana), lt: pocetakDana(dana + 1) }, status: { in: AKTIVNI } },
@@ -75,40 +127,13 @@ export async function pokreniPodsjetnike(): Promise<RezultatPodsjetnika> {
       if (await podsjetnikDanasPoslan(r.id)) continue;
       const p = predlozakPodsjetnika(podaciZaPoruku(r), dana);
       await posaljiIZabiljezi({ tip, kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
-      if (dana === 1) rezultat.podsjetnici++;
-      else rezultat.podsjetniciTjedan++;
+      if (dana === 7) rezultat.podsjetniciTjedan++;
+      else rezultat.podsjetnici++;
     }
   }
 
-  // --- 2) Zahvala + zamolba za recenziju (dan nakon proslave) ---------
-  const jučerOd = pocetakDana(-1);
-  const jučerDo = pocetakDana(0);
-  const jučerašnje = await prisma.reservation.findMany({
-    where: { date: { gte: jučerOd, lt: jučerDo }, status: { in: [...AKTIVNI, "zavrseno"] } },
-    include: { room: true, package: true },
-  });
-  for (const r of jučerašnje) {
-    if (await vecPoslano(r.id, "zahvala")) continue;
-    const p = predlozakZahvale(
-      { code: r.code, parentName: r.parentName, childName: r.childName, date: r.date, slotStart: r.slotStart, slotEnd: r.slotEnd, roomName: r.room.name, packageName: r.package.name, numChildren: r.numChildren, totalCents: r.totalCents, depositCents: r.depositCents },
-      env.reviewUrl,
-    );
-    // Bez e-pošte se zahvala preskače, ali proslava se svejedno zaključuje.
-    if (r.email) {
-      await posaljiIZabiljezi({ tip: "zahvala", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
-    }
-    // Označi proslavu završenom nakon zahvale
-    await prisma.reservation.update({ where: { id: r.id }, data: { status: "zavrseno" } });
-    // Dodijeli bodove lojalnosti obitelji (ako postoji)
-    if (r.familyId) {
-      await prisma.loyaltyAccount.upsert({
-        where: { familyId: r.familyId },
-        update: { points: { increment: env.loyaltyPointsPerParty } },
-        create: { familyId: r.familyId, points: env.loyaltyPointsPerParty },
-      });
-    }
-    rezultat.zahvale++;
-  }
+  // --- 2) Zahvale za jučer, ako večernje zaključivanje dana nije prošlo --
+  rezultat.zahvale = await zakljuciProslave(-1);
 
   // --- 3) Podsjetnik za sljedeći rođendan (godinu dana kasnije) -------
   const ciljOd = pocetakDana(RODJENDAN_DANA_PRIJE);

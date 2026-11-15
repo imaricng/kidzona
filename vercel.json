@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/reminders",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/kraj-dana?ljeto",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/kraj-dana?zima",
+      "schedule": "0 20 * * *"
     }
   ]
 }

@@ -77,6 +77,14 @@ export interface PodaciRezervacije {
   childBirthDate?: string | null; // "YYYY-MM-DD"
   napomene?: string;
   dogovorenaCijenaCents?: number | null; // samo za pakete s cijenom po dogovoru (administracija)
+  privole?: PrivoleRoditelja; // administracija: privole dane usmeno ili pismeno
+}
+
+/** Privole roditelja koje osoblje upisuje kod ručnog unosa (na webu ih roditelj označi sam). */
+export interface PrivoleRoditelja {
+  gdpr: boolean;
+  marketing: boolean;
+  izjava: boolean; // prihvaćena izjava roditelja (pravila igraonice)
 }
 
 /** Iznos rezervacije; paket s cijenom po dogovoru dobiva upisani iznos (0 = još nije dogovoren). */
@@ -435,9 +443,7 @@ export async function odbijUpit(code: string, razlog?: string): Promise<Rezultat
  * Ručni unos proslave (npr. dogovor telefonom ili WhatsAppom). Početak nije vezan
  * uz raspored; potvrđena rezervacija ne smije se preklapati s drugom potvrđenom.
  */
-export async function unesiRucno(
-  input: PodaciRezervacije & { status: "upit" | "potvrdjeno"; posaljiPotvrdu: boolean },
-): Promise<RezervacijaSPovezanim> {
+export async function unesiRucno(input: PodaciRezervacije & { status: "upit" | "potvrdjeno" }): Promise<RezervacijaSPovezanim> {
   const { soba, paket, termin } = await provjeriPodatke(input, false);
   const datum = new Date(`${input.dateISO}T00:00:00`);
   if (input.status === "potvrdjeno" && (await imaPreklapanje(datum, termin, [soba.id]))) {
@@ -453,7 +459,7 @@ export async function unesiRucno(
 
   const r = await prisma.$transaction(async (tx) => {
     const code = await noviKod(tx, datum.getFullYear());
-    const familyId = await poveziObitelj(tx, input, "rucni-unos");
+    const familyId = await poveziObitelj(tx, input, "rucni-unos", input.privole);
     return tx.reservation.create({
       data: {
         code,
@@ -478,15 +484,19 @@ export async function unesiRucno(
         status: input.status,
         ...cijenaRezervacije(paket, izracun, input.dogovorenaCijenaCents),
         paidCents: 0,
+        gdprConsent: input.privole?.gdpr ?? false,
+        marketingConsent: input.privole?.marketing ?? false,
         qrToken: qrToken(),
         source: "admin",
         notes: input.napomene || null,
+        waiver: input.privole?.izjava ? { create: { signedByName: input.parentName, content: IZJAVA_RODITELJA } } : undefined,
       },
       include: UKLJUCI,
     });
   });
 
-  if (r.status === "potvrdjeno") await posaljiPotvrdu(r, input.posaljiPotvrdu);
+  // Potvrđena rezervacija uvijek dobiva potvrdu e-poštom, kao i odobreni web upit.
+  if (r.status === "potvrdjeno") await posaljiPotvrdu(r, true);
   return r;
 }
 
@@ -496,7 +506,7 @@ export async function unesiRucno(
  * ostaju. Potvrđena rezervacija ne smije se preklapati s drugom potvrđenom.
  */
 export async function urediRezervaciju(code: string, input: PodaciRezervacije): Promise<void> {
-  const postojeca = await prisma.reservation.findUnique({ where: { code }, include: { addOns: { include: { addOn: true } } } });
+  const postojeca = await prisma.reservation.findUnique({ where: { code }, include: { addOns: { include: { addOn: true } }, waiver: true } });
   if (!postojeca) throw new NeispravnaRezervacijaError("Rezervacija ne postoji.");
   if (postojeca.status === "otkazano" || postojeca.status === "odbijeno") {
     throw new NeispravnaRezervacijaError("Otkazana ili odbijena rezervacija ne može se uređivati.");
@@ -517,8 +527,14 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
     depositPercent: env.depositPercent,
   });
 
+  // Privole obitelji diraju se samo kad ih je osoblje promijenilo — inače bi
+  // svako spremanje pomaknulo vrijeme davanja privole.
+  const p = input.privole;
+  const privoleObitelji =
+    p && (p.gdpr !== postojeca.gdprConsent || p.marketing !== postojeca.marketingConsent) ? { gdpr: p.gdpr, marketing: p.marketing } : undefined;
+
   await prisma.$transaction(async (tx) => {
-    const familyId = (await poveziObitelj(tx, input, "rucni-unos")) ?? postojeca.familyId;
+    const familyId = (await poveziObitelj(tx, input, "rucni-unos", privoleObitelji)) ?? postojeca.familyId;
     await tx.reservation.update({
       where: { id: postojeca.id },
       data: {
@@ -543,6 +559,11 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
         childBirthDate: input.childBirthDate ? new Date(input.childBirthDate) : null,
         notes: input.napomene || null,
         ...cijenaRezervacije(paket, izracun, input.dogovorenaCijenaCents),
+        ...(p ? { gdprConsent: p.gdpr, marketingConsent: p.marketing } : {}),
+        // Prihvaćena izjava se ne briše — to je trag onoga što je roditelj prihvatio.
+        ...(p?.izjava && !postojeca.waiver
+          ? { waiver: { create: { signedByName: input.parentName || postojeca.parentName, content: IZJAVA_RODITELJA } } }
+          : {}),
       },
     });
   });
@@ -550,7 +571,12 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
   // Termin koji zauzima igraonicu prati i kalendar (novo vrijeme, soba, paket).
   if (STATUSI_ZAUZIMAJU_TERMIN.includes(postojeca.status)) {
     const azurirana = await prisma.reservation.findUnique({ where: { id: postojeca.id }, include: UKLJUCI });
-    if (azurirana) await sinkronizirajKalendar(azurirana);
+    if (!azurirana) return;
+    // Potvrđena rezervacija unesena bez e-pošte: kad se adresa naknadno upiše,
+    // roditelj tek tada dobiva potvrdu (posaljiPotvrdu usklađuje i kalendar).
+    const tekDobilaEmail = !postojeca.email && !!azurirana.email && ["potvrdjeno", "placeno"].includes(azurirana.status);
+    if (tekDobilaEmail) await posaljiPotvrdu(azurirana, true);
+    else await sinkronizirajKalendar(azurirana);
   }
 }
 

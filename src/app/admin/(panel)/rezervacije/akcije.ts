@@ -50,6 +50,7 @@ function uPodatke(d: AdminRezervacijaInput): PodaciRezervacije {
     childTurning: d.childTurning ? Number(d.childTurning) : null,
     childBirthDate: d.childBirthDate || null,
     napomene: d.napomene || undefined,
+    privole: { gdpr: d.gdprConsent, marketing: d.marketingConsent, izjava: d.izjavaRoditelja },
     dogovorenaCijenaCents: d.dogovorenaCijena ? Math.round(Number(d.dogovorenaCijena.replace(",", ".")) * 100) : null,
   };
 }
@@ -81,7 +82,6 @@ export async function spremiRucniUnos(prethodno: StanjeObrasca, formData: FormDa
     const r = await unesiRucno({
       ...uPodatke(parsed.data),
       status: vrijednosti.status === "upit" ? "upit" : "potvrdjeno",
-      posaljiPotvrdu: vrijednosti.posaljiPotvrdu === "on",
     });
     code = r.code;
   } catch (e) {

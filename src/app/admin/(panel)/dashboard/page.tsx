@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hr, brojDjece } from "@/i18n/hr";
 import { formatEur, formatDatum, formatDatumVrijeme } from "@/lib/format";
-import { pocetciZaDan } from "@/lib/slots";
+import { pocetciZaDan, trajanjeSati } from "@/lib/slots";
+import { godineNaProslavi } from "@/lib/pozivnica";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { pokreniPodsjetnike } from "@/lib/automation";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
@@ -35,7 +36,7 @@ function sazetakAutomatike(kod: string | undefined): string | null {
   if (t + p + z + r === 0) return "Automatika je pokrenuta — danas nije bilo ničega za poslati.";
   const dijelovi = [
     t ? `${t} podsjetnik(a) za proslave za 7 dana` : null,
-    p ? `${p} podsjetnik(a) za sutrašnje proslave` : null,
+    p ? `${p} podsjetnik(a) za proslave za 3 dana` : null,
     z ? `${z} zahvala za jučerašnje proslave` : null,
     r ? `${r} rođendanskih ponuda` : null,
   ].filter(Boolean);
@@ -60,8 +61,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prisma.reservation.count({ where: { status: { in: AKTIVNI } } }),
     prisma.reservation.findMany({
       where: { date: { gte: danOd, lte: danDo }, status: { in: AKTIVNI } },
-      include: { room: true, package: true },
-      orderBy: { slotStart: "asc" },
+      include: { room: true, secondRoom: true, package: true, theme: true, addOns: { include: { addOn: true } } },
+      orderBy: [{ slotStart: "asc" }, { room: { sortOrder: "asc" } }],
     }),
     prisma.reservation.findMany({
       where: { date: { gt: danDo }, status: { in: AKTIVNI } },
@@ -108,7 +109,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <button
               type="submit"
               className="btn-secondary !py-2 !text-sm"
-              title="Odmah pošalji ono što inače ide svako jutro: podsjetnike za proslave za 7 dana i za sutrašnje, zahvale za jučerašnje i rođendanske ponude"
+              title="Odmah pošalji ono što inače ide svako jutro: podsjetnike za proslave za 7 i za 3 dana, zaostale zahvale za jučerašnje i rođendanske ponude"
             >
               ⚙️ Pokreni automatiku
             </button>
@@ -159,54 +160,85 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <KpiKartica naslov={hr.admin.popunjenost} vrijednost={`${popunjenost}%`} ikona="📈" />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        {/* Današnje proslave */}
-        <section className="card">
-          <h2 className="font-semibold text-ink-800">{hr.admin.danasnjeProslave} — {formatDatum(sada)}</h2>
-          {danasnje.length === 0 ? (
-            <p className="mt-4 text-sm text-ink-400">{hr.admin.nemaProslava}</p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {danasnje.map((r) => (
-                <li key={r.id} className="flex items-center justify-between gap-2 rounded-2xl bg-brand-50 px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-ink-800">{r.slotStart} · {r.room.name}</p>
-                    <p className="truncate text-xs text-ink-500">{imeProslave(r)} · {r.package.name} · {brojDjece(r.numChildren)}</p>
-                  </div>
-                  <StatusBadge status={r.status} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* Nadolazeće */}
-        <section className="card">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-ink-800">{hr.admin.nadolazece}</h2>
-            <Link href="/admin/rezervacije" className="text-sm text-brand-600 hover:underline">Sve →</Link>
-          </div>
-          {nadolazece.length === 0 ? (
-            <p className="mt-4 text-sm text-ink-400">Nema nadolazećih proslava.</p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {nadolazece.map((r) => (
+      {/* Današnje proslave — kartice za pripremu igraonica */}
+      <section className="card mt-8">
+        <h2 className="font-semibold text-ink-800">{hr.admin.danasnjeProslave} — {formatDatum(sada)}</h2>
+        {danasnje.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-400">{hr.admin.nemaProslava}</p>
+        ) : (
+          <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {danasnje.map((r) => {
+              const godine = godineNaProslavi(r);
+              const dodaci = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
+              return (
                 <li key={r.id}>
-                  <Link href={`/admin/rezervacije/${r.code}`} className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-ink-800">
-                        {r.theme?.emoji} {imeProslave(r)} <span className="text-ink-400">({r.code})</span>
+                  <Link
+                    href={`/admin/rezervacije/${r.code}`}
+                    className="flex h-full flex-col rounded-2xl bg-brand-50 p-4 ring-1 ring-brand-100 transition hover:ring-brand-300"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-display text-lg font-extrabold text-brand-700">
+                        {r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name}
                       </p>
-                      <p className="truncate text-xs text-ink-500">{formatDatum(r.date)} · {r.slotStart} · {r.room.name}</p>
+                      <StatusBadge status={r.status} />
                     </div>
-                    <StatusBadge status={r.status} />
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-ink-900">
+                      {r.slotStart} – {r.slotEnd}
+                    </p>
+                    <p className="text-xs text-ink-500">{trajanjeSati(r.package.durationMin)}</p>
+                    <p className="mt-3 font-semibold text-ink-800">
+                      🎂 {imeProslave(r)}
+                      {godine ? ` · ${godine}. rođendan` : ""}
+                    </p>
+                    <dl className="mt-2 space-y-1 text-sm">
+                      <KarticaRed n="Paket" v={`${r.package.name} · ${brojDjece(r.numChildren)}${r.numAdults ? ` + ${r.numAdults} odraslih` : ""}`} />
+                      <KarticaRed n="Tema" v={r.theme ? `${r.theme.emoji} ${r.theme.name}` : "bez teme"} />
+                      {dodaci && <KarticaRed n="Dodaci" v={dodaci} />}
+                      {r.notes && <KarticaRed n="Napomene" v={r.notes} />}
+                    </dl>
                   </Link>
                 </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* Nadolazeće */}
+      <section className="card mt-8">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-ink-800">{hr.admin.nadolazece}</h2>
+          <Link href="/admin/rezervacije" className="text-sm text-brand-600 hover:underline">Sve →</Link>
+        </div>
+        {nadolazece.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-400">Nema nadolazećih proslava.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {nadolazece.map((r) => (
+              <li key={r.id}>
+                <Link href={`/admin/rezervacije/${r.code}`} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-ink-800">
+                      {r.theme?.emoji} {imeProslave(r)} <span className="text-ink-400">({r.code})</span>
+                    </p>
+                    <p className="truncate text-xs text-ink-500">{formatDatum(r.date)} · {r.slotStart} · {r.room.name}</p>
+                  </div>
+                  <StatusBadge status={r.status} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function KarticaRed({ n, v }: { n: string; v: string }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="w-20 shrink-0 text-ink-500">{n}</dt>
+      <dd className="min-w-0 break-words text-ink-800">{v}</dd>
     </div>
   );
 }

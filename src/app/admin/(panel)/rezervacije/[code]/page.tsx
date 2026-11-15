@@ -18,6 +18,7 @@ import { posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
 import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu, podaciZaPoruku, UKLJUCI } from "@/lib/reservations";
 import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
+import { dodijeliBodoveLojalnosti } from "@/lib/automation";
 import { pozivnicaUrl, slikaPozivniceUrl } from "@/lib/pozivnica";
 import {
   porukaPodsjetnika,
@@ -74,6 +75,8 @@ async function promijeniStatus(code: string, status: string) {
   } else {
     await prisma.reservation.update({ where: { code }, data: { status } });
   }
+  // Bodovi lojalnosti idu jednom, kad proslava prvi put postane završena (inače ih dodijeli večernja automatika).
+  if (status === "zavrseno" && r.status !== "zavrseno") await dodijeliBodoveLojalnosti(r.familyId);
   // Otkazan termin oslobađa i kalendar igraonice.
   if (status === "otkazano") await ukloniProslavuIzKalendara(code);
   // Trag radnje osoblja — pod „Radnje" se vidi kad je zadnji put izvršena.
@@ -497,6 +500,9 @@ export default async function RezervacijaDetalj({
                 childBirthDate: r.childBirthDate ? r.childBirthDate.toISOString().slice(0, 10) : "",
                 napomene: r.notes ?? "",
                 dogovorenaCijena: r.package.cijenaPoDogovoru && r.totalCents > 0 ? (r.totalCents / 100).toFixed(2) : "",
+                gdprConsent: r.gdprConsent ? "on" : "",
+                marketingConsent: r.marketingConsent ? "on" : "",
+                izjavaRoditelja: r.waiver ? "on" : "",
               }}
             />
           </div>

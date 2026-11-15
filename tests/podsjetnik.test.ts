@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { danaDo, imeVelikimSlovom, kadaJe } from "@/lib/format";
+import { danaDo, imeVelikimSlovom, kadaJe, satUZoni } from "@/lib/format";
 import { predlozakPodsjetnika, predlozakPotvrde } from "@/lib/notifications/templates";
 
 const PROSLAVA = {
@@ -38,6 +38,25 @@ describe("danaDo", () => {
   });
   it("prelazak na zimsko vrijeme ne pomiče broj dana", () => {
     expect(danaDo(new Date("2026-10-26T00:00:00+01:00"), new Date("2026-10-24T12:00:00+02:00"))).toBe(2);
+  });
+});
+
+describe("satUZoni", () => {
+  it("21 h po hrvatskom vremenu i zimi i ljeti", () => {
+    expect(satUZoni(new Date("2026-11-15T20:05:00Z"))).toBe(21); // zimsko (UTC+1)
+    expect(satUZoni(new Date("2026-11-15T19:05:00Z"))).toBe(20);
+    expect(satUZoni(new Date("2026-07-15T19:05:00Z"))).toBe(21); // ljetno (UTC+2)
+    expect(satUZoni(new Date("2026-07-15T22:30:00Z"))).toBe(0);
+  });
+});
+
+describe("predlozakPodsjetnika za 3 dana", () => {
+  it("navodi samo paket (bez broja djece) i ne spominje sutra", () => {
+    const p = predlozakPodsjetnika(PROSLAVA, 3);
+    expect(p.naslov).toContain("za 3 dana");
+    expect(p.tijelo).toContain("Paket: Basic\n");
+    expect(p.tijelo).not.toContain("10 djece");
+    expect(p.tijelo.toLowerCase()).not.toContain("sutra");
   });
 });
 

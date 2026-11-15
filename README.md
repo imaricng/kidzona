@@ -65,11 +65,14 @@ proslave**, a kalendar automatski blokira zauzete termine i igraonice.
 Okidaju se automatski i **zapisuju u konzolu razvojnog poslužitelja** te u bazu (`NotificationLog`):
 - Trenutna **potvrda rezervacije** (s QR poveznicom).
 - **Obavijest osoblju** (termin, priprema hrane, broj gostiju, dodaci).
-- **Podsjetnik** (dan prije), **zahvala i zamolba za Google recenziju** (dan
-  poslije), **podsjetnik za sljedeći rođendan** godinu dana kasnije.
-- Pokreće ih **zakazani zadatak (cron)** [`/api/cron/reminders`](src/app/api/cron/reminders/route.ts)
-  (bez dvostrukih poruka) i **ručni gumb na nadzornoj ploči**.
-  Postavke zakazanog zadatka (Vercel Cron) su u [`vercel.json`](vercel.json) (svaki dan u 9:00).
+- **Podsjetnici** (7 i 3 dana prije), **podsjetnik za sljedeći rođendan** godinu dana kasnije.
+- **Kraj radnog dana u 21 h:** današnje proslave prelaze u „Završeno", a roditelji dobivaju
+  **zahvalu i zamolbu za Google recenziju**.
+- Pokreću ih **zakazani zadaci (cron)** [`/api/cron/reminders`](src/app/api/cron/reminders/route.ts)
+  (svako jutro) i [`/api/cron/kraj-dana`](src/app/api/cron/kraj-dana/route.ts) (21 h), bez
+  dvostrukih poruka, te **ručni gumb na nadzornoj ploči** (jutarnji dio).
+  Postavke su u [`vercel.json`](vercel.json); Vercel radi u UTC-u, pa se kraj dana poziva u
+  19 i 20 h UTC, a izvršava se samo poziv koji pada u 21 h ili kasnije po našem vremenu.
 
 ### Članstva, vjernost i slobodna igra (opcijski modul)
 - **Bodovi vjernosti** (automatski po završenoj proslavi), **članstva** s

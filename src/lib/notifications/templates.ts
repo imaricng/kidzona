@@ -159,7 +159,7 @@ export function predlozakPodsjetnika(r: RezervacijaPodaci, dana: number): { nasl
       `Datum: ${formatDatumDugi(r.date)}`,
       `Termin: ${r.slotStart} – ${r.slotEnd}`,
       `Igraonica: ${r.roomName}`,
-      `Paket: ${r.packageName} (${brojDjece(r.numChildren)})`,
+      `Paket: ${r.packageName}`,
       r.numAdults ? `Odrasli gosti: ${r.numAdults}` : null,
       r.themeName ? `Tema: ${r.themeName}` : null,
       r.dodaci?.length ? `Dodaci: ${r.dodaci.join(", ")}` : null,

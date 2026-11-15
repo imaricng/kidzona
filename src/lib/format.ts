@@ -65,6 +65,11 @@ export function datumUZoni(date: Date | string): string {
   return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TZ }).format(d);
 }
 
+/** Sat (0–23) kakav je u Hrvatskoj, neovisno o zoni poslužitelja i ljetnom vremenu. */
+export function satUZoni(sada: Date = new Date()): number {
+  return Number(new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hourCycle: "h23", timeZone: TZ }).format(sada));
+}
+
 /** Koliko je kalendarskih dana do datuma: 0 = danas, 1 = sutra, negativno = prošlo. */
 export function danaDo(date: Date | string, sada: Date = new Date()): number {
   const [cilj, danas] = [datumUZoni(date), datumUZoni(sada)].map((iso) => Date.parse(`${iso}T00:00:00Z`));

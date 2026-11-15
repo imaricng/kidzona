@@ -219,6 +219,18 @@ function Polja({
         </div>
       </div>
 
+      <div>
+        <h3 className="font-semibold text-ink-800">Privole roditelja</h3>
+        <p className="mt-1 text-xs text-ink-500">
+          Označite ono na što je roditelj pristao (usmeno, porukom ili na papiru) — isto što kod online rezervacije označi sam.
+        </p>
+        <div className="mt-3 space-y-2">
+          <Kvacica name="gdprConsent" v={v}>Privola za obradu osobnih podataka (potrebna za rezervaciju)</Kvacica>
+          <Kvacica name="marketingConsent" v={v}>Privola za marketing (obavijesti, ponude i podsjetnik za sljedeći rođendan)</Kvacica>
+          <Kvacica name="izjavaRoditelja" v={v}>Roditelj je prihvatio izjavu roditelja (pravila igraonice)</Kvacica>
+        </div>
+      </div>
+
       {rucniUnos && (
         <div className="grid gap-4 sm:grid-cols-2">
           <Polje label="Status">
@@ -227,10 +239,10 @@ function Polja({
               <option value="upit">Upit (čeka odobrenje)</option>
             </select>
           </Polje>
-          <label className="flex items-center gap-3 self-end rounded-2xl bg-brand-50 px-4 py-3 text-sm text-ink-700">
-            <input type="checkbox" name="posaljiPotvrdu" defaultChecked={v.posaljiPotvrdu === "on"} className="h-4 w-4 accent-brand-500" />
-            Pošalji kupcu potvrdu e-poštom (ako je upisana)
-          </label>
+          <p className="self-end rounded-2xl bg-brand-50 px-4 py-3 text-sm text-ink-700">
+            Potvrđenoj rezervaciji kupac odmah dobiva potvrdu e-poštom. Ako e-pošta još nije upisana, potvrda odlazi
+            kad se upiše.
+          </p>
         </div>
       )}
 
@@ -253,6 +265,15 @@ function Polja({
         )
       )}
     </div>
+  );
+}
+
+function Kvacica({ name, v, children }: { name: string; v: Record<string, string>; children: ReactNode }) {
+  return (
+    <label className="flex items-start gap-3 text-sm text-ink-700">
+      <input type="checkbox" name={name} defaultChecked={v[name] === "on"} className="mt-0.5 h-4 w-4 accent-brand-500" />
+      <span>{children}</span>
+    </label>
   );
 }
 

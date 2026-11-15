@@ -80,6 +80,10 @@ export const adminRezervacijaSchema = z
       .default("")
       .refine((v) => v === "" || DATUM.test(v), "Neispravan datum rođenja."),
     napomene: z.string().trim().default(""),
+    // Privole koje je roditelj dao usmeno ili pismeno (isto što na webu označi sam).
+    gdprConsent: z.coerce.boolean().default(false),
+    marketingConsent: z.coerce.boolean().default(false),
+    izjavaRoditelja: z.coerce.boolean().default(false),
     // Samo za pakete s cijenom po dogovoru; prazno = iznos još nije dogovoren.
     dogovorenaCijena: z
       .string()
