@@ -18,7 +18,7 @@ import { pozivnicaUrl } from "@/lib/pozivnica";
 import { retciPozivnice } from "@/lib/pozivnica-tekst";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { jeDozvoljenPocetak, krajTermina, lokalniISO, preklapaSe, type Termin } from "@/lib/slots";
-import { upisiProslavuUKalendar, ukloniProslavuIzKalendara } from "@/lib/kalendar";
+import { naslovDogadjaja, upisiProslavuUKalendar, ukloniProslavuIzKalendara } from "@/lib/kalendar";
 import { kodRezervacije, qrToken, brojRacuna } from "@/lib/codes";
 import { getPaymentService } from "@/lib/payments";
 import { getFiscalizationService } from "@/lib/fiscalization";
@@ -232,28 +232,7 @@ export function podaciZaPoruku(r: RezervacijaSPovezanim) {
  * upis ne uspije (ili nije konfiguriran), rezervacija svejedno vrijedi.
  */
 export async function sinkronizirajKalendar(r: RezervacijaSPovezanim): Promise<void> {
-  const dodaciOpis = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
-  const ishod = await upisiProslavuUKalendar({
-    code: r.code,
-    datumISO: lokalniISO(r.date),
-    slotStart: r.slotStart,
-    slotEnd: r.slotEnd,
-    naslov: `${r.childName ? `${r.childName} — ` : ""}${r.package.name} (${brojDjece(r.numChildren)})`,
-    opis: [
-      `Kod: ${r.code}`,
-      `Paket: ${r.package.name}`,
-      `Roditelj: ${r.parentName}`,
-      r.phone ? `Telefon: ${r.phone}` : null,
-      r.email ? `E-pošta: ${r.email}` : null,
-      r.theme ? `Tema: ${r.theme.name}` : null,
-      dodaciOpis ? `Dodaci: ${dodaciOpis}` : null,
-      r.notes ? `Napomene: ${r.notes}` : null,
-      `Rezervacija: ${env.appUrl}/admin/rezervacije/${r.code}`,
-    ]
-      .filter(Boolean)
-      .join("\n"),
-    lokacija: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
-  });
+  const ishod = await upisiProslavuUKalendar(dogadjajProslave(r));
 
   // Ishod se bilježi uz rezervaciju: bez toga neuspjeh ostaje samo u logovima
   // poslužitelja, a osoblje vidi prazan kalendar i ne zna zašto.
@@ -268,6 +247,54 @@ export async function sinkronizirajKalendar(r: RezervacijaSPovezanim): Promise<v
       status: ishod.ok ? "poslano" : "greska",
     },
   });
+}
+
+/**
+ * Ponovno upisuje sve potvrđene proslave u kalendar (npr. nakon promjene oblika
+ * naslova). Ne bilježi se po rezervaciji — vraća samo zbroj i greške.
+ */
+export async function osvjeziKalendar(): Promise<{ upisano: number; greske: string[] }> {
+  const proslave = await prisma.reservation.findMany({
+    where: { status: { in: STATUSI_ZAUZIMAJU_TERMIN } },
+    include: UKLJUCI,
+    orderBy: { date: "asc" },
+  });
+  let upisano = 0;
+  const greske: string[] = [];
+  // Po nekoliko odjednom: brže od jednog po jednog, a ne zatrpava Google API.
+  for (let i = 0; i < proslave.length; i += 5) {
+    const ishodi = await Promise.all(proslave.slice(i, i + 5).map((r) => upisiProslavuUKalendar(dogadjajProslave(r))));
+    ishodi.forEach((ishod, j) => {
+      if (ishod.ok) upisano++;
+      else greske.push(`${proslave[i + j].code}: ${ishod.razlog}`);
+    });
+  }
+  return { upisano, greske };
+}
+
+function dogadjajProslave(r: RezervacijaSPovezanim) {
+  const dodaciOpis = r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ");
+  return {
+    code: r.code,
+    datumISO: lokalniISO(r.date),
+    slotStart: r.slotStart,
+    slotEnd: r.slotEnd,
+    naslov: naslovDogadjaja(r),
+    opis: [
+      `Kod: ${r.code}`,
+      `Paket: ${r.package.name} (${brojDjece(r.numChildren)})`,
+      `Roditelj: ${r.parentName}`,
+      r.phone ? `Telefon: ${r.phone}` : null,
+      r.email ? `E-pošta: ${r.email}` : null,
+      r.theme ? `Tema: ${r.theme.name}` : null,
+      dodaciOpis ? `Dodaci: ${dodaciOpis}` : null,
+      r.notes ? `Napomene: ${r.notes}` : null,
+      `Rezervacija: ${env.appUrl}/admin/rezervacije/${r.code}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    lokacija: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
+  };
 }
 
 /** Potvrda kupcu (ako je traženo i ima e-poštu) i obavijest osoblju za pripremu. */

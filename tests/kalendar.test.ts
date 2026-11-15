@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { idDogadjaja, pemKljuc } from "../src/lib/kalendar";
+import { idDogadjaja, naslovDogadjaja, pemKljuc } from "../src/lib/kalendar";
 
 /** Google dopušta samo base32hex: znamenke i slova a–v, najmanje 5 znakova. */
 const DOPUSTEN_ID = /^[0-9a-v]{5,}$/;
@@ -41,5 +41,35 @@ describe("pemKljuc", () => {
 
   it("ispravno zalijepljen ključ ostaje nepromijenjen", () => {
     expect(pemKljuc(PEM)).toBe(PEM.trim());
+  });
+});
+
+describe("naslovDogadjaja", () => {
+  const PROSLAVA = {
+    slotStart: "14:00",
+    date: new Date("2026-11-15T00:00:00Z"),
+    childName: "bruno",
+    childTurning: 7,
+    room: { name: "Kids Challenge" },
+    package: { name: "Premium" },
+    theme: { name: "Minecraft" },
+  };
+
+  it("početak - igraonica - paket - slavljenik - tema - rođendan", () => {
+    expect(naslovDogadjaja(PROSLAVA)).toBe("14:00 - Challenge - Premium - Bruno - Minecraft - 7. rođendan");
+  });
+
+  it("ime slavljenika bez prezimena", () => {
+    expect(naslovDogadjaja({ ...PROSLAVA, childName: "Bruno Tvorek" })).toContain("- Bruno - ");
+  });
+
+  it("izostavlja temu, ime i rođendan kad nisu poznati", () => {
+    expect(naslovDogadjaja({ ...PROSLAVA, theme: null, childName: null, childTurning: null, room: { name: "Kids Play" } })).toBe(
+      "14:00 - Play - Premium",
+    );
+  });
+
+  it("rođendan se računa iz datuma rođenja kad nije upisan", () => {
+    expect(naslovDogadjaja({ ...PROSLAVA, childTurning: null, childBirthDate: new Date("2019-11-20T00:00:00Z") })).toMatch(/- 7\. rođendan$/);
   });
 });

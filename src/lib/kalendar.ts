@@ -14,6 +14,8 @@
  */
 import { createSign } from "crypto";
 import { env } from "@/lib/env";
+import { imeVelikimSlovom } from "@/lib/format";
+import { godineNaProslavi } from "@/lib/pozivnica";
 
 const OPSEG = "https://www.googleapis.com/auth/calendar.events";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -26,6 +28,38 @@ export interface DogadjajProslave {
   naslov: string;
   opis: string;
   lokacija?: string;
+}
+
+/** Što naslov događaja treba znati o proslavi. */
+export interface ProslavaZaNaslov {
+  slotStart: string;
+  date: Date;
+  childName: string | null;
+  childTurning?: number | null;
+  childBirthDate?: Date | null;
+  room: { name: string };
+  secondRoom?: { name: string } | null;
+  package: { name: string };
+  theme?: { name: string } | null;
+}
+
+/** "Kids Challenge" → "Challenge": u kalendaru je dovoljna razlikovna riječ igraonice. */
+function kratkoImeSobe(ime: string): string {
+  return ime.replace(/^kids\s+/i, "").trim() || ime;
+}
+
+/**
+ * Naslov događaja u kalendaru, npr. "14:00 - Challenge - Premium - Bruno -
+ * Minecraft - 7. rođendan": početak, igraonica, paket, ime slavljenika (bez
+ * prezimena), tema i koji rođendan slavi. Ono što nije upisano izostavlja se.
+ */
+export function naslovDogadjaja(r: ProslavaZaNaslov): string {
+  const soba = r.secondRoom ? `${kratkoImeSobe(r.room.name)} + ${kratkoImeSobe(r.secondRoom.name)}` : kratkoImeSobe(r.room.name);
+  const ime = imeVelikimSlovom(r.childName?.trim().split(/\s+/)[0] ?? "");
+  const godine = godineNaProslavi({ ...r, slotEnd: "", phone: null });
+  return [r.slotStart, soba, r.package.name, ime, r.theme?.name, godine ? `${godine}. rođendan` : null]
+    .filter(Boolean)
+    .join(" - ");
 }
 
 function base64url(s: string | Buffer): string {
