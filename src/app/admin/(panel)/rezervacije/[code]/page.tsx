@@ -11,10 +11,11 @@ import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { GumbSlanja } from "@/components/admin/GumbSlanja";
 import { RezervacijaForma } from "@/components/admin/RezervacijaForma";
 import { PosaljiPozivnicuWhatsapp } from "@/components/admin/PosaljiPozivnicuWhatsapp";
 import { oznaciWhatsappPozivnicu } from "../../pozivnice/akcije";
-import { posaljiIZabiljezi } from "@/lib/notifications";
+import { nedavnoPoslano, posaljiIZabiljezi } from "@/lib/notifications";
 import { predlozakPodsjetnika, predlozakZahvale } from "@/lib/notifications/templates";
 import { otkaziRezervaciju, izdajRacun, posaljiPozivnicu, podaciZaPoruku, UKLJUCI } from "@/lib/reservations";
 import { ukloniProslavuIzKalendara } from "@/lib/kalendar";
@@ -96,6 +97,7 @@ async function posaljiPodsjetnik(code: string) {
   // Tekst se ravna prema stvarnom broju dana do proslave ("sutra", "za 7 dana"…).
   const dana = danaDo(r.date);
   if (dana < 0) redirect(`/admin/rezervacije/${code}?greska=${encodeURIComponent("Proslava je već prošla — podsjetnik nije poslan.")}`);
+  if (await nedavnoPoslano(r.id, "podsjetnik-rucno")) return;
   const p = predlozakPodsjetnika(podaciZaPoruku(r), dana);
   // Zaseban tip da ručni podsjetnik ne blokira automatske (7 dana i dan prije).
   await posaljiIZabiljezi({ tip: "podsjetnik-rucno", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
@@ -110,6 +112,7 @@ async function posaljiZahvalu(code: string) {
     { code: r.code, parentName: r.parentName, childName: r.childName, date: r.date, slotStart: r.slotStart, slotEnd: r.slotEnd, roomName: r.room.name, packageName: r.package.name, numChildren: r.numChildren, totalCents: r.totalCents, depositCents: r.depositCents },
     env.reviewUrl,
   );
+  if (await nedavnoPoslano(r.id, "zahvala")) return;
   await posaljiIZabiljezi({ tip: "zahvala", kanal: "email", primatelj: r.email, naslov: p.naslov, tijelo: p.tijelo, reservationId: r.id });
   revalidatePath(`/admin/rezervacije/${code}`);
 }
@@ -538,7 +541,7 @@ export default async function RezervacijaDetalj({
 function Akcija({ action, label, opasno }: { action: () => Promise<void>; label: string; opasno?: boolean }) {
   return (
     <form action={action}>
-      <button type="submit" className={opasno ? "btn-secondary !text-red-600" : "btn-secondary"}>{label}</button>
+      <GumbSlanja className={opasno ? "btn-secondary !text-red-600" : "btn-secondary"}>{label}</GumbSlanja>
     </form>
   );
 }

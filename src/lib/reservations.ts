@@ -22,7 +22,7 @@ import { naslovDogadjaja, upisiProslavuUKalendar, ukloniProslavuIzKalendara } fr
 import { kodRezervacije, qrToken, brojRacuna } from "@/lib/codes";
 import { getPaymentService } from "@/lib/payments";
 import { getFiscalizationService } from "@/lib/fiscalization";
-import { posaljiIZabiljezi } from "@/lib/notifications";
+import { nedavnoPoslano, posaljiIZabiljezi } from "@/lib/notifications";
 import { brojDjece } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
@@ -261,13 +261,11 @@ export async function osvjeziKalendar(): Promise<{ upisano: number; greske: stri
   });
   let upisano = 0;
   const greske: string[] = [];
-  // Po nekoliko odjednom: brže od jednog po jednog, a ne zatrpava Google API.
-  for (let i = 0; i < proslave.length; i += 5) {
-    const ishodi = await Promise.all(proslave.slice(i, i + 5).map((r) => upisiProslavuUKalendar(dogadjajProslave(r))));
-    ishodi.forEach((ishod, j) => {
-      if (ishod.ok) upisano++;
-      else greske.push(`${proslave[i + j].code}: ${ishod.razlog}`);
-    });
+  // Jedan po jedan: Google ograničava broj izmjena kalendara u kratkom vremenu.
+  for (const r of proslave) {
+    const ishod = await upisiProslavuUKalendar(dogadjajProslave(r));
+    if (ishod.ok) upisano++;
+    else greske.push(`${r.code}: ${ishod.razlog}`);
   }
   return { upisano, greske };
 }
@@ -330,6 +328,7 @@ export async function posaljiPozivnicu(r: RezervacijaSPovezanim, rucno = false):
   if (!STATUSI_ZAUZIMAJU_TERMIN.includes(r.status)) return { ok: false, poruka: "Pozivnica se šalje tek nakon potvrde rezervacije." };
   if (!r.email) return { ok: false, poruka: "Rezervacija nema upisanu adresu e-pošte." };
   if (r.pozivnicaPoslanaAt && !rucno) return { ok: false, poruka: "Pozivnica je već poslana." };
+  if (await nedavnoPoslano(r.id, "pozivnica")) return { ok: false, poruka: "Pozivnica je upravo poslana — ponovno slanje moguće je za dvije minute." };
 
   const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
   const retci = retciPozivnice({ ...r, igraonica: r.room.name }, predlozak?.tekstPredlozak);

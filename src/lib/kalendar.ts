@@ -120,6 +120,24 @@ async function pristupniToken(): Promise<string> {
   return data.access_token;
 }
 
+/** Google je odbio zahtjev zbog prevelikog broja izmjena u kratkom vremenu. */
+function jeOgranicenje(status: number, tijelo: string): boolean {
+  return status === 429 || (status === 403 && /rateLimitExceeded|userRateLimitExceeded|quotaExceeded/i.test(tijelo));
+}
+
+/**
+ * Zahtjev prema Calendar API-ju; kod ograničenja broja izmjena pričeka (1, 2,
+ * 4 s) i pokuša ponovno. Vraća zadnji odgovor i njegovo tijelo.
+ */
+async function zahtjev(url: string, init: RequestInit): Promise<{ status: number; ok: boolean; tijelo: string }> {
+  for (let pokusaj = 0; ; pokusaj++) {
+    const res = await fetch(url, init);
+    const tijelo = res.ok ? "" : await res.text();
+    if (!jeOgranicenje(res.status, tijelo) || pokusaj === 3) return { status: res.status, ok: res.ok, tijelo };
+    await new Promise((r) => setTimeout(r, 1000 * 2 ** pokusaj));
+  }
+}
+
 function apiUrl(putanja = ""): string {
   return `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(env.googleCalendarId)}/events${putanja}`;
 }
@@ -160,20 +178,20 @@ export async function upisiProslavuUKalendar(d: DogadjajProslave): Promise<Ishod
     };
 
     // Postojeći termin se ažurira (PUT), novi se stvara (POST).
-    const put = await fetch(`${apiUrl(`/${id}`)}`, {
+    const put = await zahtjev(`${apiUrl(`/${id}`)}`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(dogadjaj),
     });
     if (put.ok) return { ok: true };
-    if (put.status !== 404) throw new Error(objasni(put.status, await put.text()));
+    if (put.status !== 404) throw new Error(objasni(put.status, put.tijelo));
 
-    const post = await fetch(apiUrl(), {
+    const post = await zahtjev(apiUrl(), {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(dogadjaj),
     });
-    if (!post.ok) throw new Error(objasni(post.status, await post.text()));
+    if (!post.ok) throw new Error(objasni(post.status, post.tijelo));
     return { ok: true };
   } catch (e) {
     console.error(`Kalendar: upis proslave ${d.code} nije uspio:`, e);
@@ -186,6 +204,7 @@ export async function upisiProslavuUKalendar(d: DogadjajProslave): Promise<Ishod
  * uputu koju osoblje može provesti bez razvojnog tima.
  */
 function objasni(status: number, tijelo: string): string {
+  if (jeOgranicenje(status, tijelo)) return "Google je privremeno ograničio broj izmjena kalendara — pokušajte ponovno za minutu.";
   if (status === 401) return "Google je odbio prijavu (401) — provjerite GOOGLE_CLIENT_EMAIL i GOOGLE_PRIVATE_KEY.";
   if (status === 403) {
     return "Google je odbio pristup (403) — podijelite kalendar s adresom servisnog računa uz pravo „Izmjene događaja\" ili uključite Calendar API u projektu.";

@@ -13,6 +13,7 @@ import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
 import { porukaPozivnice, whatsappVeza } from "@/lib/whatsapp";
 import { posaljiPozivnicu } from "@/lib/reservations";
 import { PosaljiPozivnicuWhatsapp } from "@/components/admin/PosaljiPozivnicuWhatsapp";
+import { GumbSlanja } from "@/components/admin/GumbSlanja";
 import { oznaciWhatsappPozivnicu } from "./akcije";
 
 export const dynamic = "force-dynamic";
@@ -138,9 +139,9 @@ export default async function AdminPozivnicePage({
                 {r.email && (
                   <form action={posaljiAkcija}>
                     <input type="hidden" name="code" value={r.code} />
-                    <button type="submit" className="btn-secondary !py-1 !text-xs">
+                    <GumbSlanja className="btn-secondary !py-1 !text-xs">
                       {r.pozivnicaPoslanaAt ? "📨 Pošalji ponovno" : "📨 Pošalji e-poštom"}
-                    </button>
+                    </GumbSlanja>
                   </form>
                 )}
               </div>

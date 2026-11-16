@@ -52,7 +52,9 @@ export async function posaljiIZabiljezi(poruka: Poruka): Promise<void> {
         channel: poruka.kanal,
         recipient: poruka.primatelj,
         subject: poruka.naslov,
-        body: poruka.tijelo,
+        // Razlog neuspjeha ide ispred teksta — inače se u administraciji vidi
+        // samo „greška", bez traga zašto poruka nije otišla.
+        body: rezultat.status === "greska" ? `GREŠKA PRI SLANJU: ${rezultat.greska ?? "nepoznato"}\n\n${poruka.tijelo}` : poruka.tijelo,
         reservationId: poruka.reservationId,
         status: rezultat.status,
       },
@@ -60,6 +62,17 @@ export async function posaljiIZabiljezi(poruka: Poruka): Promise<void> {
   } catch {
     // U seedu/testu baza možda nije dostupna — ne rušimo proces.
   }
+}
+
+/**
+ * Je li ista poruka ovoj rezervaciji poslana u zadnje dvije minute? Štiti od
+ * dvostrukog klika na gumb slanja u administraciji.
+ */
+export async function nedavnoPoslano(reservationId: string, tip: string, sekundi = 120): Promise<boolean> {
+  const n = await prisma.notificationLog.count({
+    where: { reservationId, type: tip, channel: "email", status: { not: "greska" }, createdAt: { gte: new Date(Date.now() - sekundi * 1000) } },
+  });
+  return n > 0;
 }
 
 export * from "./types";
