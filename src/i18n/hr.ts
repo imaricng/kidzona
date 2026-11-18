@@ -79,6 +79,8 @@ export const hr = {
     poDodatnomDjetetu: "po dodatnom djetetu",
     poDogovoru: "Po dogovoru",
     poDogovoruNapomena: "cijenu dogovaramo prema vašim željama",
+    bazna: "Bazna cijena",
+    cjenik: "Cjenik usluga",
   },
   // Raspored za posjetitelje — mora odgovarati rasporedu u `src/lib/slots.ts`.
   termini: {

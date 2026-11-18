@@ -12,6 +12,8 @@ import { OdabirGradijenta } from "@/components/admin/OdabirGradijenta";
 import { SlikaPredloska } from "@/components/admin/SlikaPredloska";
 import { OkvirPredloska } from "@/components/admin/OkvirPredloska";
 import { DatumPolje } from "@/components/DatumPolje";
+import { zahtijevajOsoblje } from "@/lib/admin-sesija";
+import { bazna, objaviCjenik } from "@/lib/cjenik";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.paketi };
@@ -26,6 +28,21 @@ function broj(v: FormDataEntryValue | null, fallback = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
+/**
+ * Bazna cijena iz forme. Polje je unaprijed popunjeno dosadašnjom baznom
+ * cijenom, pa promjena same cijene zadrži staru cijenu kao baznu. Kad je bazna
+ * jednaka novoj cijeni, sprema se prazno (= „jednaka trenutnoj").
+ */
+function baznaIzForme(v: FormDataEntryValue | null, novaCents: number, staraCents: number, staraBazna: number | null): number | null {
+  const b = String(v ?? "").trim() ? uCente(v) : bazna(staraCents, staraBazna);
+  return b === novaCents ? null : b;
+}
+/** Nakon izmjene cijena: novi cjenik na webu i osvježene javne stranice. */
+async function nakonIzmjeneCijena() {
+  await objaviCjenik();
+  revalidatePath("/cjenik");
+  revalidatePath("/", "layout");
+}
 /** Igraonica iz forme; prazno = paket vrijedi za sve igraonice. */
 function sobaIzForme(formData: FormData): string | null {
   return String(formData.get("roomId") ?? "") || null;
@@ -34,15 +51,21 @@ function sobaIzForme(formData: FormData): string | null {
 // --- Server actions: paketi ------------------------------------------
 async function azurirajPaket(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const id = String(formData.get("id"));
+  const stari = await prisma.package.findUniqueOrThrow({ where: { id } });
+  const basePriceCents = uCente(formData.get("basePrice"));
+  const perChildCents = uCente(formData.get("perChild"));
   await prisma.package.update({
     where: { id },
     data: {
       name: String(formData.get("name") || "Paket"),
       description: String(formData.get("description") || ""),
       roomId: sobaIzForme(formData),
-      basePriceCents: uCente(formData.get("basePrice")),
-      perChildCents: uCente(formData.get("perChild")),
+      basePriceCents,
+      perChildCents,
+      baznaCijenaCents: baznaIzForme(formData.get("baznaCijena"), basePriceCents, stari.basePriceCents, stari.baznaCijenaCents),
+      baznaNadoplataCents: baznaIzForme(formData.get("baznaNadoplata"), perChildCents, stari.perChildCents, stari.baznaNadoplataCents),
       durationMin: broj(formData.get("durationMin"), 120),
       minChildren: broj(formData.get("minChildren"), 1),
       maxChildren: broj(formData.get("maxChildren"), 15),
@@ -53,10 +76,12 @@ async function azurirajPaket(formData: FormData) {
     },
   });
   revalidatePath("/admin/paketi");
+  await nakonIzmjeneCijena();
 }
 
 async function kreirajPaket(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const name = String(formData.get("name") || "Novi paket");
   const [zadnji, postojeci] = await Promise.all([
     prisma.package.findFirst({ orderBy: { sortOrder: "desc" } }),
@@ -78,10 +103,12 @@ async function kreirajPaket(formData: FormData) {
     },
   });
   revalidatePath("/admin/paketi");
+  await nakonIzmjeneCijena();
 }
 
 async function obrisiPaket(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const id = String(formData.get("id"));
   // Ako je paket vezan uz rezervacije, FK ne dopušta brisanje → samo deaktiviraj.
   try {
@@ -90,27 +117,34 @@ async function obrisiPaket(formData: FormData) {
     await prisma.package.update({ where: { id }, data: { active: false } });
   }
   revalidatePath("/admin/paketi");
+  await nakonIzmjeneCijena();
 }
 
 // --- Server actions: dodaci ------------------------------------------
 async function azurirajDodatak(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const id = String(formData.get("id"));
+  const stari = await prisma.addOn.findUniqueOrThrow({ where: { id } });
+  const priceCents = uCente(formData.get("price"));
   await prisma.addOn.update({
     where: { id },
     data: {
       name: String(formData.get("name") || "Dodatak"),
       category: String(formData.get("category") || ""),
-      priceCents: uCente(formData.get("price")),
+      priceCents,
+      baznaCijenaCents: baznaIzForme(formData.get("baznaCijena"), priceCents, stari.priceCents, stari.baznaCijenaCents),
       unit: String(formData.get("unit") || "flat"),
       active: formData.get("active") === "on",
     },
   });
   revalidatePath("/admin/paketi");
+  await nakonIzmjeneCijena();
 }
 
 async function kreirajDodatak(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const name = String(formData.get("name") || "Novi dodatak");
   const [zadnji, postojeci] = await Promise.all([
     prisma.addOn.findFirst({ orderBy: { sortOrder: "desc" } }),
@@ -126,10 +160,12 @@ async function kreirajDodatak(formData: FormData) {
     },
   });
   revalidatePath("/admin/paketi");
+  await nakonIzmjeneCijena();
 }
 
 async function obrisiDodatak(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const id = String(formData.get("id"));
   try {
     await prisma.addOn.delete({ where: { id } });
@@ -137,11 +173,13 @@ async function obrisiDodatak(formData: FormData) {
     await prisma.addOn.update({ where: { id }, data: { active: false } });
   }
   revalidatePath("/admin/paketi");
+  await nakonIzmjeneCijena();
 }
 
 // --- Server actions: teme --------------------------------------------
 async function azurirajTemu(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   await prisma.theme.update({
     where: { id: String(formData.get("id")) },
     data: {
@@ -158,6 +196,7 @@ async function azurirajTemu(formData: FormData) {
 
 async function kreirajTemu(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const name = String(formData.get("name") || "Nova tema");
   const [zadnja, postojece] = await Promise.all([
     prisma.theme.findFirst({ orderBy: { sortOrder: "desc" } }),
@@ -179,6 +218,7 @@ async function kreirajTemu(formData: FormData) {
 
 async function obrisiTemu(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const id = String(formData.get("id"));
   // Tema vezana uz rezervaciju ne može se obrisati (FK) — tada se samo gasi.
   try {
@@ -193,6 +233,7 @@ async function obrisiTemu(formData: FormData) {
 /** Učitava sliku predloška pozivnice za temu i igraonicu (jedna slika po paru). */
 async function postaviPredlozak(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   // Prazna tema = generički predložak igraonice (proslava bez teme).
   const themeId = temaIzAdrese(String(formData.get("themeId") || BEZ_TEME));
   const roomId = String(formData.get("roomId"));
@@ -246,6 +287,7 @@ function okvirIzForme(formData: FormData) {
 /** Sprema položaj bijelog okvira (u postocima) za jedan predložak. */
 async function spremiOkvir(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   const tekst = String(formData.get("tekstPredlozak") ?? "").trim();
   await prisma.pozivnicaPredlozak.updateMany({
     where: { themeId: temaIzAdrese(String(formData.get("themeId") || BEZ_TEME)), roomId: String(formData.get("roomId")) },
@@ -260,6 +302,7 @@ async function spremiOkvir(formData: FormData) {
 
 async function obrisiPredlozak(formData: FormData) {
   "use server";
+  await zahtijevajOsoblje();
   await prisma.pozivnicaPredlozak.deleteMany({
     where: { themeId: temaIzAdrese(String(formData.get("themeId") || BEZ_TEME)), roomId: String(formData.get("roomId")) },
   });
@@ -296,6 +339,11 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
         svako dijete iznad uključenog broja (slavljenik se ne broji); trajanje određuje kraj termina. Paket s oznakom
         „Cijena po dogovoru” javno prikazuje „Po dogovoru”, a iznos se upisuje pri uređivanju pojedine rezervacije.
       </p>
+      <p className="mt-2 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-brand-900">
+        <strong>Bazna cijena</strong> (propis NN 132/2026) je cijena na dan 10.9.2026., a za novu uslugu cijena na dan
+        uvođenja. Kad mijenjate cijenu, baznu ne dirajte — ostaje stara i ističe se uz novu. Svaka izmjena odmah
+        objavljuje novi <a href="/cjenik" target="_blank" className="font-semibold underline">cjenik na webu</a>.
+      </p>
 
       {/* PAKETI */}
       <h2 className="mt-6 font-semibold text-ink-800">Paketi</h2>
@@ -308,6 +356,8 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
               <Polje label="Naziv"><input name="name" defaultValue={p.name} className="input !py-2" /></Polje>
               <CijenaPaketa defaultCijena={(p.basePriceCents / 100).toFixed(2)} defaultPoDogovoru={p.cijenaPoDogovoru} />
               <Polje label="Nadoplata po djetetu (€)"><input name="perChild" defaultValue={(p.perChildCents / 100).toFixed(2)} className="input !py-2" /></Polje>
+              <Polje label="Bazna cijena (€)"><input name="baznaCijena" defaultValue={(bazna(p.basePriceCents, p.baznaCijenaCents) / 100).toFixed(2)} className="input !py-2" /></Polje>
+              <Polje label="Bazna nadoplata (€)"><input name="baznaNadoplata" defaultValue={(bazna(p.perChildCents, p.baznaNadoplataCents) / 100).toFixed(2)} className="input !py-2" /></Polje>
               <Polje label="Trajanje (min)"><input name="durationMin" type="number" defaultValue={p.durationMin} className="input !py-2" /></Polje>
               <Polje label="Najmanje djece"><input name="minChildren" type="number" defaultValue={p.minChildren} className="input !py-2" /></Polje>
               <Polje label="Uključeno djece"><input name="maxChildren" type="number" defaultValue={p.maxChildren} className="input !py-2" /></Polje>
@@ -371,6 +421,7 @@ export default async function AdminPaketiPage({ searchParams }: { searchParams: 
             <input type="hidden" name="id" value={d.id} />
             <Polje label="Naziv"><input name="name" defaultValue={d.name} className="input !py-2" /></Polje>
             <Polje label="Cijena (€)"><input name="price" defaultValue={(d.priceCents / 100).toFixed(2)} className="input !py-2 w-28" /></Polje>
+            <Polje label="Bazna cijena (€)"><input name="baznaCijena" defaultValue={(bazna(d.priceCents, d.baznaCijenaCents) / 100).toFixed(2)} className="input !py-2 w-28" /></Polje>
             <Polje label="Jedinica">
               <select name="unit" defaultValue={d.unit} className="input !py-2">
                 <option value="flat">fiksno</option>

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { hr } from "@/i18n/hr";
 import { formatDatum, formatDatumVrijeme, formatEur } from "@/lib/format";
+import { DNEVNA_IGRA_SAT_CENTS } from "@/lib/cjenik";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Članstva i vjernost" };
@@ -24,8 +25,8 @@ async function izdajOpenPlay(formData: FormData) {
   const childName = String(formData.get("childName") || "").trim() || null;
   const durationMin = Number(formData.get("durationMin") || 60);
   const expiresAt = new Date(Date.now() + durationMin * 60000);
-  // Cijena: 6 € po satu (proporcionalno)
-  const priceCents = Math.round((durationMin / 60) * 600);
+  // Cijena po satu iz cjenika (proporcionalno vremenu)
+  const priceCents = Math.round((durationMin / 60) * DNEVNA_IGRA_SAT_CENTS);
   await prisma.openPlaySession.create({ data: { childName, durationMin, expiresAt, priceCents, status: "aktivna" } });
   revalidatePath("/admin/clanstva");
 }

@@ -62,6 +62,7 @@ export async function SiteFooter() {
             <li><a href="/pravila" className="hover:text-white">{t.nav.pravila}</a></li>
             <li><Link href="/rezervacija" className="hover:text-white">{t.nav.rezerviraj}</Link></li>
             <li><Link href="/pokloni" className="hover:text-white">{t.pokloni.naslov}</Link></li>
+            <li><Link href="/cjenik" className="hover:text-white">{t.paketi.cjenik}</Link></li>
           </ul>
         </div>
         <div>

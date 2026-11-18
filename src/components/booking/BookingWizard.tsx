@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { hr, brojDjece } from "@/i18n/hr";
 import { formatEur, formatDatumDugi } from "@/lib/format";
-import { izracunajCijenu, SPAJANJE_SOBE_CENTS } from "@/lib/pricing";
+import { bazna, BAZNA_SPAJANJE_SOBE_CENTS, izracunajCijenu, SPAJANJE_SOBE_CENTS } from "@/lib/pricing";
 import { druzionicaZaDatum, krajTermina, lokalniISO, pocetciZaDatum, trajanjeSati } from "@/lib/slots";
 import { prviOtvoreniDatum, rasponDatuma, zatvaranjeZaDatum, type Zatvaranje } from "@/lib/zatvaranja";
 import { DatumPolje } from "@/components/DatumPolje";
@@ -14,11 +14,11 @@ import { DatumPolje } from "@/components/DatumPolje";
 export interface Katalog {
   rooms: { id: string; name: string; description: string; minChildren: number; maxChildren: number; color: string; mergeableWith: string[] }[];
   packages: {
-    id: string; name: string; slug: string; roomId: string | null; basePriceCents: number; perChildCents: number;
+    id: string; name: string; slug: string; roomId: string | null; basePriceCents: number; perChildCents: number; baznaCijenaCents: number | null; baznaNadoplataCents: number | null;
     includedItems: string[]; minChildren: number; maxChildren: number; durationMin: number; popular: boolean; description: string;
     cijenaPoDogovoru: boolean;
   }[];
-  addons: { id: string; name: string; priceCents: number; unit: "per_child" | "flat"; category: string; description: string }[];
+  addons: { id: string; name: string; priceCents: number; baznaCijenaCents: number | null; unit: "per_child" | "flat"; category: string; description: string }[];
   themes: { id: string; name: string; emoji: string; gradient: string; roomId: string | null }[];
   depositPercent: number;
   onlinePayments: boolean;
@@ -501,7 +501,7 @@ function KorakSoba({
               checked={!!secondRoomId}
               onChange={(e) => setSecondRoomId(e.target.checked ? mogućeSpojiti[0].id : null)}
             />
-            <span>{hr.booking.spojiSobe} <span className="text-ink-400">(+{formatEur(SPAJANJE_SOBE_CENTS)})</span></span>
+            <span>{hr.booking.spojiSobe} <span className="text-ink-400">(+{formatEur(SPAJANJE_SOBE_CENTS)} · {hr.paketi.bazna.toLowerCase()} {formatEur(BAZNA_SPAJANJE_SOBE_CENTS)})</span></span>
           </label>
         )}
       </div>
@@ -526,6 +526,12 @@ function KorakSoba({
                     {p.cijenaPoDogovoru ? hr.paketi.poDogovoru : formatEur(p.basePriceCents)}
                   </span>
                 </span>
+                {!p.cijenaPoDogovoru && (
+                  <span className="text-right text-xs text-ink-400">
+                    {hr.paketi.bazna}: {formatEur(bazna(p.basePriceCents, p.baznaCijenaCents))}
+                    {p.perChildCents > 0 ? ` · ${hr.paketi.poDodatnomDjetetu}: ${formatEur(bazna(p.perChildCents, p.baznaNadoplataCents))}` : ""}
+                  </span>
+                )}
                 <span className="mt-1 text-xs text-ink-500">
                   {trajanjeSati(p.durationMin)}{start ? ` · ${start} – ${krajTermina(start, p.durationMin)}` : ""}
                 </span>
@@ -606,6 +612,9 @@ function KorakDjeca({
                     <span className="block font-medium text-ink-800">{a.name}</span>
                     <span className="text-sm text-ink-500">
                       {formatEur(a.priceCents)} {a.unit === "per_child" ? hr.paketi.poDjetetu : ""}
+                    </span>
+                    <span className="block text-xs text-ink-400">
+                      {hr.paketi.bazna}: {formatEur(bazna(a.priceCents, a.baznaCijenaCents))}
                     </span>
                   </span>
                 </label>

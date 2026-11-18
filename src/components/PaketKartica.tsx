@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Rjecnik } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
+import { bazna } from "@/lib/pricing";
 import { trajanjeSati } from "@/lib/slots";
 import { Ikona } from "@/components/Decor";
 
@@ -13,6 +14,8 @@ export interface PaketKarticaPodaci {
   description: string | null;
   basePriceCents: number;
   perChildCents: number;
+  baznaCijenaCents: number | null;
+  baznaNadoplataCents: number | null;
   cijenaPoDogovoru: boolean;
   popular: boolean;
   durationMin: number;
@@ -39,6 +42,9 @@ export function PaketKartica({ paket: p, indeks, t }: { paket: PaketKarticaPodac
           <>
             <span className="font-display text-4xl font-bold text-brand-600">{formatEur(p.basePriceCents)}</span>
             <span className="text-sm text-ink-500">{t.paketi.fiksnaCijena}</span>
+            <span className="w-full text-xs text-ink-500">
+              {t.paketi.bazna}: {formatEur(bazna(p.basePriceCents, p.baznaCijenaCents))}
+            </span>
           </>
         )}
       </div>
@@ -49,7 +55,7 @@ export function PaketKartica({ paket: p, indeks, t }: { paket: PaketKarticaPodac
         </li>
         {p.perChildCents > 0 && !p.cijenaPoDogovoru && (
           <li className="chip bg-sun-100 !text-xs text-brand-900">
-            +{formatEur(p.perChildCents)} {t.paketi.poDodatnomDjetetu}
+            +{formatEur(p.perChildCents)} {t.paketi.poDodatnomDjetetu} ({t.paketi.bazna.toLowerCase()} {formatEur(bazna(p.perChildCents, p.baznaNadoplataCents))})
           </li>
         )}
       </ul>

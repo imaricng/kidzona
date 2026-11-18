@@ -41,6 +41,16 @@ export interface RezultatIzracuna {
 
 /** Doplata za spajanje druge igraonice (veće proslave). */
 export const SPAJANJE_SOBE_CENTS = 5000; // 50,00 €
+/** Bazna cijena spajanja igraonica (cijena na dan 10.9.2026.). */
+export const BAZNA_SPAJANJE_SOBE_CENTS = 5000;
+
+/**
+ * Bazna cijena za prikaz (NN 132/2026): zapisana bazna ili, dok je nema,
+ * trenutna cijena — prazno znači da se cijena od 10.9.2026. nije mijenjala.
+ */
+export function bazna(trenutnaCents: number, baznaCents: number | null | undefined): number {
+  return baznaCents ?? trenutnaCents;
+}
 
 export interface IzracunInput {
   paket: PaketCijena & { name: string };

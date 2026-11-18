@@ -136,6 +136,11 @@ model Package {
   room          Room?   @relation(fields: [roomId], references: [id])
   basePriceCents Int    @default(0)   // fiksna osnovica paketa
   perChildCents  Int    @default(0)   // nadoplata za svako dijete iznad maxChildren
+  // Bazna cijena (Pravilnik o isticanju bazne cijene, NN 132/2026): cijena na
+  // dan 10.9.2026. ili na dan uvođenja usluge. Prazno = jednaka trenutnoj
+  // (cijena se otad nije mijenjala); pri prvoj promjeni cijene zapisuje se stara.
+  baznaCijenaCents     Int?
+  baznaNadoplataCents  Int?
   includedItems  Json                  // lista uključenih stavki (string[])
   minChildren    Int    @default(5)
   maxChildren    Int    @default(20)  // broj djece uključen u cijenu (slavljenik se ne broji)
@@ -159,6 +164,7 @@ model AddOn {
   description String?
   category    String? // "hrana" | "dekoracija" | "zabava" | "ostalo"
   priceCents  Int     @default(0)
+  baznaCijenaCents Int? // vidi Package.baznaCijenaCents
   unit        String  @default("flat")
   sortOrder   Int     @default(0)
   active      Boolean @default(true)
@@ -502,4 +508,15 @@ model DailyPlay {
   @@index([parentPhone])
   @@index([arrivedAt])
   @@map("dnevna_igra")
+}
+
+// --- Objavljeni cjenik (Pravilnik o načinu objave cjenika, NN 132/2026) ------
+// Svaka promjena cjenika usluga je nova verzija s rednim brojem pohrane;
+// prethodne verzije ostaju dostupne kao arhiva (propis traži barem 15 dana).
+model CjenikVerzija {
+  id         String   @id @default(cuid())
+  broj       Int      @unique // broj pohrane
+  datoteka   String   @unique // naziv datoteke po propisu
+  sadrzaj    String   // CSV (UTF-8, stupci odvojeni s ";")
+  objavljeno DateTime @default(now())
 }

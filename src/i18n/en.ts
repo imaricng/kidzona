@@ -77,6 +77,8 @@ export const en = {
     poDodatnomDjetetu: "per extra child",
     poDogovoru: "Price on request",
     poDogovoruNapomena: "we agree the price based on your wishes",
+    bazna: "Base price",
+    cjenik: "Price list",
   },
   termini: {
     naslov: "Schedule and time slots",
