@@ -75,7 +75,7 @@ export default async function CjenikPage() {
               Bazna cijena je cijena koju smo za uslugu primjenjivali 10. 9. 2026., odnosno na dan kad je usluga uvedena
               (Pravilnik o isticanju bazne cijene proizvoda, NN 132/2026).
             </p>
-            <p>Dnevna igra naplaćuje se razmjerno vremenu boravka. Paketi s cijenom po dogovoru oblikuju se za pojedinog kupca.</p>
+            <p>Dnevna igra: prvi sat plaća se uvijek, a zatim svakih započetih 30 minuta, s 10 minuta tolerancije (npr. 1 h 10 min = 6 €, 1 h 30 min = 9 €). Paketi s cijenom po dogovoru oblikuju se za pojedinog kupca.</p>
           </div>
 
           <div className="mt-6 print:hidden">

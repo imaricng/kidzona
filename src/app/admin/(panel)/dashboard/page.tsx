@@ -10,12 +10,13 @@ import { godineNaProslavi } from "@/lib/pozivnica";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { pokreniPodsjetnike } from "@/lib/automation";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
+import { prihodMjeseca } from "@/lib/prihod";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.nadzornaPloca };
 
-// Prihod, proslave i popunjenost računaju se samo iz potvrđenih rezervacija (ne iz upita).
+// Proslave i popunjenost računaju se samo iz potvrđenih rezervacija (ne iz upita); prihod je u `lib/prihod`.
 const AKTIVNI = STATUSI_ZAUZIMAJU_TERMIN;
 
 /** Ručni okidač automatskih podsjetnika (isto što i dnevni cron). */
@@ -47,17 +48,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { automatika } = await searchParams;
   const porukaAutomatike = sazetakAutomatike(automatika);
   const sada = new Date();
-  const pocetakMjeseca = new Date(sada.getFullYear(), sada.getMonth(), 1);
   const danOd = new Date(sada); danOd.setHours(0, 0, 0, 0);
   const danDo = new Date(sada); danDo.setHours(23, 59, 59, 999);
   const za30 = new Date(danOd); za30.setDate(za30.getDate() + 30);
   const brojSoba = await prisma.room.count({ where: { active: true } });
 
-  const [prihodAgg, ukupnoRez, danasnje, nadolazece, za30dana, upiti, brojUpita] = await Promise.all([
-    prisma.reservation.aggregate({
-      _sum: { paidCents: true },
-      where: { createdAt: { gte: pocetakMjeseca }, status: { in: AKTIVNI } },
-    }),
+  const [prihod, ukupnoRez, danasnje, nadolazece, za30dana, upiti, brojUpita] = await Promise.all([
+    prihodMjeseca(sada),
     prisma.reservation.count({ where: { status: { in: AKTIVNI } } }),
     prisma.reservation.findMany({
       where: { date: { gte: danOd, lte: danDo }, status: { in: AKTIVNI } },
@@ -154,7 +151,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </section>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiKartica naslov={hr.admin.prihodMjesec} vrijednost={formatEur(prihodAgg._sum.paidCents ?? 0)} ikona="💶" />
+        <KpiKartica
+          naslov={hr.admin.prihodMjesec}
+          vrijednost={formatEur(prihod.ukupnoCents)}
+          ikona="💶"
+          napomena={`Rođendani ${formatEur(prihod.rodjendaniCents)} · Dnevna igra ${formatEur(prihod.dnevnaIgraCents)}`}
+        />
         <KpiKartica naslov={hr.admin.rezervacijaUkupno} vrijednost={String(ukupnoRez)} ikona="🎟️" />
         <KpiKartica naslov={hr.admin.danasnjeProslave} vrijednost={String(danasnje.length)} ikona="🎂" />
         <KpiKartica naslov={hr.admin.popunjenost} vrijednost={`${popunjenost}%`} ikona="📈" />
@@ -243,7 +245,7 @@ function KarticaRed({ n, v }: { n: string; v: string }) {
   );
 }
 
-function KpiKartica({ naslov, vrijednost, ikona }: { naslov: string; vrijednost: string; ikona: string }) {
+function KpiKartica({ naslov, vrijednost, ikona, napomena }: { naslov: string; vrijednost: string; ikona: string; napomena?: string }) {
   return (
     <div className="card">
       <div className="flex items-center justify-between">
@@ -251,6 +253,7 @@ function KpiKartica({ naslov, vrijednost, ikona }: { naslov: string; vrijednost:
         <span className="text-2xl" aria-hidden>{ikona}</span>
       </div>
       <p className="mt-2 font-display text-2xl font-extrabold text-ink-900">{vrijednost}</p>
+      {napomena && <p className="mt-1 text-xs text-ink-500">{napomena}</p>}
     </div>
   );
 }

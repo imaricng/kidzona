@@ -2,8 +2,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
-import { datumUZoni, formatDatum, formatDatumVrijeme, imeVelikimSlovom } from "@/lib/format";
-import { formatTrajanje, minuteBoravka } from "@/lib/dnevna-igra";
+import { datumUZoni, formatDatum, formatDatumVrijeme, formatEur, imeVelikimSlovom } from "@/lib/format";
+import { cijenaBoravka, formatTrajanje, minuteBoravka } from "@/lib/dnevna-igra";
 import { poveziSCrm } from "@/lib/dnevna-igra-crm";
 import { lokalniISO } from "@/lib/slots";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
@@ -165,6 +165,8 @@ export default async function DnevnaIgraPage({
           <p className="text-sm text-ink-700">{upravoZavrsen.childName} je bio/la na igri</p>
           <p className="font-display text-3xl font-extrabold text-brand-900">
             {formatTrajanje(minuteBoravka(upravoZavrsen.arrivedAt, upravoZavrsen.leftAt))}
+            {" · "}
+            {formatEur(cijenaBoravka(minuteBoravka(upravoZavrsen.arrivedAt, upravoZavrsen.leftAt)))}
           </p>
           <p className="mt-1 text-xs text-ink-500">
             {vrijeme(upravoZavrsen.arrivedAt)} – {vrijeme(upravoZavrsen.leftAt)} · {formatDatum(upravoZavrsen.arrivedAt)}
@@ -192,6 +194,7 @@ export default async function DnevnaIgraPage({
               <p className="font-display text-lg font-bold text-brand-900">{d.childName}</p>
               <p className="text-sm text-ink-600">
                 Došao/la u {vrijeme(d.arrivedAt)} · <span className="font-semibold">{formatTrajanje(minuteBoravka(d.arrivedAt, sada))}</span>
+                {" · "}zasad {formatEur(cijenaBoravka(minuteBoravka(d.arrivedAt, sada)))}
               </p>
               <p className="mt-1 text-xs text-ink-400">
                 {d.parentName} ·{" "}
@@ -258,6 +261,7 @@ export default async function DnevnaIgraPage({
                 <th className="px-4 py-2 font-medium">Dolazak</th>
                 <th className="px-4 py-2 font-medium">Odlazak</th>
                 <th className="px-4 py-2 font-medium">Trajanje</th>
+                <th className="px-4 py-2 text-right font-medium">Za platiti</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5">
@@ -272,6 +276,9 @@ export default async function DnevnaIgraPage({
                   <td className="whitespace-nowrap px-4 py-2 text-ink-600">{d.leftAt && vrijeme(d.leftAt)}</td>
                   <td className="whitespace-nowrap px-4 py-2 font-semibold text-ink-800">
                     {d.leftAt && formatTrajanje(minuteBoravka(d.arrivedAt, d.leftAt))}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-ink-800">
+                    {d.leftAt && formatEur(cijenaBoravka(minuteBoravka(d.arrivedAt, d.leftAt)))}
                   </td>
                 </tr>
               ))}

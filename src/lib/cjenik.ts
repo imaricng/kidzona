@@ -17,17 +17,20 @@ import { prisma } from "@/lib/prisma";
 import { formatEurBroj } from "@/lib/format";
 import { BAZNA_SPAJANJE_SOBE_CENTS, SPAJANJE_SOBE_CENTS, bazna } from "@/lib/pricing";
 import { trajanjeSati } from "@/lib/slots";
+import { DNEVNA_IGRA_POLA_SATA_CENTS, DNEVNA_IGRA_SAT_CENTS, DNEVNA_IGRA_TOLERANCIJA_MIN } from "@/lib/dnevna-igra";
 
 export { bazna } from "@/lib/pricing";
 
 /** OIB obrta — dio naziva datoteke cjenika. */
 export const OIB = "18925449183";
 
-/** Dnevna igra (slobodna igra): cijena po satu, naplata razmjerno vremenu. */
-export const DNEVNA_IGRA_SAT_CENTS = 600;
+// Dnevna igra (slobodna igra): prvi sat pa svakih započetih 30 min — vidi `lib/dnevna-igra`.
+export { DNEVNA_IGRA_SAT_CENTS } from "@/lib/dnevna-igra";
 
 // Bazne cijene usluga koje nisu u bazi (cijene na dan 10.9.2026.).
 const BAZNA_DNEVNA_IGRA_SAT_CENTS = 600;
+// Naplata po polusatu uvedena je 21.11.2026. — bazna je cijena na dan uvođenja.
+const BAZNA_DNEVNA_IGRA_POLA_SATA_CENTS = 300;
 
 export interface StavkaCjenika {
   grupa: string;
@@ -94,9 +97,16 @@ export function stavkeIzKataloga(paketi: PaketZaCjenik[], dodaci: DodatakZaCjeni
   }
   stavke.push({
     grupa: "Dnevna igra",
-    naziv: "Dnevna igra (slobodna igra), 1 sat",
+    naziv: "Dnevna igra (slobodna igra), prvi sat",
     cijenaCents: DNEVNA_IGRA_SAT_CENTS,
     baznaCents: BAZNA_DNEVNA_IGRA_SAT_CENTS,
+    akcija: false,
+  });
+  stavke.push({
+    grupa: "Dnevna igra",
+    naziv: `Dnevna igra, svakih daljnjih započetih 30 min (uz ${DNEVNA_IGRA_TOLERANCIJA_MIN} min tolerancije)`,
+    cijenaCents: DNEVNA_IGRA_POLA_SATA_CENTS,
+    baznaCents: BAZNA_DNEVNA_IGRA_POLA_SATA_CENTS,
     akcija: false,
   });
   return stavke;

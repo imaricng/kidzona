@@ -43,15 +43,17 @@ describe("stavkeIzKataloga", () => {
       "Spajanje dviju igraonica",
       "Torta po narudžbi",
       "McDonald's meni (po djetetu)",
-      "Dnevna igra (slobodna igra), 1 sat",
+      "Dnevna igra (slobodna igra), prvi sat",
+      "Dnevna igra, svakih daljnjih započetih 30 min (uz 10 min tolerancije)",
     ]);
   });
   it("paket s cijenom po dogovoru nije u cjeniku", () => {
     expect(stavke.some((s) => s.naziv.includes("Gala"))).toBe(false);
   });
-  it("dnevna igra je 6 € po satu, bazna također", () => {
-    const d = stavke.at(-1)!;
-    expect([d.cijenaCents, d.baznaCents]).toEqual([600, 600]);
+  it("dnevna igra: prvi sat 6 €, svakih daljnjih 30 min 3 €, bazne iste", () => {
+    const [sat, polusat] = stavke.slice(-2);
+    expect([sat.cijenaCents, sat.baznaCents]).toEqual([600, 600]);
+    expect([polusat.cijenaCents, polusat.baznaCents]).toEqual([300, 300]);
   });
   it("zapisana bazna cijena dodatka ide u cjenik", () => {
     expect(stavke.find((s) => s.naziv.startsWith("McDonald"))?.baznaCents).toBe(900);

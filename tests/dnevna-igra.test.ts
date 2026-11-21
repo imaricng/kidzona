@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatTrajanje, imeZaCrm, minuteBoravka } from "../src/lib/dnevna-igra";
+import { cijenaBoravka, formatTrajanje, imeZaCrm, minuteBoravka } from "../src/lib/dnevna-igra";
 
 describe("dnevna igra — trajanje boravka", () => {
   it("računa cijele minute", () => {
@@ -17,5 +17,20 @@ describe("dnevna igra — ime za CRM", () => {
   it("uzima samo prvo ime", () => {
     expect(imeZaCrm("Mia Horvat")).toBe("Mia");
     expect(imeZaCrm("  Ana-Marija   Kovač ")).toBe("Ana-Marija");
+  });
+});
+
+describe("dnevna igra — cijena (prvi sat, pa polusati uz 10 min tolerancije)", () => {
+  it("prvi sat je najmanja naplata", () => {
+    expect(cijenaBoravka(0)).toBe(600);
+    expect(cijenaBoravka(45)).toBe(600);
+    expect(cijenaBoravka(70)).toBe(600);
+  });
+  it("svakih daljnjih započetih 30 min nakon tolerancije", () => {
+    expect(cijenaBoravka(71)).toBe(900);
+    expect(cijenaBoravka(100)).toBe(900);
+    expect(cijenaBoravka(101)).toBe(1200);
+    expect(cijenaBoravka(130)).toBe(1200);
+    expect(cijenaBoravka(131)).toBe(1500);
   });
 });
