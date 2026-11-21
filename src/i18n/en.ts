@@ -319,7 +319,7 @@ export const en = {
     prijaviSe: "Sign in",
     pogresnaPrijava: "Wrong email or password.",
     prihodMjesec: "Revenue this month",
-    rezervacijaUkupno: "Total bookings",
+    rezervacijaUkupno: "Confirmed bookings",
     danasnjeProslave: "Today's parties",
     popunjenost: "Occupancy (30 days)",
     nadolazece: "Upcoming parties",

@@ -334,7 +334,7 @@ export const hr = {
     pogresnaPrijava: "Pogrešna e-pošta ili lozinka.",
     // Nadzorna ploča
     prihodMjesec: "Prihod ovaj mjesec",
-    rezervacijaUkupno: "Ukupno rezervacija",
+    rezervacijaUkupno: "Potvrđene rezervacije",
     danasnjeProslave: "Današnje proslave",
     popunjenost: "Popunjenost (30 dana)",
     nadolazece: "Nadolazeće proslave",

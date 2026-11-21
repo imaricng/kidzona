@@ -18,6 +18,8 @@ export const metadata = { title: hr.admin.nadzornaPloca };
 
 // Proslave i popunjenost računaju se samo iz potvrđenih rezervacija (ne iz upita); prihod je u `lib/prihod`.
 const AKTIVNI = STATUSI_ZAUZIMAJU_TERMIN;
+// Potvrđene proslave koje tek slijede — završene se ne broje.
+const POTVRDJENE = ["potvrdjeno", "placeno", "checkin"];
 
 /** Ručni okidač automatskih podsjetnika (isto što i dnevni cron). */
 async function pokreniAutomatiku() {
@@ -51,11 +53,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const danOd = new Date(sada); danOd.setHours(0, 0, 0, 0);
   const danDo = new Date(sada); danDo.setHours(23, 59, 59, 999);
   const za30 = new Date(danOd); za30.setDate(za30.getDate() + 30);
+  const pocetakIducegMjeseca = new Date(sada.getFullYear(), sada.getMonth() + 1, 1);
+  const pocetakZaDvaMjeseca = new Date(sada.getFullYear(), sada.getMonth() + 2, 1);
   const brojSoba = await prisma.room.count({ where: { active: true } });
 
-  const [prihod, ukupnoRez, danasnje, nadolazece, za30dana, upiti, brojUpita] = await Promise.all([
+  const [prihod, potvrdjeneUkupno, potvrdjeneOvajMjesec, potvrdjeneIduciMjesec, danasnje, nadolazece, za30dana, upiti, brojUpita] = await Promise.all([
     prihodMjeseca(sada),
-    prisma.reservation.count({ where: { status: { in: AKTIVNI } } }),
+    prisma.reservation.count({ where: { date: { gte: danOd }, status: { in: POTVRDJENE } } }),
+    prisma.reservation.count({ where: { date: { gte: danOd, lt: pocetakIducegMjeseca }, status: { in: POTVRDJENE } } }),
+    prisma.reservation.count({ where: { date: { gte: pocetakIducegMjeseca, lt: pocetakZaDvaMjeseca }, status: { in: POTVRDJENE } } }),
     prisma.reservation.findMany({
       where: { date: { gte: danOd, lte: danDo }, status: { in: AKTIVNI } },
       include: { room: true, secondRoom: true, package: true, theme: true, addOns: { include: { addOn: true } } },
@@ -157,7 +163,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           ikona="💶"
           napomena={`Rođendani ${formatEur(prihod.rodjendaniCents)} · Dnevna igra ${formatEur(prihod.dnevnaIgraCents)}`}
         />
-        <KpiKartica naslov={hr.admin.rezervacijaUkupno} vrijednost={String(ukupnoRez)} ikona="🎟️" />
+        <KpiKartica
+          naslov={hr.admin.rezervacijaUkupno}
+          vrijednost={String(potvrdjeneUkupno)}
+          ikona="🎟️"
+          napomena={`Još ovaj mjesec ${potvrdjeneOvajMjesec} · Idući mjesec ${potvrdjeneIduciMjesec}`}
+        />
         <KpiKartica naslov={hr.admin.danasnjeProslave} vrijednost={String(danasnje.length)} ikona="🎂" />
         <KpiKartica naslov={hr.admin.popunjenost} vrijednost={`${popunjenost}%`} ikona="📈" />
       </div>
