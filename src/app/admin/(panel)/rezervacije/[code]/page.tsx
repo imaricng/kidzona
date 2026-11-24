@@ -277,7 +277,6 @@ export default async function RezervacijaDetalj({
             <Red n="Termin" v={`${r.slotStart} – ${r.slotEnd}`} />
             <Red n="Igraonica" v={r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name} />
             <Red n="Paket" v={`${r.package.name} (${brojDjece(r.numChildren)})`} />
-            <Red n="Broj odraslih" v={String(r.numAdults)} />
             {r.theme && <Red n="Tema" v={`${r.theme.emoji} ${r.theme.name}`} />}
             <Red n="Slavljenik" v={r.childName ?? "—"} />
             <Red n="Dodaci" v={r.addOns.map((a) => `${a.addOn.name} ×${a.quantity}`).join(", ") || "—"} />
@@ -493,7 +492,6 @@ export default async function RezervacijaDetalj({
                 pozivniceDigitalne: r.pozivniceDigitalne ? "on" : "",
                 pozivniceFizicke: r.pozivniceFizicke ? "on" : "",
                 numChildren: String(r.numChildren),
-                numAdults: String(r.numAdults),
                 parentName: r.parentName,
                 email: r.email,
                 phone: r.phone ?? "",

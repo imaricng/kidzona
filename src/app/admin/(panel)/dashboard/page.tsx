@@ -204,7 +204,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       {godine ? ` · ${godine}. rođendan` : ""}
                     </p>
                     <dl className="mt-2 space-y-1 text-sm">
-                      <KarticaRed n="Paket" v={`${r.package.name} · ${brojDjece(r.numChildren)}${r.numAdults ? ` + ${r.numAdults} odraslih` : ""}`} />
+                      <KarticaRed n="Paket" v={`${r.package.name} · ${brojDjece(r.numChildren)}`} />
                       <KarticaRed n="Tema" v={r.theme ? `${r.theme.emoji} ${r.theme.name}` : "bez teme"} />
                       {dodaci && <KarticaRed n="Dodaci" v={dodaci} />}
                       {r.notes && <KarticaRed n="Napomene" v={r.notes} />}

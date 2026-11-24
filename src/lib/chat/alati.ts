@@ -39,7 +39,6 @@ export async function dohvatiPonudu() {
       id: s.id,
       naziv: s.name,
       opis: s.description ?? "",
-      najviseDjece: s.maxChildren,
     })),
     paketi: paketi.map((p) => ({
       id: p.id,
@@ -190,8 +189,6 @@ export async function izracunajZaChat(input: {
     paket: {
       name: paket.name,
       basePriceCents: paket.basePriceCents,
-      ukljucenoDjece: paket.maxChildren,
-      nadoplataPoDjetetuCents: paket.perChildCents,
     },
     brojDjece: input.numChildren,
     dodaci: dodaci.map((d) => ({ id: d.id, priceCents: d.priceCents, unit: d.unit as "per_child" | "flat" })),

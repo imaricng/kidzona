@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, type Interactions } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { env } from "@/lib/env";
@@ -11,7 +11,7 @@ import { formatDatumDugi } from "@/lib/format";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MODEL = "claude-opus-5";
+const MODEL = "gemini-3.5-flash-lite";
 /** Zaštita od beskonačne petlje alata; razgovor o rezervaciji stane u par koraka. */
 const MAX_KORAKA = 6;
 
@@ -36,7 +36,7 @@ const pripremaSchema = z.object({
   roomId: z.string().min(1),
   packageId: z.string().min(1),
   themeId: z.string().optional(),
-  numChildren: z.number().int().min(1).max(40),
+  numChildren: z.number().int().min(1),
   parentName: z.string().trim().min(2, "Treba ime i prezime roditelja."),
   email: z.string().trim().email("Treba ispravna adresa e-pošte."),
   phone: z.string().trim().min(6, "Treba broj telefona roditelja."),
@@ -51,18 +51,20 @@ export type PripremaUpita = z.infer<typeof pripremaSchema> & {
   sazetak: { naziv: string; vrijednost: string }[];
 };
 
-const ALATI: Anthropic.Tool[] = [
+const ALATI: Interactions.Tool[] = [
   {
+    type: "function",
     name: "dohvati_ponudu",
     description:
       "Igraonice, paketi s cijenama i trajanjem, dodaci, teme i neradni dani. Pozovi prije nego išta tvrdiš o ponudi ili cijenama.",
-    input_schema: { type: "object", properties: {}, additionalProperties: false },
+    parameters: { type: "object", properties: {}, additionalProperties: false },
   },
   {
+    type: "function",
     name: "provjeri_termin",
     description:
       "Je li na zadani datum moguća proslava i koji su početci slobodni. Jedini dopušteni način da potvrdiš slobodan termin.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         datum: { type: "string", description: "Datum u obliku GGGG-MM-DD" },
@@ -73,9 +75,10 @@ const ALATI: Anthropic.Tool[] = [
     },
   },
   {
+    type: "function",
     name: "izracunaj_cijenu",
     description: "Točan iznos za paket, broj djece i odabrane dodatke. Jedini dopušteni izvor iznosa.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         paketId: { type: "string" },
@@ -87,10 +90,11 @@ const ALATI: Anthropic.Tool[] = [
     },
   },
   {
+    type: "function",
     name: "pripremi_upit",
     description:
       "Priprema upit za rezervaciju kad su svi podaci prikupljeni. NE šalje ga — roditelj potvrđuje slanje u sučelju. Pozovi tek kad imaš datum, početak, igraonicu, paket, broj djece, ime roditelja i e-poštu.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         datum: { type: "string" },
@@ -230,47 +234,54 @@ export async function POST(req: NextRequest) {
   const parsed = zahtjevSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Neispravan zahtjev" }, { status: 422 });
 
-  const client = new Anthropic({ apiKey: env.anthropicApiKey });
-  const messages: Anthropic.MessageParam[] = parsed.data.poruke.map((p) => ({
-    role: p.uloga === "korisnik" ? "user" : "assistant",
-    content: p.tekst,
-  }));
+  const client = new GoogleGenAI({ apiKey: env.geminiApiKey });
+  const history: Interactions.Step[] = parsed.data.poruke.map((p) =>
+    p.uloga === "korisnik"
+      ? { type: "user_input", content: [{ type: "text", text: p.tekst }] }
+      : { type: "model_output", content: [{ type: "text", text: p.tekst }] },
+  );
 
   let priprema: PripremaUpita | undefined;
 
   try {
     for (let korak = 0; korak < MAX_KORAKA; korak++) {
-      const odgovor = await client.messages.create({
+      const odgovor = await client.interactions.create({
         model: MODEL,
-        max_tokens: 2000,
-        system: sistemskeUpute(),
+        store: false,
+        system_instruction: sistemskeUpute(),
         // Razgovor traži brzinu, ne dubinu — složeni dio posla rade alati.
-        output_config: { effort: "low" },
+        generation_config: { max_output_tokens: 2000, thinking_level: "low" },
         tools: ALATI,
-        messages,
+        input: history,
       });
 
-      if (odgovor.stop_reason !== "tool_use") {
-        const tekst = odgovor.content
-          .filter((b): b is Anthropic.TextBlock => b.type === "text")
-          .map((b) => b.text)
-          .join("\n")
-          .trim();
+      const koraci = odgovor.steps ?? [];
+      const pozivi = koraci.filter(
+        (s): s is Interactions.FunctionCallStep => s.type === "function_call",
+      );
+
+      if (pozivi.length === 0) {
+        const tekst = odgovor.output_text?.trim();
         return NextResponse.json({
           odgovor: tekst || "Oprostite, nisam uspio sastaviti odgovor. Možete li ponoviti?",
           priprema,
         });
       }
 
-      messages.push({ role: "assistant", content: odgovor.content });
-      const pozivi = odgovor.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
-      const rezultati: Anthropic.ToolResultBlockParam[] = [];
+      history.push(...koraci);
       for (const poziv of pozivi) {
-        const { rezultat, priprema: nova } = await izvrsiAlat(poziv.name, (poziv.input ?? {}) as Record<string, unknown>);
+        const { rezultat, priprema: nova } = await izvrsiAlat(
+          poziv.name,
+          (poziv.arguments ?? {}) as Record<string, unknown>,
+        );
         if (nova) priprema = nova;
-        rezultati.push({ type: "tool_result", tool_use_id: poziv.id, content: JSON.stringify(rezultat) });
+        history.push({
+          type: "function_result",
+          name: poziv.name,
+          call_id: poziv.id,
+          result: [{ type: "text", text: JSON.stringify(rezultat) }],
+        });
       }
-      messages.push({ role: "user", content: rezultati });
     }
 
     return NextResponse.json({

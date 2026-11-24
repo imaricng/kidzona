@@ -24,7 +24,6 @@ export default async function RucniUnosPage() {
     pozivniceDigitalne: "",
     pozivniceFizicke: "",
     numChildren: "10",
-    numAdults: "2",
     parentName: "",
     email: "",
     phone: "",

@@ -181,7 +181,7 @@ Vidi `.env.example` za potpuni popis i komentare. Najvažnije:
 | `REVIEW_URL` | naslovnica | kamo vodi „ostavite recenziju" iz poruke zahvale |
 | `GOOGLE_CALENDAR_ID` | — | kalendar u koji se upisuju potvrđene proslave |
 | `GOOGLE_CLIENT_EMAIL` / `GOOGLE_PRIVATE_KEY` | — | servisni račun s pravom „Mijenjanje događaja" nad tim kalendarom |
-| `ANTHROPIC_API_KEY` | — | chatbot za rezervacije; bez ključa se ne prikazuje |
+| `GEMINI_API_KEY` | — | chatbot za rezervacije (Gemini); bez ključa se ne prikazuje |
 | `EMAIL_FROM` | `info@kidzona.hr` | pošiljatelj automatskih poruka (domena potvrđena kod servisa za slanje) |
 | `STAFF_EMAIL` | `kidzonang@gmail.com` | primatelj obavijesti osoblju o novim rezervacijama |
 | `EMAIL_REPLY_TO` | `kidzonang@gmail.com` | adresa za odgovore kupaca na automatske poruke |

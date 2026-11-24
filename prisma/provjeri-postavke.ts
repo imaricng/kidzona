@@ -91,7 +91,7 @@ async function main() {
 
   if (args.includes("--chat")) {
     console.log("\n--- Chatbot ---------------------------------------------");
-    console.log(`ANTHROPIC_API_KEY     : ${ima(env.anthropicApiKey)}`);
+    console.log(`GEMINI_API_KEY        : ${ima(env.geminiApiKey)}`);
     console.log(`Chat aktivan          : ${env.chatAktivan ? "da" : "ne (widget se ne prikazuje)"}`);
 
     console.log("\nAlati (rade i bez ključa — model iz njih dobiva činjenice):");

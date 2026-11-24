@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { hrUIso, isoUHr, normalizirajVrijeme } from "@/lib/datum-unos";
 
 /**
@@ -281,6 +281,13 @@ export function DatumPolje(props: ZajednickiProps & { min?: string; max?: string
 
 const bezPromjene = (v: string) => v;
 
+const ikonaSata = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
 /** Prijedlozi u padajućem popisu; upisati se može i bilo koje drugo vrijeme. */
 function prijedloziVremena(korakMin: number, odSata: number, doSata: number): string[] {
   const popis: string[] = [];
@@ -290,22 +297,71 @@ function prijedloziVremena(korakMin: number, odSata: number, doSata: number): st
   return popis;
 }
 
-export function VrijemePolje(props: ZajednickiProps & { korakMin?: number }) {
-  const { name, required, className = "input", id, korakMin = 15 } = props;
+export function VrijemePolje(
+  props: ZajednickiProps & { korakMin?: number; odSata?: number; doSata?: number },
+) {
+  const { name, required, className = "input", id, korakMin = 30, odSata = 14, doSata = 20 } = props;
   const { vrijednost, tekst, setTekst, postavi } = useTekstIVrijednost(props, bezPromjene, normalizirajVrijeme);
   const vidljivo = useRef<HTMLInputElement>(null);
-  const popisId = `${name ?? id ?? "vrijeme"}-prijedlozi`;
+  const omotac = useRef<HTMLDivElement>(null);
+  const [otvoren, setOtvoren] = useState(false);
+  const [neispravno, setNeispravno] = useState(false);
+  const panelId = useId();
+  const prijedlozi = prijedloziVremena(korakMin, odSata, doSata);
+
+  // Klik izvan polja i izbornika zatvara padajući popis.
+  useEffect(() => {
+    if (!otvoren) return;
+    function klik(e: MouseEvent) {
+      if (!omotac.current?.contains(e.target as Node)) setOtvoren(false);
+    }
+    document.addEventListener("mousedown", klik);
+    return () => document.removeEventListener("mousedown", klik);
+  }, [otvoren]);
+
+  function greskaZa(t: string, v: string | null): string {
+    if (!t.trim()) return required ? "Unesite vrijeme." : "";
+    return v ? "" : "Vrijeme upišite kao SS:MM, npr. 17:00.";
+  }
 
   function upis(t: string) {
     setTekst(t);
     const v = normalizirajVrijeme(t);
-    const greska = !t.trim() ? (required ? "Unesite vrijeme." : "") : v ? "" : "Vrijeme upišite kao SS:MM, npr. 17:00.";
-    vidljivo.current?.setCustomValidity(greska);
+    if (v || !t.trim()) {
+      vidljivo.current?.setCustomValidity("");
+      setNeispravno(false);
+    }
     postavi(v ?? "");
   }
 
+  function provjeriPriIzlasku() {
+    const v = normalizirajVrijeme(tekst);
+    const greska = greskaZa(tekst, v);
+    vidljivo.current?.setCustomValidity(greska);
+    setNeispravno(!!greska);
+    if (v) setTekst(v); // „17" → „17:00"
+  }
+
+  function odaberi(v: string) {
+    setTekst(v);
+    vidljivo.current?.setCustomValidity("");
+    setNeispravno(false);
+    postavi(v);
+    setOtvoren(false);
+  }
+
   return (
-    <>
+    <div
+      ref={omotac}
+      className="relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && otvoren) {
+          e.stopPropagation();
+          setOtvoren(false);
+          vidljivo.current?.focus();
+        }
+      }}
+    >
       <input
         ref={vidljivo}
         id={id}
@@ -313,23 +369,66 @@ export function VrijemePolje(props: ZajednickiProps & { korakMin?: number }) {
         inputMode="numeric"
         autoComplete="off"
         placeholder="SS:MM"
-        list={popisId}
         aria-label={props["aria-label"]}
+        aria-invalid={neispravno || undefined}
         required={required}
         value={tekst}
+        onClick={() => setOtvoren(true)}
         onChange={(e) => upis(e.target.value)}
-        onBlur={() => {
-          const v = normalizirajVrijeme(tekst);
-          if (v) setTekst(v); // „17" → „17:00"
-        }}
-        className={className}
+        onBlur={provjeriPriIzlasku}
+        className={`${className} !pr-11`}
       />
-      <datalist id={popisId}>
-        {prijedloziVremena(korakMin, 8, 22).map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOtvoren((o) => !o);
+        }}
+        aria-label="Odaberi vrijeme početka"
+        aria-expanded={otvoren}
+        aria-controls={panelId}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-400 transition hover:text-brand-600"
+      >
+        {ikonaSata}
+      </button>
+      {otvoren && (
+        <div
+          id={panelId}
+          className="absolute left-0 top-full z-50 mt-2 w-56 rounded-2xl bg-white p-2.5 shadow-soft ring-1 ring-brand-100"
+        >
+          <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+            Početak ({String(odSata).padStart(2, "0")}:00 – {String(doSata).padStart(2, "0")}:00)
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {prijedlozi.map((v) => {
+              const odabrano = v === vrijednost;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={odabrano}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    odaberi(v);
+                  }}
+                  className={`min-h-[40px] rounded-xl px-3 py-2 text-sm tabular-nums transition ${
+                    odabrano
+                      ? "bg-brand-500 font-bold text-white shadow-sm"
+                      : v.endsWith(":00")
+                        ? "bg-ink-50 font-semibold text-ink-800 hover:bg-brand-50 hover:text-brand-700"
+                        : "text-ink-600 hover:bg-brand-50 hover:text-brand-700"
+                  }`}
+                >
+                  {v}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {name && <input type="hidden" name={name} value={vrijednost} />}
-    </>
+    </div>
   );
 }

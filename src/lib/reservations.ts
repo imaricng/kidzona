@@ -150,8 +150,8 @@ async function provjeriPodatke(p: PodaciRezervacije, poRasporedu: boolean) {
       throw new NeispravnaRezervacijaError(`Tema „${tema.name}” dostupna je samo u drugoj igraonici.`);
     }
   }
-  if (p.numChildren < paket.minChildren || p.numChildren > soba.maxChildren) {
-    throw new NeispravnaRezervacijaError(`Broj djece za ${soba.name} mora biti između ${paket.minChildren} i ${soba.maxChildren}.`);
+  if (p.numChildren < paket.minChildren) {
+    throw new NeispravnaRezervacijaError(`Broj djece mora biti najmanje ${paket.minChildren}.`);
   }
   const termin: Termin = { start: p.slotStart, end: krajTermina(p.slotStart, paket.durationMin) };
   return { soba, paket, termin };
@@ -358,7 +358,7 @@ export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezan
   }
   const dodaciKatalog = await prisma.addOn.findMany({ where: { active: true } });
   const izracun = izracunajCijenu({
-    paket: { name: paket.name, basePriceCents: paket.basePriceCents, ukljucenoDjece: paket.maxChildren, nadoplataPoDjetetuCents: paket.perChildCents },
+    paket: { name: paket.name, basePriceCents: paket.basePriceCents },
     brojDjece: input.numChildren,
     dodaci: dodaciKatalog.map((d) => ({ id: d.id, priceCents: d.priceCents, unit: d.unit as "per_child" | "flat" })),
     odabrani: input.dodaci,
@@ -476,7 +476,7 @@ export async function unesiRucno(input: PodaciRezervacije & { status: "upit" | "
     throw new TerminZauzetError();
   }
   const izracun = izracunajCijenu({
-    paket: { name: paket.name, basePriceCents: paket.basePriceCents, ukljucenoDjece: paket.maxChildren, nadoplataPoDjetetuCents: paket.perChildCents },
+    paket: { name: paket.name, basePriceCents: paket.basePriceCents },
     brojDjece: input.numChildren,
     dodaci: [],
     odabrani: [],
@@ -545,7 +545,7 @@ export async function urediRezervaciju(code: string, input: PodaciRezervacije): 
     throw new TerminZauzetError();
   }
   const izracun = izracunajCijenu({
-    paket: { name: paket.name, basePriceCents: paket.basePriceCents, ukljucenoDjece: paket.maxChildren, nadoplataPoDjetetuCents: paket.perChildCents },
+    paket: { name: paket.name, basePriceCents: paket.basePriceCents },
     brojDjece: input.numChildren,
     dodaci: postojeca.addOns.map((a) => ({ id: a.addOnId, priceCents: a.unitPriceCents, unit: a.addOn.unit as "per_child" | "flat" })),
     odabrani: postojeca.addOns.map((a) => ({ id: a.addOnId, quantity: a.quantity })),

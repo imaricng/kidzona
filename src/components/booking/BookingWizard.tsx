@@ -114,7 +114,6 @@ export function BookingWizard({
   const zatvaranje = zatvaranjeZaDatum(datum, katalog.zatvaranja);
   const pocetci = zatvaranje ? [] : pocetciZaDatum(datum);
   const slotEnd = odabraniStart && paket ? krajTermina(odabraniStart, paket.durationMin) : null;
-  const maxDjece = soba?.maxChildren ?? 40;
   const koraci = [
     hr.booking.koraci.termin,
     hr.booking.koraci.soba,
@@ -160,21 +159,19 @@ export function BookingWizard({
   }, [temeSobe, themeId]);
 
   // Broj djece: zadano koliko je uključeno u paket (osim ako ga je roditelj već
-  // sam namjestio), uvijek unutar granica paketa i igraonice.
+  // sam namjestio), bez gornjeg ograničenja po igraonici.
   useEffect(() => {
     if (!paket) return;
-    setNumChildren((n) => Math.min(maxDjece, Math.max(paket.minChildren, rucnoDjece ? n : paket.maxChildren)));
-  }, [paket, maxDjece, rucnoDjece]);
+    setNumChildren((n) => Math.max(paket.minChildren, rucnoDjece ? n : paket.maxChildren));
+  }, [paket, rucnoDjece]);
 
-  // Okvirna cijena (mjerodavnu računa poslužitelj)
+  // Okvirna cijena (mjerodavnu računa poslužitelj) — bez nadoplate za dodatnu djecu (rješava se uživo)
   const izracun = useMemo(() => {
     if (!paket) return null;
     return izracunajCijenu({
       paket: {
         name: paket.name,
         basePriceCents: paket.basePriceCents,
-        ukljucenoDjece: paket.maxChildren,
-        nadoplataPoDjetetuCents: paket.perChildCents,
       },
       brojDjece: numChildren,
       dodaci: katalog.addons.map((a) => ({ id: a.id, priceCents: a.priceCents, unit: a.unit })),
@@ -192,7 +189,7 @@ export function BookingWizard({
       case 1:
         return !!soba && !!paket && (paket.roomId === null || paket.roomId === soba.id);
       case 2:
-        return !!paket && numChildren >= paket.minChildren && numChildren <= maxDjece;
+        return !!paket && numChildren >= paket.minChildren;
       case 3:
         return (
           parentName.trim().length >= 2 &&
@@ -294,7 +291,6 @@ export function BookingWizard({
           {korak === 2 && paket && (
             <KorakDjeca
               paket={paket}
-              maxDjece={maxDjece}
               numChildren={numChildren}
               setNumChildren={postaviBrojDjece}
               addons={katalog.addons}
@@ -555,11 +551,11 @@ function KorakSoba({
 
 // --- Korak 3: djeca + dodaci + tema ----------------------------------
 function KorakDjeca({
-  paket, maxDjece, numChildren, setNumChildren, addons, dodaci, setDodaci, themes, themeId, setThemeId,
+  paket, numChildren, setNumChildren, addons, dodaci, setDodaci, themes, themeId, setThemeId,
   vlastitaTema, setVlastitaTema, temaZelja, setTemaZelja,
   pozivniceDigitalne, setPozivniceDigitalne, pozivniceFizicke, setPozivniceFizicke,
 }: {
-  paket: Paket; maxDjece: number; numChildren: number; setNumChildren: (n: number) => void;
+  paket: Paket; numChildren: number; setNumChildren: (n: number) => void;
   addons: Katalog["addons"]; dodaci: Record<string, number>; setDodaci: (d: Record<string, number>) => void;
   themes: Katalog["themes"]; themeId: string | null; setThemeId: (id: string | null) => void;
   vlastitaTema: boolean; setVlastitaTema: (v: boolean) => void;
@@ -567,7 +563,6 @@ function KorakDjeca({
   pozivniceDigitalne: boolean; setPozivniceDigitalne: (v: boolean) => void;
   pozivniceFizicke: boolean; setPozivniceFizicke: (v: boolean) => void;
 }) {
-  const dodatnaDjeca = Math.max(0, numChildren - paket.maxChildren);
   function toggle(id: string) {
     const kopija = { ...dodaci };
     if (kopija[id]) delete kopija[id];
@@ -580,20 +575,24 @@ function KorakDjeca({
         <h3 className="font-semibold text-ink-800">{hr.booking.brojDjece}</h3>
         <p className="text-sm text-ink-400">
           {paket.name}: {hr.paketi.doBroj} {paket.maxChildren} {hr.paketi.odDjece} · {hr.paketi.slavljenikGratis}
-          {paket.perChildCents > 0 && !paket.cijenaPoDogovoru ? ` · +${formatEur(paket.perChildCents)} ${hr.paketi.poDodatnomDjetetu}` : ""}
         </p>
         <p className="text-xs text-ink-400">{hr.booking.brojDjeceNapomena}</p>
         <div className="mt-3 flex items-center gap-4">
           <button type="button" className="btn-secondary !h-11 !w-11 !p-0 text-xl" onClick={() => setNumChildren(Math.max(paket.minChildren, numChildren - 1))}>−</button>
-          <span className="w-16 text-center text-2xl font-bold text-ink-900">{numChildren}</span>
-          <button type="button" className="btn-secondary !h-11 !w-11 !p-0 text-xl" onClick={() => setNumChildren(Math.min(maxDjece, numChildren + 1))}>+</button>
+          <input
+            type="number"
+            min={paket.minChildren}
+            value={numChildren}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (Number.isFinite(v) && v >= paket.minChildren) setNumChildren(v);
+            }}
+            aria-label={hr.booking.brojDjece}
+            className="input !w-20 !py-2 text-center text-2xl font-bold text-ink-900"
+          />
+          <button type="button" className="btn-secondary !h-11 !w-11 !p-0 text-xl" onClick={() => setNumChildren(numChildren + 1)}>+</button>
           <span className="text-ink-500">{brojDjece(numChildren)}</span>
         </div>
-        {dodatnaDjeca > 0 && paket.perChildCents > 0 && !paket.cijenaPoDogovoru && (
-          <p className="mt-2 text-sm font-semibold text-berry-600">
-            +{formatEur(dodatnaDjeca * paket.perChildCents)} ({brojDjece(dodatnaDjeca)} {hr.booking.iznadPaketa})
-          </p>
-        )}
       </div>
 
       {addons.length > 0 && (

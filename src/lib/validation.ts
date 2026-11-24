@@ -14,7 +14,7 @@ export const bookingSchema = z.object({
   secondRoomId: z.string().min(1).nullable().optional(),
   packageId: z.string().min(1),
   themeId: z.string().min(1).nullable().optional(),
-  numChildren: z.number().int().min(1).max(40),
+  numChildren: z.number().int().min(1),
   numAdults: z.number().int().min(0).max(60).default(0),
   // Pozivnice (korak 3): digitalne se šalju nakon potvrde, tiskane se preuzimaju u igraonici.
   pozivniceDigitalne: z.boolean().default(false),

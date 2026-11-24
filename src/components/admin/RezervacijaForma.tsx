@@ -97,12 +97,11 @@ function Polja({
   // igraonice, ostavljamo je u popisu da se ne izgubi nehotice.
   const temeSobe = teme.filter((t) => t.roomId === null || t.roomId === roomId || t.id === themeId);
   const paket = paketiSobe.find((p) => p.id === packageId);
-  const soba = sobe.find((s) => s.id === roomId);
   const djece = Number(numChildren) || 0;
   const kraj = paket && /^\d{2}:\d{2}$/.test(slotStart) ? krajTermina(slotStart, paket.durationMin) : null;
   const cijena = paket
     ? izracunajCijenu({
-        paket: { name: paket.name, basePriceCents: paket.basePriceCents, ukljucenoDjece: paket.maxChildren, nadoplataPoDjetetuCents: paket.perChildCents },
+        paket: { name: paket.name, basePriceCents: paket.basePriceCents },
         brojDjece: djece,
         dodaci: [],
         odabrani: [],
@@ -168,20 +167,16 @@ function Polja({
               </label>
             </div>
           </Polje>
-          <Polje label="Broj djece *" pomoc={soba ? `Najviše ${soba.maxChildren} u igraonici ${soba.name}` : undefined}>
+          <Polje label="Broj djece *">
             <input
               name="numChildren"
               type="number"
               min={1}
-              max={soba?.maxChildren}
               required
               value={numChildren}
               onChange={(e) => setNumChildren(e.target.value)}
               className="input !py-2"
             />
-          </Polje>
-          <Polje label="Broj odraslih">
-            <input name="numAdults" type="number" min={0} defaultValue={v.numAdults ?? "0"} className="input !py-2" />
           </Polje>
         </div>
       </div>
