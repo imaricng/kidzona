@@ -12,6 +12,7 @@ import { pokreniPodsjetnike } from "@/lib/automation";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
 import { prihodMjeseca } from "@/lib/prihod";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { PrihodKartica } from "@/components/admin/PrihodKartica";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.nadzornaPloca };
@@ -157,11 +158,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </section>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiKartica
+        <PrihodKartica
           naslov={hr.admin.prihodMjesec}
           vrijednost={formatEur(prihod.ukupnoCents)}
-          ikona="💶"
-          napomena={`Rođendani ${formatEur(prihod.rodjendaniCents)} · Dnevna igra ${formatEur(prihod.dnevnaIgraCents)}`}
+          rodjendani={formatEur(prihod.rodjendaniCents)}
+          dnevnaIgra={formatEur(prihod.dnevnaIgraCents)}
         />
         <KpiKartica
           naslov={hr.admin.rezervacijaUkupno}
