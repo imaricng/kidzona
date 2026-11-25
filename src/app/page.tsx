@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getDict, getLocale } from "@/i18n";
@@ -7,19 +8,15 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { StickyCta } from "@/components/StickyCta";
 import { FaqAccordion } from "@/components/FaqAccordion";
-import { Logo } from "@/components/Logo";
 import { JsonLd } from "@/components/JsonLd";
 import { lokalniISO } from "@/lib/slots";
 import { PaketKartica } from "@/components/PaketKartica";
 import { SectionNaslov } from "@/components/SectionNaslov";
 import { faqJsonLd, poslovanjeJsonLd, slugIgraonice } from "@/lib/seo";
 import {
-  BOJE,
-  Balloon,
   Confetti,
   IconCircle,
   Ikona,
-  StarMascot,
   Wave,
   WhatsAppLogo,
   type BojaKruga,
@@ -89,14 +86,13 @@ export default async function HomePage() {
             faqJsonLd(hr.faq.pitanja),
           ]}
         />
-        {/* HERO — ljubičasta podloga, konfeti, baloni i logotip s maskotom */}
+        {/* HERO — ljubičasta podloga i prave fotografije obje igraonice */}
         <section className="relative overflow-hidden bg-brand-500 text-white">
           <div
             aria-hidden
             className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_90%_80%,rgba(255,77,166,0.45),transparent_45%)]"
           />
-          <Confetti />
-          <div className="section relative grid items-center gap-14 pb-28 pt-12 md:grid-cols-2 md:pb-36 md:pt-20">
+          <div className="section relative grid items-center gap-12 pb-28 pt-12 md:grid-cols-2 md:pb-32 md:pt-16">
             <div>
               <span className="chip bg-white/15 font-semibold text-white ring-1 ring-white/25">📍 {hr.proslave.oznaka}</span>
               <h1 className="mt-5 font-display text-[2.6rem] font-bold leading-[1.05] sm:text-6xl">
@@ -133,20 +129,45 @@ export default async function HomePage() {
               </ul>
             </div>
 
-            <div className="relative mx-auto w-full max-w-md">
-              <div className="relative rotate-2 rounded-[2.5rem] bg-white px-6 pb-16 pt-10 text-center shadow-[0_24px_60px_-20px_rgba(29,24,64,0.6)] ring-8 ring-white/20">
-                <Logo size="lg" />
-                <StarMascot className="absolute -left-7 -top-9 h-20 w-20 -rotate-12 sm:h-24 sm:w-24" />
-              </div>
-              <Balloon className="absolute -right-3 -top-12 h-28 w-16 motion-safe:animate-float" />
-              <Balloon
-                color={BOJE.cijan}
-                className="absolute -left-5 top-1/4 h-20 w-12 [animation-delay:1.3s] motion-safe:animate-float"
-              />
-              <div className="absolute -bottom-6 -left-3 -rotate-6 rounded-2xl bg-berry-600 px-4 py-3 shadow-soft">
-                <p className="font-display text-base font-bold">{hr.hero.bedz}</p>
-                <p className="text-xs text-white/90">{hr.hero.bedzOpis}</p>
-              </div>
+            <div className="mx-auto grid w-full max-w-lg grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-1">
+              <Link
+                href="/proslave/kids-play"
+                className="group relative overflow-hidden rounded-3xl bg-brand-900/30 shadow-[0_20px_50px_-15px_rgba(29,24,64,0.65)] ring-4 ring-white/25 transition hover:-translate-y-0.5 hover:ring-white/45"
+              >
+                <Image
+                  src="/slike/kidsplay.webp"
+                  alt="Igraonica Kids Play — softplay, tobogani, trampolin i bazen s lopticama"
+                  width={1200}
+                  height={900}
+                  priority
+                  fetchPriority="high"
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 480px"
+                  className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brand-900/85 via-brand-900/25 to-transparent px-4 pb-3.5 pt-10">
+                  <p className="font-display text-lg font-bold leading-tight text-white">Kids Play</p>
+                  <p className="text-xs text-white/90">Mlađa djeca · softplay, tobogani i trampolin</p>
+                </div>
+              </Link>
+              <Link
+                href="/proslave/kids-challenge"
+                className="group relative overflow-hidden rounded-3xl bg-brand-900/30 shadow-[0_20px_50px_-15px_rgba(29,24,64,0.65)] ring-4 ring-white/25 transition hover:-translate-y-0.5 hover:ring-white/45"
+              >
+                <Image
+                  src="/slike/kidschallenge.webp"
+                  alt="Igraonica Kids Challenge — PS5 konzole, arkadni aparati i gaming zona"
+                  width={1200}
+                  height={900}
+                  priority
+                  fetchPriority="high"
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 480px"
+                  className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brand-900/85 via-brand-900/25 to-transparent px-4 pb-3.5 pt-10">
+                  <p className="font-display text-lg font-bold leading-tight text-white">Kids Challenge</p>
+                  <p className="text-xs text-white/90">7–13 god · PS5, arkade i izazovi</p>
+                </div>
+              </Link>
             </div>
           </div>
           <Wave className="absolute inset-x-0 -bottom-px h-14 w-full text-paper sm:h-20" />
