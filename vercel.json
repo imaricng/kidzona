@@ -11,6 +11,14 @@
     {
       "path": "/api/cron/kraj-dana?zima",
       "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/tjedni-izvjestaj?ljeto",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/tjedni-izvjestaj?zima",
+      "schedule": "0 7 * * 1"
     }
   ]
 }

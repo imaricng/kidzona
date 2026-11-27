@@ -14,7 +14,9 @@ export type TipPoruke =
   | "osoblje" // obavijest osoblju o terminu/pripremi
   | "zahvala" // zahvala + zamolba za Google recenziju
   | "pozivnica" // digitalna pozivnica roditelju (nakon potvrde rezervacije)
-  | "rodjendan-godina"; // podsjetnik za sljedeći rođendan godinu dana kasnije
+  | "rodjendan-godina" // podsjetnik za sljedeći rođendan godinu dana kasnije
+  | "tjedni-izvjestaj" // tjedni izvještaj osoblju svakog ponedjeljka u 08:00
+  | "tjedni-izvjestaj-test"; // ručni/testni tjedni izvještaj osoblju
 
 export interface Poruka {
   tip: TipPoruke;
