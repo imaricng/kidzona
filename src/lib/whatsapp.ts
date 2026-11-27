@@ -58,6 +58,29 @@ export function porukaUpita(r: PodaciZaPoruku): string {
   ].join(" ");
 }
 
+/** Odgovor na upit kad je traženi termin zauzet — predlažemo najbliže slobodne termine za tu sobu. */
+export function porukaZauzetTermin(
+  r: PodaciZaPoruku,
+  prijedlozi: { dateISO: string; slotStart: string; slotEnd: string }[],
+): string {
+  const popis = prijedlozi
+    .map((p) => `• ${formatDatumDugi(`${p.dateISO}T12:00:00`)} od ${p.slotStart} do ${p.slotEnd}`)
+    .join("\n");
+  if (!popis) {
+    return [
+      oslovi(r.parentName),
+      `javljamo se iz Kidzone Nova Gradiška povodom vašeg upita za proslavu (${termin(r)}).`,
+      `Nažalost, taj termin je već zauzet. Javite nam koji bi vam drugi datum odgovarao pa ćemo provjeriti slobodne termine.`,
+    ].join(" ");
+  }
+  return [
+    `${oslovi(r.parentName)} javljamo se iz Kidzone Nova Gradiška povodom vašeg upita za proslavu (${termin(r)}).`,
+    `Nažalost, taj termin je već zauzet. Najbliži slobodni termini za ${r.roomName} su:`,
+    popis,
+    `Odgovara li vam neki od ovih termina?`,
+  ].join("\n\n");
+}
+
 /** Potvrda rezervacije. */
 export function porukaPotvrde(r: PodaciZaPoruku, poveznica: string): string {
   return [

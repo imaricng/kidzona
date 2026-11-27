@@ -12,7 +12,9 @@ import { pokreniPodsjetnike } from "@/lib/automation";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
 import { prihodMjeseca } from "@/lib/prihod";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DostupnostBadge } from "@/components/admin/DostupnostBadge";
 import { PrihodKartica } from "@/components/admin/PrihodKartica";
+import { provjeriDostupnostUpitaVise } from "@/lib/dostupnost";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.nadzornaPloca };
@@ -95,9 +97,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const popunjenost = ukupnoSlotova > 0 ? Math.round((za30dana / ukupnoSlotova) * 100) : 0;
 
   // Današnje e-poruke (potvrde, obavijesti osoblju, podsjetnici…) — upisi u kalendar se ne broje.
-  const porukaDanas = await prisma.notificationLog.count({
-    where: { createdAt: { gte: danOd, lte: danDo }, channel: "email", status: "poslano" },
-  });
+  const [porukaDanas, dostupnostUpita] = await Promise.all([
+    prisma.notificationLog.count({
+      where: { createdAt: { gte: danOd, lte: danDo }, channel: "email", status: "poslano" },
+    }),
+    provjeriDostupnostUpitaVise(
+      upiti.map((u) => ({
+        id: u.id,
+        date: u.date,
+        slotStart: u.slotStart,
+        slotEnd: u.slotEnd,
+        durationMin: u.package.durationMin,
+        roomId: u.roomId,
+        secondRoomId: u.secondRoomId,
+      })),
+    ),
+  ]);
 
   return (
     <div>
@@ -138,21 +153,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <p className="mt-3 text-sm text-ink-400">Nema novih upita.</p>
         ) : (
           <ul className="mt-3 divide-y divide-black/5">
-            {upiti.map((r) => (
-              <li key={r.id}>
-                <Link href={`/admin/rezervacije/${r.code}`} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                  <span className="min-w-0">
-                    <span className="block font-medium text-ink-800">
-                      {imeProslave(r)} · {formatDatum(r.date)} u {r.slotStart}
+            {upiti.map((r) => {
+              const d = dostupnostUpita.get(r.id);
+              return (
+                <li key={r.id}>
+                  <Link href={`/admin/rezervacije/${r.code}`} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-2 font-medium text-ink-800">
+                        <span>{imeProslave(r)} · {formatDatum(r.date)} u {r.slotStart}</span>
+                        {d && <DostupnostBadge slobodan={d.slobodan} />}
+                      </span>
+                      <span className="block text-xs text-ink-500">
+                        {r.room.name} · {r.package.name} · {brojDjece(r.numChildren)} · poslano {formatDatumVrijeme(r.createdAt)}
+                      </span>
                     </span>
-                    <span className="block text-xs text-ink-500">
-                      {r.room.name} · {r.package.name} · {brojDjece(r.numChildren)} · poslano {formatDatumVrijeme(r.createdAt)}
-                    </span>
-                  </span>
-                  <span className="btn-secondary !px-3 !py-1.5 !text-sm">Pregledaj →</span>
-                </Link>
-              </li>
-            ))}
+                    <span className="btn-secondary !px-3 !py-1.5 !text-sm">Pregledaj →</span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

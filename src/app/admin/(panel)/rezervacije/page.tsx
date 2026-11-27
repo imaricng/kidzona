@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { hr } from "@/i18n/hr";
 import { formatDatum, formatEur } from "@/lib/format";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DostupnostBadge } from "@/components/admin/DostupnostBadge";
+import { provjeriDostupnostUpitaVise } from "@/lib/dostupnost";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: hr.admin.rezervacije };
@@ -32,6 +34,20 @@ export default async function RezervacijePage({ searchParams }: { searchParams: 
     }),
     prisma.reservation.count({ where: { status: "upit" } }),
   ]);
+
+  const dostupnostUpita = await provjeriDostupnostUpitaVise(
+    rezervacije
+      .filter((r) => r.status === "upit")
+      .map((u) => ({
+        id: u.id,
+        date: u.date,
+        slotStart: u.slotStart,
+        slotEnd: u.slotEnd,
+        durationMin: u.package.durationMin,
+        roomId: u.roomId,
+        secondRoomId: u.secondRoomId,
+      })),
+  );
 
   return (
     <div>
@@ -91,7 +107,14 @@ export default async function RezervacijePage({ searchParams }: { searchParams: 
                 <td className="px-4 py-3 whitespace-nowrap">{r.secondRoom ? `${r.room.name} +1` : r.room.name}</td>
                 <td className="px-4 py-3">{r.package.name}</td>
                 <td className="px-4 py-3 text-right font-medium">{r.totalCents > 0 ? formatEur(r.totalCents) : "Po dogovoru"}</td>
-                <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <StatusBadge status={r.status} />
+                    {r.status === "upit" && dostupnostUpita.has(r.id) && (
+                      <DostupnostBadge slobodan={dostupnostUpita.get(r.id)!.slobodan} />
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
             {rezervacije.length === 0 && (

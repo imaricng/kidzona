@@ -26,6 +26,7 @@ import { nedavnoPoslano, posaljiIZabiljezi } from "@/lib/notifications";
 import { brojDjece } from "@/i18n/hr";
 import { formatEur } from "@/lib/format";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
+import { provjeriDostupnostUpita } from "@/lib/dostupnost";
 import { rasponDatuma } from "@/lib/zatvaranja";
 import {
   predlozakNovogUpita,
@@ -424,12 +425,54 @@ export async function posaljiUpit(input: UpitInput): Promise<RezervacijaSPovezan
   const podaci = podaciZaPoruku(r);
   const kupac = predlozakZaprimljenogUpita(podaci);
   await posaljiIZabiljezi({ tip: "potvrda", kanal: "email", primatelj: r.email, naslov: kupac.naslov, tijelo: kupac.tijelo, reservationId: r.id });
-  const osoblje = predlozakNovogUpita(podaci, { email: r.email, phone: r.phone, notes: r.notes }, `${env.appUrl}/admin/rezervacije/${r.code}`);
+  const dostupnost = await provjeriDostupnostUpita({
+    id: r.id,
+    date: r.date,
+    slotStart: r.slotStart,
+    slotEnd: r.slotEnd,
+    durationMin: r.package.durationMin,
+    roomId: r.roomId,
+    secondRoomId: r.secondRoomId,
+  });
+  const osoblje = predlozakNovogUpita(
+    podaci,
+    { email: r.email, phone: r.phone, notes: r.notes },
+    `${env.appUrl}/admin/rezervacije/${r.code}`,
+    dostupnost,
+  );
   await posaljiIZabiljezi({ tip: "osoblje", kanal: "email", primatelj: env.staffEmail, naslov: osoblje.naslov, tijelo: osoblje.tijelo, reservationId: r.id });
   return r;
 }
 
-// --- Odobravanje i odbijanje upita -----------------------------------
+// --- Odobravanje, prebacivanje i odbijanje upita ----------------------
+/** Prebacuje upit na predloženi slobodni datum i početak termina (1 klik u administraciji). */
+export async function prebaciTerminUpita(code: string, dateISO: string, slotStart: string): Promise<RezultatRadnje> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO) || !/^\d{2}:\d{2}$/.test(slotStart)) {
+    return { ok: false, poruka: "Neispravan datum ili početak termina." };
+  }
+  const r = await prisma.reservation.findUnique({ where: { code }, include: { package: true } });
+  if (!r) return { ok: false, poruka: "Rezervacija ne postoji." };
+  if (r.status !== "upit") return { ok: false, poruka: "Brzo prebacivanje dostupno je samo za upite." };
+
+  const zatvoreno = await prisma.closedPeriod.findFirst({ where: { startDate: { lte: dateISO }, endDate: { gte: dateISO } } });
+  if (zatvoreno) {
+    return { ok: false, poruka: `Na odabrani datum igraonica ne radi (${zatvoreno.reason}).` };
+  }
+
+  const datum = new Date(`${dateISO}T00:00:00`);
+  const termin: Termin = { start: slotStart, end: krajTermina(slotStart, r.package.durationMin) };
+  const roomIds = [r.roomId, ...(r.secondRoomId ? [r.secondRoomId] : [])];
+  if (await imaPreklapanje(datum, termin, roomIds, r.id)) {
+    return { ok: false, poruka: "Taj je termin u međuvremenu postao zauzet." };
+  }
+
+  await prisma.reservation.update({
+    where: { id: r.id },
+    data: { date: datum, slotStart: termin.start, slotEnd: termin.end },
+  });
+  return { ok: true };
+}
+
 /** Odobrava upit: provjerava je li termin slobodan, zauzima ga i šalje potvrdu. */
 export async function odobriUpit(code: string): Promise<RezultatRadnje> {
   const r = await prisma.reservation.findUnique({ where: { code }, include: UKLJUCI });

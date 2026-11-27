@@ -10,6 +10,7 @@ import { lokalniISO } from "@/lib/slots";
 import { STATUSI_ZAUZIMAJU_TERMIN } from "@/lib/statusi";
 import { zahtijevajOsoblje } from "@/lib/admin-sesija";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DostupnostBadge } from "@/components/admin/DostupnostBadge";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { GumbSlanja } from "@/components/admin/GumbSlanja";
 import { RezervacijaForma } from "@/components/admin/RezervacijaForma";
@@ -27,10 +28,12 @@ import {
   porukaPozivnice,
   porukaUpita,
   porukaZahvale,
+  porukaZauzetTermin,
   whatsappVeza,
 } from "@/lib/whatsapp";
 import { predlozakZaProslavu } from "@/lib/pozivnica-predlosci";
-import { odbijUpitAkcija, odobriUpitAkcija, oznaciWhatsappPoruku, spremiIzmjene } from "../akcije";
+import { provjeriDostupnostUpita } from "@/lib/dostupnost";
+import { odbijUpitAkcija, odobriUpitAkcija, oznaciWhatsappPoruku, prebaciTerminAkcija, spremiIzmjene } from "../akcije";
 import { WhatsAppGumb } from "@/components/admin/WhatsAppGumb";
 import type { ReactNode } from "react";
 
@@ -48,7 +51,16 @@ const PORUKE: Record<string, string> = {
   odobreno: "✅ Upit je odobren — termin je zauzet, a kupac je dobio potvrdu.",
   odbijeno: "Upit je odbijen i kupac je obaviješten.",
   spremljeno: "✅ Rezervacija je spremljena.",
+  prebaceno: hr.admin.terminPrebacen,
 };
+
+/** Kratka oznaka udaljenosti predloženog termina od traženog datuma. */
+function oznakaPomaka(razlikaDana: number): string {
+  if (razlikaDana === 0) return "isti dan";
+  const abs = Math.abs(razlikaDana);
+  const jedinica = abs === 1 ? "dan" : "dana";
+  return razlikaDana < 0 ? `${abs} ${jedinica} ranije` : `${abs} ${jedinica} kasnije`;
+}
 
 // Statusne radnje koje se bilježe (tip u dnevniku je `radnja-<status>`).
 const RADNJE_STATUSA: Record<string, string> = { placeno: "Označeno plaćeno", zavrseno: "Označeno završeno" };
@@ -181,14 +193,28 @@ export default async function RezervacijaDetalj({
     roomName: r.secondRoom ? `${r.room.name} + ${r.secondRoom.name}` : r.room.name,
   };
   const danaDoProslave = danaDo(r.date);
+  const [predlozak, dostupnost] = await Promise.all([
+    predlozakZaProslavu(r.themeId, r.roomId),
+    jeUpit
+      ? provjeriDostupnostUpita({
+          id: r.id,
+          date: r.date,
+          slotStart: r.slotStart,
+          slotEnd: r.slotEnd,
+          durationMin: r.package.durationMin,
+          roomId: r.roomId,
+          secondRoomId: r.secondRoomId,
+        })
+      : Promise.resolve(null),
+  ]);
   const wa = {
     upit: whatsappVeza(r.phone, porukaUpita(zaPoruku)),
+    zauzetTermin: dostupnost && !dostupnost.slobodan ? whatsappVeza(r.phone, porukaZauzetTermin(zaPoruku, dostupnost.prijedlozi)) : null,
     potvrda: whatsappVeza(r.phone, porukaPotvrde(zaPoruku, `${env.appUrl}/potvrda/${r.code}?k=${r.qrToken}`)),
     podsjetnik: whatsappVeza(r.phone, porukaPodsjetnika(zaPoruku, danaDoProslave)),
     zahvala: whatsappVeza(r.phone, porukaZahvale(zaPoruku, env.reviewUrl)),
     pozivnica: whatsappVeza(r.phone, porukaPozivnice(vezaPozivnice, r.childName)),
   };
-  const predlozak = await predlozakZaProslavu(r.themeId, r.roomId);
 
   // Radnje osoblja bilježe se uz poruke, ali na popisu poruka ne pripadaju.
   const poruke = r.notifications.filter((n) => !n.type.startsWith("radnja-"));
@@ -240,21 +266,106 @@ export default async function RezervacijaDetalj({
       {/* Upit čeka odluku */}
       {jeUpit && (
         <section className="card mt-6 ring-2 ring-sun-400">
-          <h2 className="font-display text-xl font-bold text-brand-900">📨 Upit čeka odobrenje</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-xl font-bold text-brand-900">📨 Upit čeka odobrenje</h2>
+            {dostupnost && <DostupnostBadge slobodan={dostupnost.slobodan} />}
+          </div>
           <p className="mt-1 text-sm text-ink-500">
             Poslan {formatDatumVrijeme(r.createdAt)}. Upit još ne zauzima termin. Po potrebi ga najprije uredite (niže),
             zatim odobrite ili odbijte — kupac dobiva obavijest e-poštom.
           </p>
-          {wa.upit && (
-            <p className="mt-3">
-              <WhatsAppGumb href={wa.upit} naziv="Javi se roditelju na WhatsApp" />
-            </p>
+
+          {/* Automatska provjera dostupnosti traženog termina + prijedlozi slobodnih */}
+          {dostupnost && (
+            <div
+              className={`mt-4 rounded-2xl px-4 py-3 text-sm ring-1 ${
+                dostupnost.slobodan
+                  ? "bg-emerald-50 text-emerald-900 ring-emerald-200"
+                  : "bg-red-50 text-red-900 ring-red-200"
+              }`}
+            >
+              {dostupnost.slobodan ? (
+                <p className="font-medium text-emerald-800">{hr.admin.terminSlobodanOpis}</p>
+              ) : (
+                <div>
+                  <p className="font-semibold text-red-800">
+                    {dostupnost.razlog === "zatvoreno" && dostupnost.zatvaranje
+                      ? `${hr.admin.terminZatvorenoOpis} (${dostupnost.zatvaranje.razlog}).`
+                      : hr.admin.terminZauzetOpis}
+                  </p>
+                  {dostupnost.zauzetoOd && (
+                    <p className="mt-1 text-xs text-red-700">
+                      Zauzima:{" "}
+                      <Link
+                        href={`/admin/rezervacije/${dostupnost.zauzetoOd.code}`}
+                        className="font-semibold underline hover:text-red-900"
+                      >
+                        {dostupnost.zauzetoOd.code} · {dostupnost.zauzetoOd.naziv} ({dostupnost.zauzetoOd.slotStart}–{dostupnost.zauzetoOd.slotEnd})
+                      </Link>
+                    </p>
+                  )}
+
+                  <div className="mt-3 border-t border-red-200/80 pt-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-red-800">
+                      {hr.admin.predlozeniTermini} {zaPoruku.roomName}
+                    </p>
+                    {dostupnost.prijedlozi.length > 0 ? (
+                      <ul className="mt-2 space-y-2">
+                        {dostupnost.prijedlozi.map((p) => (
+                          <li
+                            key={`${p.dateISO}-${p.slotStart}`}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/90 px-3 py-2 text-ink-800 ring-1 ring-red-100"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-medium">
+                                {formatDatumDugi(`${p.dateISO}T12:00:00`)} · {p.slotStart} – {p.slotEnd}
+                              </span>
+                              <span className="ml-2 text-xs text-ink-500">({oznakaPomaka(p.razlikaDana)})</span>
+                            </div>
+                            <form action={prebaciTerminAkcija}>
+                              <input type="hidden" name="code" value={r.code} />
+                              <input type="hidden" name="dateISO" value={p.dateISO} />
+                              <input type="hidden" name="slotStart" value={p.slotStart} />
+                              <button type="submit" className="btn-secondary !px-3 !py-1 !text-xs">
+                                {hr.admin.prebaciNaTermin}
+                              </button>
+                            </form>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-xs text-red-700">{hr.admin.nemaPrijedloga}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(wa.zauzetTermin || wa.upit) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {wa.zauzetTermin ? (
+                <WhatsAppGumb href={wa.zauzetTermin} naziv={hr.admin.whatsappAlternativa} />
+              ) : (
+                wa.upit && <WhatsAppGumb href={wa.upit} naziv="Javi se roditelju na WhatsApp" />
+              )}
+            </div>
           )}
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <form action={odobriUpitAkcija} className="flex flex-col rounded-2xl bg-mint-500/10 p-4">
               <input type="hidden" name="code" value={r.code} />
-              <p className="flex-1 text-sm text-ink-700">Odobrenjem se termin zauzima, a kupcu se šalje potvrda s QR kodom.</p>
-              <button type="submit" className="btn-primary mt-3 w-full">✅ Odobri upit</button>
+              <p className="flex-1 text-sm text-ink-700">
+                {dostupnost && !dostupnost.slobodan
+                  ? "Termin je zauzet — prebacite upit na jedan od slobodnih termina iznad (ili uredite niže) prije odobrenja."
+                  : "Odobrenjem se termin zauzima, a kupcu se šalje potvrda s QR kodom."}
+              </p>
+              <button
+                type="submit"
+                disabled={Boolean(dostupnost && !dostupnost.slobodan)}
+                className={`btn-primary mt-3 w-full ${dostupnost && !dostupnost.slobodan ? "cursor-not-allowed opacity-50" : ""}`}
+              >
+                ✅ Odobri upit
+              </button>
             </form>
             <form action={odbijUpitAkcija} className="rounded-2xl bg-red-50 p-4">
               <input type="hidden" name="code" value={r.code} />

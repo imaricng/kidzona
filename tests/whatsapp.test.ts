@@ -5,6 +5,7 @@ import {
   porukaPozivnice,
   porukaUpita,
   porukaZahvale,
+  porukaZauzetTermin,
   whatsappBroj,
   whatsappVeza,
 } from "@/lib/whatsapp";
@@ -71,5 +72,13 @@ describe("poruke", () => {
   });
   it("bez imena roditelja poruka i dalje ima pozdrav", () => {
     expect(porukaUpita({ ...PROSLAVA, parentName: "  " })).toContain("Pozdrav!");
+  });
+  it("poruka za zauzet termin navodi sobu i predložene slobodne termine", () => {
+    const p = porukaZauzetTermin(PROSLAVA, [
+      { dateISO: "2030-06-02", slotStart: "14:00", slotEnd: "16:00" },
+    ]);
+    expect(p).toContain("Kids Play");
+    expect(p).toContain("od 14:00 do 16:00");
+    expect(p).toContain("zauzet");
   });
 });

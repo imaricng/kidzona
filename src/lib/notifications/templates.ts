@@ -64,15 +64,34 @@ export function predlozakNovogUpita(
   r: RezervacijaPodaci,
   kontakt: { email: string; phone?: string | null; notes?: string | null },
   adminUrl: string,
+  dostupnost?: {
+    slobodan: boolean;
+    prijedlozi: { dateISO: string; slotStart: string; slotEnd: string }[];
+  },
 ): { naslov: string; tijelo: string } {
+  const statusRed = dostupnost
+    ? dostupnost.slobodan
+      ? `Dostupnost: TERMIN SLOBODAN`
+      : `Dostupnost: TERMIN ZAUZET`
+    : null;
+  const prijedloziRedovi =
+    dostupnost && !dostupnost.slobodan && dostupnost.prijedlozi.length > 0
+      ? [
+          `Najbliži slobodni termini (${r.roomName}):`,
+          ...dostupnost.prijedlozi.map((p) => `- ${formatDatumDugi(`${p.dateISO}T12:00:00`)}, ${p.slotStart} – ${p.slotEnd}`),
+        ]
+      : [];
+
   return {
-    naslov: `[UPIT] Novi upit ${r.code} — ${formatDatumDugi(r.date)}, ${r.slotStart}`,
+    naslov: `[UPIT${dostupnost ? (dostupnost.slobodan ? " · SLOBODNO" : " · ZAUZETO") : ""}] Novi upit ${r.code} — ${formatDatumDugi(r.date)}, ${r.slotStart}`,
     tijelo: [
       `Stigao je novi upit za proslavu:`,
       ``,
       `Broj: ${r.code}`,
       `Datum i termin: ${formatDatumDugi(r.date)}, ${r.slotStart} – ${r.slotEnd}`,
       `Igraonica: ${r.roomName}`,
+      statusRed,
+      ...prijedloziRedovi,
       `Paket: ${r.packageName} (${brojDjece(r.numChildren)}${r.numAdults ? ` + ${r.numAdults} odraslih` : ""})`,
       r.childName ? `Slavljenik: ${imeVelikimSlovom(r.childName)}` : null,
       `Roditelj: ${imeVelikimSlovom(r.parentName)}`,

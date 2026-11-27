@@ -10,6 +10,7 @@ import {
   TerminZauzetError,
   odbijUpit,
   odobriUpit,
+  prebaciTerminUpita,
   unesiRucno,
   urediRezervaciju,
   type PodaciRezervacije,
@@ -127,6 +128,20 @@ export async function odobriUpitAkcija(formData: FormData): Promise<void> {
   redirect(
     rezultat.ok
       ? `/admin/rezervacije/${code}?poruka=odobreno`
+      : `/admin/rezervacije/${code}?greska=${encodeURIComponent(rezultat.poruka)}`,
+  );
+}
+
+export async function prebaciTerminAkcija(formData: FormData): Promise<void> {
+  await zahtijevajOsoblje();
+  const code = String(formData.get("code") ?? "");
+  const dateISO = String(formData.get("dateISO") ?? "");
+  const slotStart = String(formData.get("slotStart") ?? "");
+  const rezultat = await prebaciTerminUpita(code, dateISO, slotStart);
+  osvjezi(code);
+  redirect(
+    rezultat.ok
+      ? `/admin/rezervacije/${code}?poruka=prebaceno`
       : `/admin/rezervacije/${code}?greska=${encodeURIComponent(rezultat.poruka)}`,
   );
 }

@@ -349,6 +349,17 @@ export const hr = {
     marketingNe: "Bez privole",
     zadnjaProslava: "Zadnja proslava",
     posaljiPodsjetnik: "Pošalji podsjetnik za rođendan",
+    // Provjera dostupnosti upita
+    terminSlobodan: "Termin slobodan",
+    terminZauzet: "Termin zauzet",
+    terminSlobodanOpis: "Igraonica je slobodna u traženom terminu — upit možete odmah odobriti.",
+    terminZauzetOpis: "Igraonica je već zauzeta potvrđenom rezervacijom u ovom terminu.",
+    terminZatvorenoOpis: "Na odabrani datum igraonica ne radi",
+    predlozeniTermini: "Najbliži slobodni termini za",
+    nemaPrijedloga: "U narednim danima nema slobodnih termina za ovu igraonicu.",
+    prebaciNaTermin: "Prebaci na ovaj termin",
+    terminPrebacen: "✅ Termin upita je prebačen na odabrani slobodni termin.",
+    whatsappAlternativa: "Predloži termine na WhatsApp",
   },
   portal: {
     naslov: "Moj profil",
